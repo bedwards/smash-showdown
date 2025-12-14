@@ -1,18 +1,17 @@
 --!strict
 -- Client entry point for Smash Showdown
--- Handles local player input, UI, and client-side rendering
+-- Other client scripts handle specific systems:
+-- - Controller.client.luau: Movement and combat input
+-- - BallClient.client.luau: Ball hitting
+-- - UI.client.luau: Health bars and HUD
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-
 local LocalPlayer = Players.LocalPlayer
 
 print("[Client] Smash Showdown client starting...")
 
--- Wait for character
 LocalPlayer.CharacterAdded:Connect(function(character)
-	print("[Client] Character spawned")
+	print("[Client] Character ready!")
 end)
 
-print("[Client] Smash Showdown client initialized!")
+print("[Client] Smash Showdown client ready!")
