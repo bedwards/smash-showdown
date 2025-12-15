@@ -198,9 +198,17 @@ These principles guide our approach. Sources linked.
 
 ## Mertin-Flemmer: Lessons Learned
 
+### CRITICAL: Two Terrain Systems Exist
+
+The game has TWO terrain systems that can conflict:
+1. **`AlpineTerrain.server.luau`** - Creates voxel terrain (the actual walkable surface)
+2. **`World.server.luau createGround()`** - Creates a Part ground (backup safety net)
+
+The Part ground MUST be positioned BELOW the voxel terrain (currently at Y=-30) or objects will be buried.
+
 ### CRITICAL: Terrain Height Synchronization
 
-The game has TWO places that calculate terrain height:
+There are also TWO places that calculate terrain height:
 1. **`AlpineTerrain.server.luau`** - Actually generates the voxel terrain
 2. **`shared/init.luau` (`Shared.getTerrainHeight`)** - Used to position objects ON terrain
 
