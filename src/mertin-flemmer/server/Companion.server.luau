@@ -293,26 +293,22 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 			-- Get the camel's humanoid
 			local camelHumanoid = camel:FindFirstChildOfClass("Humanoid")
 			if camelHumanoid and body then
-				local speed = 20 * throttle  -- Base movement speed
-
 				if math.abs(throttle) > 0.1 or math.abs(steer) > 0.1 then
-					-- Calculate movement direction based on camel's facing direction
-					local lookVector = body.CFrame.LookVector
-					local rightVector = body.CFrame.RightVector
-
-					-- Apply steering by rotating
+					-- Apply steering by rotating (flip the sign for correct direction)
 					if math.abs(steer) > 0.1 then
-						body.CFrame = body.CFrame * CFrame.Angles(0, -steer * 0.05, 0)
+						body.CFrame = body.CFrame * CFrame.Angles(0, steer * 0.08, 0)
 					end
 
-					-- Move forward/backward
+					-- Move forward/backward using velocity
 					if math.abs(throttle) > 0.1 then
-						local moveDirection = lookVector * throttle
-						camelHumanoid:Move(moveDirection)
+						local speed = 25 * throttle
+						local moveDir = body.CFrame.LookVector * speed
+						body.AssemblyLinearVelocity = Vector3.new(moveDir.X, body.AssemblyLinearVelocity.Y, moveDir.Z)
 					end
 				else
-					-- Stop moving when no input
-					camelHumanoid:Move(Vector3.zero)
+					-- Slow down when no input (keep Y velocity for gravity)
+					local vel = body.AssemblyLinearVelocity
+					body.AssemblyLinearVelocity = Vector3.new(vel.X * 0.9, vel.Y, vel.Z * 0.9)
 				end
 			end
 		end
@@ -694,8 +690,8 @@ local function spawnCompanion(player: Player)
 	local rootPart = character:WaitForChild("HumanoidRootPart", 10) :: BasePart?
 	if not rootPart then return end
 
-	-- Pick random personality
-	local personality = PERSONALITIES[math.random(#PERSONALITIES)]
+	-- Always use Pickles (first personality) - the fan favorite!
+	local personality = PERSONALITIES[1]  -- Pickles!
 
 	-- Create camel - spawn OUTSIDE the spawn house (house is at 0, 0, -30)
 	-- Always spawn in the front yard area, not inside buildings

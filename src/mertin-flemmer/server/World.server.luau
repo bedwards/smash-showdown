@@ -1384,9 +1384,9 @@ local function createSpawnHouse(position: Vector3)
 	local depth = 15
 	local height = 12
 
-	-- Get terrain height and position house ON TOP of terrain
+	-- Get terrain height and position house WELL ABOVE terrain
 	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
-	local baseY = math.max(terrainHeight, 0) + 1  -- At least 1 stud above terrain
+	local baseY = math.max(terrainHeight, 0) + 5  -- 5 studs above terrain to be safe
 	position = Vector3.new(position.X, baseY, position.Z)
 
 	-- Foundation (solid base so you don't fall through)
