@@ -102,6 +102,28 @@ local function createGround()
 	print("[World] Safety floor created at Y=-100")
 end
 
+-- ==========================================
+-- TERRAIN HEIGHT: Raycast to find actual voxel terrain surface
+-- This is the ONLY way to get accurate terrain height after generation
+-- ==========================================
+local function getActualTerrainHeight(x: number, z: number): number
+	local rayOrigin = Vector3.new(x, 500, z)
+	local rayDirection = Vector3.new(0, -600, 0)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
+
+	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if result then
+		return result.Position.Y
+	end
+
+	-- Fallback to calculated height if raycast fails (terrain not generated yet)
+	print("[World] WARNING: Raycast failed at", x, z, "- using calculated height")
+	return Shared.getTerrainHeight(x, z)
+end
+
 -- Create a tree (biome-aware)
 local function createTree(position: Vector3)
 	local biome = getBiome(position.X, position.Z)
@@ -1280,10 +1302,10 @@ local function createSpawnHouse(position: Vector3)
 	local depth = 15
 	local height = 12
 
-	-- Get actual terrain height at spawn location
-	-- AlpineTerrain flattens spawn area, but we still need to query it
-	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
-	position = Vector3.new(position.X, math.max(terrainHeight, 0), position.Z)
+	-- Get ACTUAL terrain height using raycast (terrain must be generated first!)
+	local terrainHeight = getActualTerrainHeight(position.X, position.Z)
+	position = Vector3.new(position.X, terrainHeight, position.Z)
+	print("[World] Spawn house terrain height (raycast):", terrainHeight)
 
 	-- Foundation (solid base so you don't fall through)
 	local foundation = Instance.new("Part")
@@ -1488,7 +1510,8 @@ local function generateWorld()
 
 	-- Create the Mertin-Flemmer Building (7.5 floor) near center
 	local buildingX, buildingZ = 150, -100
-	local buildingTerrainY = Shared.getTerrainHeight(buildingX, buildingZ)
+	local buildingTerrainY = getActualTerrainHeight(buildingX, buildingZ)
+	print("[World] Office building terrain height (raycast):", buildingTerrainY)
 	createOfficeBuilding75(Vector3.new(buildingX, buildingTerrainY, buildingZ))
 
 	-- FAST TRAVEL PORTAL NETWORK
@@ -2323,26 +2346,8 @@ local function generateWorld()
 end
 
 -- ==========================================
--- TERRAIN SYNC: Wait for voxel terrain, then reposition objects
+-- TERRAIN SYNC: Reposition objects after terrain is generated
 -- ==========================================
-
-local function getActualTerrainHeight(x: number, z: number): number
-	-- Raycast down from high up to find actual terrain surface
-	local rayOrigin = Vector3.new(x, 500, z)
-	local rayDirection = Vector3.new(0, -600, 0)
-
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Include
-	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
-
-	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-	if result then
-		return result.Position.Y
-	end
-
-	-- Fallback to calculated height if raycast fails
-	return Shared.getTerrainHeight(x, z)
-end
 
 local function syncObjectsToTerrain()
 	print("[World] Syncing objects to actual terrain surface...")
@@ -2408,6 +2413,29 @@ local function waitForTerrainAndSync()
 	end
 end
 
--- Generate world first, then sync to terrain
-generateWorld()
-task.spawn(waitForTerrainAndSync)
+-- ==========================================
+-- MAIN: Wait for terrain FIRST, then generate world
+-- ==========================================
+
+local function main()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+	-- WAIT for AlpineTerrain to finish BEFORE generating anything
+	print("[World] Waiting for AlpineTerrain to generate voxels...")
+	local terrainReady = ReplicatedStorage:WaitForChild("TerrainReady", 30)
+	if terrainReady then
+		terrainReady.Event:Wait()
+		print("[World] Terrain ready! Now generating world objects...")
+		task.wait(1)  -- Let terrain fully settle
+	else
+		print("[World] WARNING: TerrainReady not found, proceeding anyway")
+	end
+
+	-- NOW generate world (terrain exists, raycast will work)
+	generateWorld()
+
+	-- Sync critical objects to actual terrain surface
+	syncObjectsToTerrain()
+end
+
+main()
