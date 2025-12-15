@@ -2322,4 +2322,92 @@ local function generateWorld()
 	print("[World] ========================================")
 end
 
+-- ==========================================
+-- TERRAIN SYNC: Wait for voxel terrain, then reposition objects
+-- ==========================================
+
+local function getActualTerrainHeight(x: number, z: number): number
+	-- Raycast down from high up to find actual terrain surface
+	local rayOrigin = Vector3.new(x, 500, z)
+	local rayDirection = Vector3.new(0, -600, 0)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
+
+	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if result then
+		return result.Position.Y
+	end
+
+	-- Fallback to calculated height if raycast fails
+	return Shared.getTerrainHeight(x, z)
+end
+
+local function syncObjectsToTerrain()
+	print("[World] Syncing objects to actual terrain surface...")
+
+	-- Find and reposition the spawn house
+	local spawnHouse = Workspace:FindFirstChild("SpawnHouse")
+	if spawnHouse and spawnHouse:IsA("Model") then
+		local primaryPart = spawnHouse.PrimaryPart or spawnHouse:FindFirstChildWhichIsA("BasePart")
+		if primaryPart then
+			local x, z = 0, -30
+			local actualY = getActualTerrainHeight(x, z)
+			local currentY = primaryPart.Position.Y
+			local deltaY = actualY - currentY + 1  -- +1 to sit on top
+
+			-- Move entire model
+			for _, part in spawnHouse:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Position = part.Position + Vector3.new(0, deltaY, 0)
+				end
+			end
+			print("[World] Spawn house repositioned to Y=" .. actualY)
+		end
+	end
+
+	-- Find and reposition the office building
+	local building = Workspace:FindFirstChild("MertinFlemmerBuilding")
+	if building and building:IsA("Model") then
+		local x, z = 150, -100
+		local actualY = getActualTerrainHeight(x, z)
+
+		for _, part in building:GetDescendants() do
+			if part:IsA("BasePart") then
+				-- Get part's current height relative to ground
+				local relativeY = part.Position.Y
+				-- Reposition based on actual terrain
+				part.Position = Vector3.new(part.Position.X, relativeY + actualY, part.Position.Z)
+			end
+		end
+		print("[World] Office building repositioned to terrain Y=" .. actualY)
+	end
+
+	print("[World] Terrain sync complete!")
+end
+
+-- Wait for AlpineTerrain to finish, then sync
+local function waitForTerrainAndSync()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+	-- Wait for TerrainReady event
+	local terrainReady = ReplicatedStorage:FindFirstChild("TerrainReady")
+	if terrainReady then
+		print("[World] Waiting for AlpineTerrain to generate voxels...")
+		terrainReady.Event:Wait()
+		print("[World] Terrain ready! Syncing objects...")
+
+		-- Give terrain a moment to fully settle
+		task.wait(1)
+
+		-- Sync objects to actual terrain
+		syncObjectsToTerrain()
+	else
+		print("[World] WARNING: TerrainReady event not found, skipping sync")
+	end
+end
+
+-- Generate world first, then sync to terrain
 generateWorld()
+task.spawn(waitForTerrainAndSync)

@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
@@ -345,6 +346,56 @@ RunService.Heartbeat:Connect(function()
 	checkResourceCollection()
 end)
 
--- Initialize
-spawnResources()
-print("[Resources] Resource system initialized!")
+-- ==========================================
+-- TERRAIN SYNC: Raycast to find actual terrain surface
+-- ==========================================
+
+local function getActualTerrainHeight(x: number, z: number): number
+	local rayOrigin = Vector3.new(x, 500, z)
+	local rayDirection = Vector3.new(0, -600, 0)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
+
+	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if result then
+		return result.Position.Y
+	end
+	return Shared.getTerrainHeight(x, z)
+end
+
+local function syncResourcesToTerrain()
+	print("[Resources] Syncing resources to actual terrain...")
+	local synced = 0
+
+	for resource, data in resources do
+		if resource and resource.Parent then
+			local x, z = resource.Position.X, resource.Position.Z
+			local actualY = getActualTerrainHeight(x, z)
+			local newY = actualY + data.modelData.size.Y / 2 + 0.5
+
+			resource.Position = Vector3.new(x, newY, z)
+			synced = synced + 1
+		end
+	end
+
+	print("[Resources] Synced", synced, "resources to terrain")
+end
+
+-- Wait for terrain, then spawn and sync resources
+local function initializeWithTerrain()
+	local terrainReady = ReplicatedStorage:FindFirstChild("TerrainReady")
+	if terrainReady then
+		print("[Resources] Waiting for terrain...")
+		terrainReady.Event:Wait()
+		task.wait(1)  -- Let terrain settle
+	end
+
+	spawnResources()
+	task.wait(0.5)
+	syncResourcesToTerrain()
+	print("[Resources] Resource system initialized!")
+end
+
+task.spawn(initializeWithTerrain)
