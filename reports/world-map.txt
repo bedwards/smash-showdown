@@ -1,0 +1,61 @@
+MERTIN-FLEMMER WORLD MAP (Approximate)
+=====================================
+
+Scale: Each character ≈ 100 studs
+Origin (0,0) marked with [S] = Spawn
+
+                    NORTH (-Z)
+                       |
+       -500           |          +500
+         |            |            |
+    .----|------------|------------|----.
+    |    |            |            |    |  +500
+    |    *Frozen      |    Shadow  |    |
+    |    Peaks        |    Mtns    |    |
+    |                 |            *    |
+    |    ~~~~~        |            |    |
+    |    Serpent      |            |    |
+    |    River        |            |    |
+----|-----------------+-[S]--------|----|--- EAST (+X)
+    |                 |            |    |
+    |    Whispering   |            |    |
+    |    Brook ~~~    |    Ember   |    |
+    |                 |    Ridge   |    |  -500
+    |    *Broken      |      *     |    |
+    |    Hills        |            |    |
+    |                 |   Giants * |    |
+    '----|------------|------------|----'
+         |            |            |
+       -500           |          +500
+                      |
+                    SOUTH (+Z)
+
+LEGEND:
+  [S] = Spawn Point (0, 0)
+  *   = Mountain Range
+  ~~~ = River/Water
+  O   = Lake
+  #   = Trading Post
+  +   = Checkers Board
+
+MOUNTAINS:
+  - Frozen Peaks: NW quadrant (300, -400)
+  - Shadow Mountains: NE quadrant (400, -200)
+  - Ember Ridge: SE quadrant (200, 200)
+  - The Giants: South central (350, 350)
+  - Broken Hills: SW quadrant (-350, 300)
+
+WATER:
+  - Serpent River: Winds through western area
+  - Whispering Brook: Southern region
+  - Shadow Creek: Near Shadow Mountains
+  - Crystal Falls: Near Frozen Peaks
+
+RADIO TOWERS:
+  @ Doom FM (66.6): Near Frozen Peaks
+  @ Survivor Radio (88.1): Near spawn
+  @ The Wasteland (91.7): Shadow Mountains
+  @ Camel Country (103.5): Southern area
+  @ Static (??.?): Far north
+  @ Mountain Echo (107.9): Near The Giants
+

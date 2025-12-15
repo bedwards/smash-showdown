@@ -1,0 +1,151 @@
+name: Verify Mertin-Flemmer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/mertin-flemmer/**'
+      - 'scripts/verify.sh'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/mertin-flemmer/**'
+      - 'scripts/verify.sh'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Run Verification Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make verify script executable
+        run: chmod +x scripts/verify.sh
+
+      - name: Run verification
+        run: |
+          echo "🔍 Running Mertin-Flemmer verification..."
+          ./scripts/verify.sh
+        continue-on-error: false
+
+      - name: Check for Luau syntax (basic)
+        run: |
+          echo "🔍 Checking Luau file syntax..."
+
+          ERRORS=0
+
+          # Check all .luau files exist and aren't empty
+          for file in $(find src/mertin-flemmer -name "*.luau" -type f); do
+            if [ ! -s "$file" ]; then
+              echo "❌ Empty file: $file"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          # Check for unbalanced brackets
+          for file in $(find src/mertin-flemmer -name "*.luau" -type f); do
+            opens=$(grep -o '{' "$file" | wc -l)
+            closes=$(grep -o '}' "$file" | wc -l)
+            if [ "$opens" -ne "$closes" ]; then
+              echo "❌ Mismatched braces in $file: { = $opens, } = $closes"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "❌ Found $ERRORS syntax issues"
+            exit 1
+          fi
+
+          echo "✅ Basic syntax checks passed"
+
+      - name: Security scan
+        run: |
+          echo "🔒 Running security scan..."
+
+          FORBIDDEN="loadstring|getfenv|setfenv|debug\.set"
+
+          if grep -rE "$FORBIDDEN" src/mertin-flemmer --include="*.luau"; then
+            echo "❌ Forbidden patterns found!"
+            exit 1
+          fi
+
+          echo "✅ Security scan passed"
+
+      - name: Check file structure
+        run: |
+          echo "📁 Checking file structure..."
+
+          # Required directories
+          for dir in server client shared; do
+            if [ ! -d "src/mertin-flemmer/$dir" ]; then
+              echo "❌ Missing directory: src/mertin-flemmer/$dir"
+              exit 1
+            fi
+          done
+
+          # Server scripts should end in .server.luau
+          for file in src/mertin-flemmer/server/*.luau; do
+            if [[ "$file" != *".server.luau" ]]; then
+              echo "⚠️ Server file should be .server.luau: $file"
+            fi
+          done
+
+          # Client scripts should end in .client.luau
+          for file in src/mertin-flemmer/client/*.luau; do
+            if [[ "$file" != *".client.luau" ]]; then
+              echo "⚠️ Client file should be .client.luau: $file"
+            fi
+          done
+
+          echo "✅ File structure check passed"
+
+      - name: Ground existence check (CRITICAL)
+        run: |
+          echo "🌍 CRITICAL: Checking ground exists..."
+
+          if ! grep -q "Ground_Main\|Baseplate\|createGround" src/mertin-flemmer/server/World.server.luau; then
+            echo "❌ CRITICAL: NO GROUND FOUND! Players will fall through the world!"
+            exit 1
+          fi
+
+          if ! grep -A5 "Ground_Main" src/mertin-flemmer/server/World.server.luau | grep -q "CanCollide = true"; then
+            echo "❌ CRITICAL: Ground is not collidable!"
+            exit 1
+          fi
+
+          echo "✅ Ground exists and is collidable"
+
+      - name: Spawn area check
+        run: |
+          echo "🏠 Checking spawn area is clear..."
+
+          # Make sure no mountains at origin
+          if grep -q "basePosition = Vector3.new(0," src/mertin-flemmer/server/Mountains.server.luau 2>/dev/null; then
+            echo "❌ Mountain at origin blocks spawn!"
+            exit 1
+          fi
+
+          echo "✅ Spawn area is clear"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "  VERIFICATION SUMMARY"
+          echo "=========================================="
+          echo ""
+
+          # Count files
+          SERVER_COUNT=$(find src/mertin-flemmer/server -name "*.luau" | wc -l)
+          CLIENT_COUNT=$(find src/mertin-flemmer/client -name "*.luau" | wc -l)
+          SHARED_COUNT=$(find src/mertin-flemmer/shared -name "*.luau" | wc -l)
+          TOTAL_LINES=$(find src/mertin-flemmer -name "*.luau" -exec cat {} \; | wc -l)
+
+          echo "📊 Files: Server=$SERVER_COUNT, Client=$CLIENT_COUNT, Shared=$SHARED_COUNT"
+          echo "📊 Total lines of Luau: $TOTAL_LINES"
+          echo ""

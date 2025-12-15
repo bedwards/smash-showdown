@@ -88,7 +88,7 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 	resource.Size = modelData.size
 	resource.Color = modelData.color
 	resource.Material = Enum.Material.SmoothPlastic
-	resource.Position = Vector3.new(position.X, terrainHeight + modelData.size.Y / 2 + 0.5, position.Z)
+	resource.Position = Vector3.new(position.X, terrainHeight + modelData.size.Y / 2 + 1.0, position.Z)
 	resource.Anchored = true
 	resource.CanCollide = false
 
@@ -101,7 +101,7 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 	highlight.Parent = resource
 
 	-- Add floating animation
-	local baseY = terrainHeight + modelData.size.Y / 2 + 0.5
+	local baseY = terrainHeight + modelData.size.Y / 2 + 1.0
 	local floatOffset = math.random() * math.pi * 2
 
 	-- Hover and rotate effect
