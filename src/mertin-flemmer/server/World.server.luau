@@ -85,11 +85,12 @@ local function createGround()
 	-- Main ground for each biome region
 	local biomeGrounds = {}
 
-	-- Create one massive ground base (thick to prevent fall-through)
+	-- Create one massive ground base (backup floor far below terrain)
+	-- AlpineTerrain creates the actual voxel terrain, this is just a safety net
 	local ground = Instance.new("Part")
 	ground.Name = "Ground_Main"
 	ground.Size = Vector3.new(WORLD_SIZE * 2.5, 20, WORLD_SIZE * 2.5)
-	ground.Position = Vector3.new(0, -10, 0) -- Top surface at y=0
+	ground.Position = Vector3.new(0, -30, 0) -- Top surface at y=-20, well below terrain
 	ground.Color = BIOMES.FOREST.groundColor
 	ground.Material = BIOMES.FOREST.material
 	ground.Anchored = true
@@ -1384,9 +1385,10 @@ local function createSpawnHouse(position: Vector3)
 	local depth = 15
 	local height = 12
 
-	-- Spawn area is flattened to Y=0 by terrain generator, so house sits at Y=0
-	-- No need to calculate terrain height here - spawn is always flat
-	position = Vector3.new(position.X, 0, position.Z)
+	-- Get actual terrain height at spawn location
+	-- AlpineTerrain flattens spawn area, but we still need to query it
+	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
+	position = Vector3.new(position.X, math.max(terrainHeight, 0), position.Z)
 
 	-- Foundation (solid base so you don't fall through)
 	local foundation = Instance.new("Part")
