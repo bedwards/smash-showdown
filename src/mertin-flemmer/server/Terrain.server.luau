@@ -249,7 +249,7 @@ local function createSpawnSigns()
 		descLabel.Text = pathData.description
 		descLabel.TextColor3 = Color3.fromRGB(220, 220, 200)
 		descLabel.Font = Enum.Font.Gotham
-		descLabel.TextSize = 14
+		descLabel.TextSize = 24
 		descLabel.TextWrapped = true
 		descLabel.TextYAlignment = Enum.TextYAlignment.Top
 		descLabel.Parent = signGui
@@ -433,7 +433,7 @@ local function createExplorerRemains(position: Vector3, journalData: typeof(JOUR
 		label.TextColor3 = Color3.fromRGB(200, 180, 140)
 		label.TextStrokeTransparency = 0.3
 		label.Font = Enum.Font.Antique
-		label.TextSize = 12
+		label.TextSize = 20
 		label.Parent = billboard
 	end
 
@@ -590,7 +590,7 @@ local function createPirateShip(position: Vector3)
 		petLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 		petLabel.TextStrokeTransparency = 0.3
 		petLabel.Font = Enum.Font.GothamBold
-		petLabel.TextSize = 10
+		petLabel.TextSize = 18
 		petLabel.Parent = petBillboard
 
 		-- Rescue prompt

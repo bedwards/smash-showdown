@@ -569,21 +569,21 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	local sign = Instance.new("Model")
 	sign.Name = "StorySign_Ch" .. signData.chapter
 
-	-- Post
+	-- Post (taller for bigger sign)
 	local post = Instance.new("Part")
 	post.Name = "Post"
-	post.Size = Vector3.new(0.5, 6, 0.5)
-	post.Position = signData.position + Vector3.new(0, 3, 0)
+	post.Size = Vector3.new(0.5, 10, 0.5)
+	post.Position = signData.position + Vector3.new(0, 5, 0)
 	post.Color = Color3.fromRGB(70, 50, 35)
 	post.Material = Enum.Material.Wood
 	post.Anchored = true
 	post.Parent = sign
 
-	-- Sign board
+	-- Sign board (larger for bigger text)
 	local board = Instance.new("Part")
 	board.Name = "Board"
-	board.Size = Vector3.new(6, 5, 0.3)
-	board.Position = signData.position + Vector3.new(0, 5, 0.5)
+	board.Size = Vector3.new(10, 8, 0.3)
+	board.Position = signData.position + Vector3.new(0, 6, 0.5)
 	board.Color = Color3.fromRGB(90, 70, 50)
 	board.Material = Enum.Material.Wood
 	board.Anchored = true
@@ -622,7 +622,7 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	titleLabel.Text = "Chapter " .. signData.chapter .. ": " .. signData.title
 	titleLabel.TextColor3 = Color3.fromRGB(255, 220, 150)
 	titleLabel.Font = Enum.Font.Antique
-	titleLabel.TextSize = 18
+	titleLabel.TextSize = 32
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 	titleLabel.Parent = container
 
@@ -633,7 +633,7 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	contentLabel.Text = signData.content
 	contentLabel.TextColor3 = Color3.fromRGB(220, 210, 190)
 	contentLabel.Font = Enum.Font.Gotham
-	contentLabel.TextSize = 10
+	contentLabel.TextSize = 18
 	contentLabel.TextWrapped = true
 	contentLabel.TextXAlignment = Enum.TextXAlignment.Left
 	contentLabel.TextYAlignment = Enum.TextYAlignment.Top
