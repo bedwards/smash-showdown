@@ -269,8 +269,8 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	tail.CanCollide = false
 	tail.Parent = camel
 
-	-- SEAT for riding! (Press E or click to mount)
-	local seat = Instance.new("Seat")
+	-- VEHICLE SEAT for riding! Player can control with WASD/arrows
+	local seat = Instance.new("VehicleSeat")
 	seat.Name = "CamelSeat"
 	seat.Size = Vector3.new(2, 0.5, 2) * SCALE
 	seat.Position = body.Position + Vector3.new(0, 1.8 * SCALE, 0)
@@ -279,7 +279,47 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	seat.Anchored = false
 	seat.CanCollide = true -- Player can sit on it!
 	seat.Transparency = 0
+	seat.MaxSpeed = 50  -- Fast camel!
+	seat.Torque = 20
+	seat.TurnSpeed = 2
 	seat.Parent = camel
+
+	-- Movement handler - reads VehicleSeat throttle/steer to move the camel
+	local function updateCamelMovement()
+		local throttle = seat.Throttle  -- -1 (back) to 1 (forward)
+		local steer = seat.Steer        -- -1 (left) to 1 (right)
+
+		if seat.Occupant then
+			-- Get the camel's humanoid
+			local camelHumanoid = camel:FindFirstChildOfClass("Humanoid")
+			if camelHumanoid and body then
+				local speed = 20 * throttle  -- Base movement speed
+
+				if math.abs(throttle) > 0.1 or math.abs(steer) > 0.1 then
+					-- Calculate movement direction based on camel's facing direction
+					local lookVector = body.CFrame.LookVector
+					local rightVector = body.CFrame.RightVector
+
+					-- Apply steering by rotating
+					if math.abs(steer) > 0.1 then
+						body.CFrame = body.CFrame * CFrame.Angles(0, -steer * 0.05, 0)
+					end
+
+					-- Move forward/backward
+					if math.abs(throttle) > 0.1 then
+						local moveDirection = lookVector * throttle
+						camelHumanoid:Move(moveDirection)
+					end
+				else
+					-- Stop moving when no input
+					camelHumanoid:Move(Vector3.zero)
+				end
+			end
+		end
+	end
+
+	-- Connect to heartbeat for smooth movement
+	local moveConnection = RunService.Heartbeat:Connect(updateCamelMovement)
 
 	-- Saddle blanket underneath
 	local blanket = Instance.new("Part")
