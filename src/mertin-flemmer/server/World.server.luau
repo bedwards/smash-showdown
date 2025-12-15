@@ -1384,10 +1384,9 @@ local function createSpawnHouse(position: Vector3)
 	local depth = 15
 	local height = 12
 
-	-- Get terrain height and position house WELL ABOVE terrain
-	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
-	local baseY = math.max(terrainHeight, 0) + 5  -- 5 studs above terrain to be safe
-	position = Vector3.new(position.X, baseY, position.Z)
+	-- Spawn area is flattened to Y=0 by terrain generator, so house sits at Y=0
+	-- No need to calculate terrain height here - spawn is always flat
+	position = Vector3.new(position.X, 0, position.Z)
 
 	-- Foundation (solid base so you don't fall through)
 	local foundation = Instance.new("Part")
@@ -1591,7 +1590,9 @@ local function generateWorld()
 	createSpawnHouse(Vector3.new(0, 0, -30))
 
 	-- Create the Mertin-Flemmer Building (7.5 floor) near center
-	createOfficeBuilding75(Vector3.new(150, 0, -100))
+	local buildingX, buildingZ = 150, -100
+	local buildingTerrainY = Shared.getTerrainHeight(buildingX, buildingZ)
+	createOfficeBuilding75(Vector3.new(buildingX, buildingTerrainY, buildingZ))
 
 	-- FAST TRAVEL PORTAL NETWORK
 	local portalLocations = {

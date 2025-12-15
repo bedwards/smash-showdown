@@ -41,13 +41,13 @@ local function ridgeNoise(x: number, z: number, scale: number, seed: number): nu
 	return 1 - math.abs(n)
 end
 
--- Mountain influence zones (must match AlpineTerrain)
+-- Mountain influence zones (must match AlpineTerrain EXACTLY)
 local MOUNTAIN_ZONES = {
-	{ center = { X = 300, Y = -400 }, radius = 400, height = 350 },
-	{ center = { X = 400, Y = -200 }, radius = 350, height = 300 },
-	{ center = { X = 200, Y = 200 }, radius = 300, height = 250 },
-	{ center = { X = 350, Y = 350 }, radius = 400, height = 380 },
-	{ center = { X = -350, Y = 300 }, radius = 250, height = 150 },
+	{ centerX = 300, centerZ = -400, radius = 400, height = 350 },
+	{ centerX = 400, centerZ = -200, radius = 350, height = 300 },
+	{ centerX = 200, centerZ = 200, radius = 300, height = 250 },
+	{ centerX = 350, centerZ = 350, radius = 400, height = 380 },
+	{ centerX = -350, centerZ = 300, radius = 250, height = 150 },
 }
 
 -- Valley paths (must match AlpineTerrain)
@@ -78,51 +78,39 @@ local function getDistanceToPath(x: number, z: number, path: typeof(VALLEY_PATHS
 end
 
 -- Calculate terrain height at any world position
--- This MUST match AlpineTerrain.server.luau calculateHeight function!
+-- This MUST match AlpineTerrain.server.luau calculateHeight function EXACTLY!
 function Shared.getTerrainHeight(x: number, z: number): number
-	-- Base gentle undulation (starts at 0, not +10, to match AlpineTerrain)
-	local base = fbm(x, z, 3, 0.5, 500, SEED) * 30  -- 3 octaves, no +10
+	-- Base undulation (MUST match AlpineTerrain)
+	local base = fbm(x, z, 3, 0.5, 500, SEED) * 30
+	local hills = fbm(x, z, 2, 0.6, 200, SEED + 1000) * 20
 
-	-- Add gentle rolling hills
-	local hills = fbm(x, z, 2, 0.6, 200, SEED + 1000) * 20  -- 2 octaves
-
-	-- Mountain influence
+	-- Mountain influence (MUST match AlpineTerrain)
 	local mountainHeight = 0
 	for _, zone in ipairs(MOUNTAIN_ZONES) do
-		local dx = x - zone.center.X
-		local dz = z - zone.center.Y
-		local dist = math.sqrt(dx * dx + dz * dz)
+		local dist = math.sqrt((x - zone.centerX)^2 + (z - zone.centerZ)^2)
 		if dist < zone.radius then
-			local influence = 1 - (dist / zone.radius)
-			influence = influence ^ 1.5  -- Steeper near peaks
-
-			-- Add ridge detail to mountains
+			local influence = (1 - dist / zone.radius) ^ 1.5
 			local ridge = ridgeNoise(x, z, 100, SEED + 2000) * 50
-			local detail = fbm(x, z, 6, 0.5, 50, SEED + 3000) * 30
-
-			local mtnHeight = zone.height * influence + ridge * influence + detail * influence
+			local mtnHeight = zone.height * influence + ridge * influence
 			mountainHeight = math.max(mountainHeight, mtnHeight)
 		end
 	end
 
-	-- Valley carving (lower terrain near river paths)
+	-- Valley carving (MUST match AlpineTerrain)
 	local valleyDepth = 0
 	for _, path in ipairs(VALLEY_PATHS) do
 		local dist = getDistanceToPath(x, z, path)
 		if dist < path.width * 2 then
-			local influence = 1 - math.min(1, dist / (path.width * 2))
-			influence = influence ^ 2
+			local influence = (1 - dist / (path.width * 2)) ^ 2
 			valleyDepth = math.max(valleyDepth, influence * 40)
 		end
 	end
 
-	-- Combine
 	local height = base + hills + mountainHeight - valleyDepth
 
-	-- Flatten spawn area - spawn house is at (0, 0, -30)
+	-- Flatten spawn area - spawn house is at (0, 0, -30) (MUST match AlpineTerrain)
 	local distFromSpawn = math.sqrt(x * x + (z + 30) * (z + 30))
 	if distFromSpawn < 100 then
-		-- Very flat near spawn house
 		local flatInfluence = 1 - (distFromSpawn / 100)
 		height = height * (1 - flatInfluence) + 0 * flatInfluence
 		height = math.max(height, 0)
