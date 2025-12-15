@@ -1,17 +1,17 @@
 {
-  "name": "SmashShowdown",
+  "name": "MertinFlemmer",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": {
-        "$path": "src/shared"
+        "$path": "src/mertin-flemmer/shared"
       }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {
-        "$path": "src/server"
+        "$path": "src/mertin-flemmer/server"
       }
     },
     "StarterPlayer": {
@@ -19,7 +19,7 @@
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
         "Client": {
-          "$path": "src/client"
+          "$path": "src/mertin-flemmer/client"
         }
       }
     },
@@ -29,10 +29,14 @@
         "FilteringEnabled": true
       }
     },
-    "SoundService": {
-      "$className": "SoundService",
+    "Lighting": {
+      "$className": "Lighting",
       "$properties": {
-        "RespectFilteringEnabled": true
+        "Brightness": 1,
+        "ClockTime": 6,
+        "Ambient": [0.1, 0.1, 0.15],
+        "FogEnd": 300,
+        "FogColor": [0.1, 0.1, 0.12]
       }
     }
   }
