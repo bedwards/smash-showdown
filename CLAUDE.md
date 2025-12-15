@@ -196,6 +196,69 @@ These principles guide our approach. Sources linked.
 
 **What this means**: Checkpoint progress. Design for recovery. Small sessions with clean handoffs.
 
+## Mertin-Flemmer: Lessons Learned
+
+### CRITICAL: Terrain Height Synchronization
+
+The game has TWO places that calculate terrain height:
+1. **`AlpineTerrain.server.luau`** - Actually generates the voxel terrain
+2. **`shared/init.luau` (`Shared.getTerrainHeight`)** - Used to position objects ON terrain
+
+**These MUST match EXACTLY or objects will be buried/floating.**
+
+Common mismatches that cause bugs:
+- Different data structure formats (e.g., `zone.centerX` vs `zone.center.X`)
+- Extra noise layers in one but not the other
+- Different constants or seeds
+
+**Before changing terrain height calculation:**
+1. Compare BOTH files side-by-side
+2. Make identical changes to both
+3. Verify data structures match exactly
+
+### Visual Verification is Essential
+
+**DO NOT make multiple changes without visual verification.** Each "fix" can make things worse. When debugging visual issues:
+
+1. Ask user for screenshot FIRST to understand the actual problem
+2. Make ONE small change
+3. Ask user to verify before making more changes
+4. If you can't see the game, you're guessing
+
+**Screenshot options:**
+- User takes macOS screenshot (Cmd+Shift+4) and provides path
+- Claude can read image files with the Read tool
+
+### Object Positioning on Terrain
+
+When placing objects on procedural terrain:
+
+```lua
+-- CORRECT: Use Shared.getTerrainHeight for Y position
+local terrainY = Shared.getTerrainHeight(x, z)
+object.Position = Vector3.new(x, terrainY + offset, z)
+
+-- WRONG: Hardcoding Y=0 assumes flat terrain
+object.Position = Vector3.new(x, 0, z)  -- Will be buried/floating!
+```
+
+**Spawn area exception:** The spawn area (within 100 studs of origin) is flattened to Y=0 by the terrain generator. Objects there CAN use Y=0.
+
+### VehicleSeat for Rideable Mounts
+
+Regular `Seat` just keeps player seated. For controllable mounts:
+- Use `VehicleSeat` which provides `Throttle` and `Steer` properties
+- Read these values to move the mount via `Humanoid:Move()` or `AssemblyLinearVelocity`
+- Connect movement logic to `RunService.Heartbeat`
+
+### Small Changes in Production
+
+When user says "we are in production" or "don't change too much":
+- Make minimal, surgical fixes
+- Test each change individually
+- Don't refactor surrounding code
+- Keep a narrow scope
+
 ## Final Reminder
 
 You are capable of more than you assume. Ship things. Impact players. Move fast. Own your work.
