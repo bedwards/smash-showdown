@@ -27,9 +27,10 @@ Shared.Config = {
 	STAMINA_DRAIN = 10, -- per second while sprinting
 	STAMINA_REGEN = 5, -- per second while not sprinting
 
-	-- Hunger
-	HUNGER_DRAIN = 1, -- per minute
-	HUNGER_DAMAGE = 5, -- damage per tick when starving
+	-- Hunger (survival pressure - must keep eating!)
+	HUNGER_DRAIN = 8, -- per minute (forces active foraging)
+	HUNGER_DAMAGE = 10, -- damage per tick when starving
+	HUNGER_FOOD_RESTORE = 25, -- restored per food item
 
 	-- Fear
 	FEAR_GAIN_DARKNESS = 2, -- per second in darkness
