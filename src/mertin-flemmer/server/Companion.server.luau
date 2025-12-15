@@ -157,108 +157,134 @@ local companions: { [Player]: {
 -- CREATE COMPANION MODEL
 -- ==========================================
 
+-- Track riding state
+local ridingPlayers: { [Player]: Model } = {}
+
 local function createCamelModel(personality: typeof(PERSONALITIES[1]), position: Vector3): Model
 	local camel = Instance.new("Model")
 	camel.Name = "Companion_" .. personality.name
 
+	-- SCALED DOWN CAMEL (0.5x size so it can fit through doors)
+	local SCALE = 0.5
+
 	-- Body
 	local body = Instance.new("Part")
 	body.Name = "Body"
-	body.Size = Vector3.new(3, 2.5, 5)
-	body.Position = position + Vector3.new(0, 2.5, 0)
+	body.Size = Vector3.new(3, 2.5, 5) * SCALE
+	body.Position = position + Vector3.new(0, 2.5 * SCALE, 0)
 	body.Color = personality.color
 	body.Material = Enum.Material.SmoothPlastic
 	body.Anchored = false
-	body.CanCollide = true
+	body.CanCollide = false -- Can walk through doors!
 	body.Parent = camel
 
 	-- Hump 1
 	local hump1 = Instance.new("Part")
 	hump1.Name = "Hump1"
-	hump1.Size = Vector3.new(2, 1.5, 2)
-	hump1.Position = body.Position + Vector3.new(0, 1.5, 1)
+	hump1.Size = Vector3.new(2, 1.5, 2) * SCALE
+	hump1.Position = body.Position + Vector3.new(0, 1.5 * SCALE, 1 * SCALE)
 	hump1.Color = personality.color
 	hump1.Material = Enum.Material.SmoothPlastic
 	hump1.Shape = Enum.PartType.Ball
 	hump1.Anchored = false
+	hump1.CanCollide = false
 	hump1.Parent = camel
 
 	-- Hump 2
 	local hump2 = Instance.new("Part")
 	hump2.Name = "Hump2"
-	hump2.Size = Vector3.new(2, 1.5, 2)
-	hump2.Position = body.Position + Vector3.new(0, 1.5, -1)
+	hump2.Size = Vector3.new(2, 1.5, 2) * SCALE
+	hump2.Position = body.Position + Vector3.new(0, 1.5 * SCALE, -1 * SCALE)
 	hump2.Color = personality.color
 	hump2.Material = Enum.Material.SmoothPlastic
 	hump2.Shape = Enum.PartType.Ball
 	hump2.Anchored = false
+	hump2.CanCollide = false
 	hump2.Parent = camel
 
 	-- Neck
 	local neck = Instance.new("Part")
 	neck.Name = "Neck"
-	neck.Size = Vector3.new(1, 3, 1)
-	neck.Position = body.Position + Vector3.new(0, 2, 2.5)
+	neck.Size = Vector3.new(1, 3, 1) * SCALE
+	neck.Position = body.Position + Vector3.new(0, 2 * SCALE, 2.5 * SCALE)
 	neck.Color = personality.color
 	neck.Material = Enum.Material.SmoothPlastic
 	neck.Anchored = false
+	neck.CanCollide = false
 	neck.Parent = camel
 
 	-- Head
 	local head = Instance.new("Part")
 	head.Name = "Head"
-	head.Size = Vector3.new(1.5, 1.5, 2)
-	head.Position = neck.Position + Vector3.new(0, 2, 0.5)
+	head.Size = Vector3.new(1.5, 1.5, 2) * SCALE
+	head.Position = neck.Position + Vector3.new(0, 2 * SCALE, 0.5 * SCALE)
 	head.Color = personality.color
 	head.Material = Enum.Material.SmoothPlastic
 	head.Anchored = false
+	head.CanCollide = false
 	head.Parent = camel
 
 	-- Eyes
 	local eye1 = Instance.new("Part")
 	eye1.Name = "Eye1"
-	eye1.Size = Vector3.new(0.3, 0.3, 0.1)
-	eye1.Position = head.Position + Vector3.new(0.5, 0.3, 0.9)
+	eye1.Size = Vector3.new(0.3, 0.3, 0.1) * SCALE
+	eye1.Position = head.Position + Vector3.new(0.5 * SCALE, 0.3 * SCALE, 0.9 * SCALE)
 	eye1.Color = Color3.fromRGB(40, 30, 20)
 	eye1.Material = Enum.Material.SmoothPlastic
 	eye1.Anchored = false
+	eye1.CanCollide = false
 	eye1.Parent = camel
 
 	local eye2 = Instance.new("Part")
 	eye2.Name = "Eye2"
-	eye2.Size = Vector3.new(0.3, 0.3, 0.1)
-	eye2.Position = head.Position + Vector3.new(-0.5, 0.3, 0.9)
+	eye2.Size = Vector3.new(0.3, 0.3, 0.1) * SCALE
+	eye2.Position = head.Position + Vector3.new(-0.5 * SCALE, 0.3 * SCALE, 0.9 * SCALE)
 	eye2.Color = Color3.fromRGB(40, 30, 20)
 	eye2.Material = Enum.Material.SmoothPlastic
 	eye2.Anchored = false
+	eye2.CanCollide = false
 	eye2.Parent = camel
 
 	-- Legs
 	for i, offset in { Vector3.new(1, -2, 1.5), Vector3.new(-1, -2, 1.5), Vector3.new(1, -2, -1.5), Vector3.new(-1, -2, -1.5) } do
 		local leg = Instance.new("Part")
 		leg.Name = "Leg" .. i
-		leg.Size = Vector3.new(0.6, 2.5, 0.6)
-		leg.Position = body.Position + offset
+		leg.Size = Vector3.new(0.6, 2.5, 0.6) * SCALE
+		leg.Position = body.Position + offset * SCALE
 		leg.Color = personality.color
 		leg.Material = Enum.Material.SmoothPlastic
 		leg.Anchored = false
+		leg.CanCollide = false
 		leg.Parent = camel
 	end
 
 	-- Tail
 	local tail = Instance.new("Part")
 	tail.Name = "Tail"
-	tail.Size = Vector3.new(0.3, 0.3, 1.5)
-	tail.Position = body.Position + Vector3.new(0, 0.5, -3)
+	tail.Size = Vector3.new(0.3, 0.3, 1.5) * SCALE
+	tail.Position = body.Position + Vector3.new(0, 0.5 * SCALE, -3 * SCALE)
 	tail.Color = personality.color
 	tail.Material = Enum.Material.SmoothPlastic
 	tail.Anchored = false
+	tail.CanCollide = false
 	tail.Parent = camel
 
-	-- Name tag
+	-- SEAT for riding!
+	local seat = Instance.new("Seat")
+	seat.Name = "CamelSeat"
+	seat.Size = Vector3.new(1.5, 0.3, 1.5) * SCALE
+	seat.Position = body.Position + Vector3.new(0, 1.5 * SCALE, 0)
+	seat.Color = Color3.fromRGB(100, 60, 40)
+	seat.Material = Enum.Material.Fabric
+	seat.Anchored = false
+	seat.CanCollide = false
+	seat.Transparency = 0.5
+	seat.Parent = camel
+
+	-- Name tag (adjusted for smaller camel)
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 120, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 5, 0)
+	billboard.Size = UDim2.new(0, 100, 0, 35)
+	billboard.StudsOffset = Vector3.new(0, 3, 0) -- Lowered for smaller camel
 	billboard.Adornee = body
 	billboard.Parent = body
 
