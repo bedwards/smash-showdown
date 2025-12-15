@@ -198,31 +198,41 @@ These principles guide our approach. Sources linked.
 
 ## Mertin-Flemmer: Lessons Learned
 
-### CRITICAL: Two Terrain Systems Exist
+### TERRAIN ARCHITECTURE (Single Source of Truth)
 
-The game has TWO terrain systems that can conflict:
-1. **`AlpineTerrain.server.luau`** - Creates voxel terrain (the actual walkable surface)
-2. **`World.server.luau createGround()`** - Creates a Part ground (backup safety net)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  shared/init.luau - SINGLE SOURCE OF TRUTH                 │
+│  └── Shared.getTerrainHeight(x, z) - THE height function   │
+│  └── All terrain constants (SEED, MOUNTAIN_ZONES, etc.)    │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  AlpineTerrain.server.luau - VOXEL GENERATION              │
+│  └── IMPORTS Shared, calls Shared.getTerrainHeight()       │
+│  └── Creates actual terrain voxels using WriteVoxels       │
+│  └── NO duplicate height calculation logic                 │
+└─────────────────────────────────────────────────────────────┘
 
-The Part ground MUST be positioned BELOW the voxel terrain (currently at Y=-30) or objects will be buried.
+┌─────────────────────────────────────────────────────────────┐
+│  World.server.luau - WORLD OBJECTS                         │
+│  └── IMPORTS Shared, calls Shared.getTerrainHeight()       │
+│  └── Places buildings, NPCs, decorations on terrain        │
+│  └── createGround() = invisible safety floor at Y=-100     │
+└─────────────────────────────────────────────────────────────┘
 
-### CRITICAL: Terrain Height Synchronization
+┌─────────────────────────────────────────────────────────────┐
+│  Resources.server.luau, Companion.server.luau, etc.        │
+│  └── IMPORT Shared, call Shared.getTerrainHeight()         │
+│  └── Position items/NPCs on terrain                        │
+└─────────────────────────────────────────────────────────────┘
+```
 
-There are also TWO places that calculate terrain height:
-1. **`AlpineTerrain.server.luau`** - Actually generates the voxel terrain
-2. **`shared/init.luau` (`Shared.getTerrainHeight`)** - Used to position objects ON terrain
-
-**These MUST match EXACTLY or objects will be buried/floating.**
-
-Common mismatches that cause bugs:
-- Different data structure formats (e.g., `zone.centerX` vs `zone.center.X`)
-- Extra noise layers in one but not the other
-- Different constants or seeds
-
-**Before changing terrain height calculation:**
-1. Compare BOTH files side-by-side
-2. Make identical changes to both
-3. Verify data structures match exactly
+**To change terrain:**
+1. Edit ONLY `shared/init.luau`
+2. Everything else imports from there
+3. Never duplicate terrain height logic
 
 ### Visual Verification is Essential
 

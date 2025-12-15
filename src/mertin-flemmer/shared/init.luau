@@ -6,12 +6,14 @@ local Shared = {}
 
 -- ==========================================
 -- TERRAIN HEIGHT CALCULATION
--- Must match AlpineTerrain.server.luau logic
--- Used by all systems to place items ON terrain
+-- THIS IS THE SINGLE SOURCE OF TRUTH
+-- AlpineTerrain.server.luau imports from here
+-- All systems use Shared.getTerrainHeight() to position objects
 -- ==========================================
 
-local TERRAIN_SIZE = 3500  -- Must match AlpineTerrain
+local TERRAIN_SIZE = 3500
 local SEED = 12345
+local WATER_LEVEL = -5
 
 -- Simple noise using math.noise
 local function noise2D(x: number, z: number, scale: number, seed: number): number
@@ -41,7 +43,7 @@ local function ridgeNoise(x: number, z: number, scale: number, seed: number): nu
 	return 1 - math.abs(n)
 end
 
--- Mountain influence zones (must match AlpineTerrain EXACTLY)
+-- Mountain influence zones (AUTHORITATIVE - AlpineTerrain uses this)
 local MOUNTAIN_ZONES = {
 	{ centerX = 300, centerZ = -400, radius = 400, height = 350 },
 	{ centerX = 400, centerZ = -200, radius = 350, height = 300 },
@@ -50,7 +52,7 @@ local MOUNTAIN_ZONES = {
 	{ centerX = -350, centerZ = 300, radius = 250, height = 150 },
 }
 
--- Valley paths (must match AlpineTerrain)
+-- Valley paths (AUTHORITATIVE - AlpineTerrain uses this)
 local VALLEY_PATHS = {
 	{ startX = -400, startZ = -300, finishX = -100, finishZ = 300, width = 50 },
 	{ startX = 100, startZ = -200, finishX = 300, finishZ = 200, width = 30 },
@@ -78,13 +80,13 @@ local function getDistanceToPath(x: number, z: number, path: typeof(VALLEY_PATHS
 end
 
 -- Calculate terrain height at any world position
--- This MUST match AlpineTerrain.server.luau calculateHeight function EXACTLY!
+-- THIS IS THE SINGLE SOURCE OF TRUTH - AlpineTerrain.server.luau calls this function
 function Shared.getTerrainHeight(x: number, z: number): number
-	-- Base undulation (MUST match AlpineTerrain)
+	-- Base undulation
 	local base = fbm(x, z, 3, 0.5, 500, SEED) * 30
 	local hills = fbm(x, z, 2, 0.6, 200, SEED + 1000) * 20
 
-	-- Mountain influence (MUST match AlpineTerrain)
+	-- Mountain influence
 	local mountainHeight = 0
 	for _, zone in ipairs(MOUNTAIN_ZONES) do
 		local dist = math.sqrt((x - zone.centerX)^2 + (z - zone.centerZ)^2)
@@ -96,7 +98,7 @@ function Shared.getTerrainHeight(x: number, z: number): number
 		end
 	end
 
-	-- Valley carving (MUST match AlpineTerrain)
+	-- Valley carving
 	local valleyDepth = 0
 	for _, path in ipairs(VALLEY_PATHS) do
 		local dist = getDistanceToPath(x, z, path)
@@ -108,7 +110,7 @@ function Shared.getTerrainHeight(x: number, z: number): number
 
 	local height = base + hills + mountainHeight - valleyDepth
 
-	-- Flatten spawn area - spawn house is at (0, 0, -30) (MUST match AlpineTerrain)
+	-- Flatten spawn area - spawn house is at (0, 0, -30)
 	local distFromSpawn = math.sqrt(x * x + (z + 30) * (z + 30))
 	if distFromSpawn < 100 then
 		local flatInfluence = 1 - (distFromSpawn / 100)
@@ -118,8 +120,8 @@ function Shared.getTerrainHeight(x: number, z: number): number
 		height = math.max(height, 0)
 	end
 
-	-- Global floor - never below -5 (water level)
-	height = math.max(height, -5)
+	-- Global floor - never below water level
+	height = math.max(height, WATER_LEVEL)
 
 	return height
 end

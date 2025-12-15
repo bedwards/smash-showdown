@@ -79,132 +79,27 @@ local function getBiome(x: number, z: number): typeof(BIOMES.FOREST)
 end
 
 -- Create varied terrain with mountains, valleys, rivers
+-- ==========================================
+-- GROUND: Minimal safety floor only
+-- AlpineTerrain.server.luau creates the actual voxel terrain
+-- This is just a kill-floor to catch players who fall through
+-- ==========================================
 local function createGround()
-	print("[World] Creating epic terrain...")
+	print("[World] Creating safety floor (AlpineTerrain handles actual terrain)...")
 
-	-- Main ground for each biome region
-	local biomeGrounds = {}
+	-- Safety floor WAY below terrain - catches players who fall through
+	local safetyFloor = Instance.new("Part")
+	safetyFloor.Name = "SafetyFloor"
+	safetyFloor.Size = Vector3.new(WORLD_SIZE * 3, 10, WORLD_SIZE * 3)
+	safetyFloor.Position = Vector3.new(0, -100, 0)  -- 100 studs below ground
+	safetyFloor.Color = Color3.fromRGB(50, 50, 50)
+	safetyFloor.Material = Enum.Material.SmoothPlastic
+	safetyFloor.Anchored = true
+	safetyFloor.CanCollide = true
+	safetyFloor.Transparency = 1  -- Invisible
+	safetyFloor.Parent = Workspace
 
-	-- Create one massive ground base (backup floor far below terrain)
-	-- AlpineTerrain creates the actual voxel terrain, this is just a safety net
-	local ground = Instance.new("Part")
-	ground.Name = "Ground_Main"
-	ground.Size = Vector3.new(WORLD_SIZE * 2.5, 20, WORLD_SIZE * 2.5)
-	ground.Position = Vector3.new(0, -30, 0) -- Top surface at y=-20, well below terrain
-	ground.Color = BIOMES.FOREST.groundColor
-	ground.Material = BIOMES.FOREST.material
-	ground.Anchored = true
-	ground.CanCollide = true
-	ground.Parent = Workspace
-	biomeGrounds["MAIN"] = ground
-
-	print("[World] Main ground created - size:", ground.Size, "at", ground.Position)
-
-	-- Mountains in different biomes
-	local mountainPositions = {
-		-- Frozen mountains (north)
-		{ pos = Vector3.new(2000, 0, 0), height = 400, biome = BIOMES.SNOW },
-		{ pos = Vector3.new(2500, 0, 500), height = 300, biome = BIOMES.SNOW },
-		{ pos = Vector3.new(1800, 0, -400), height = 350, biome = BIOMES.SNOW },
-		-- Volcanic mountains (west)
-		{ pos = Vector3.new(-2000, 0, 1500), height = 500, biome = BIOMES.VOLCANIC },
-		{ pos = Vector3.new(-2500, 0, 1000), height = 400, biome = BIOMES.VOLCANIC },
-		-- Desert mesas (east)
-		{ pos = Vector3.new(1500, 0, 2000), height = 150, biome = BIOMES.DESERT },
-		{ pos = Vector3.new(2000, 0, 2500), height = 100, biome = BIOMES.DESERT },
-	}
-
-	for i, mtn in mountainPositions do
-		local mountain = Instance.new("Part")
-		mountain.Name = "Mountain_" .. i
-		mountain.Size = Vector3.new(mtn.height * 2, mtn.height, mtn.height * 2)
-		mountain.Position = mtn.pos + Vector3.new(0, mtn.height / 2 - 10, 0)
-		mountain.Color = mtn.biome.groundColor
-		mountain.Material = mtn.biome.material
-		mountain.Anchored = true
-		mountain.Parent = Workspace
-
-		-- Snow cap for tall mountains
-		if mtn.height > 300 then
-			local snowCap = Instance.new("Part")
-			snowCap.Name = "SnowCap_" .. i
-			snowCap.Size = Vector3.new(mtn.height * 0.8, mtn.height * 0.3, mtn.height * 0.8)
-			snowCap.Position = mtn.pos + Vector3.new(0, mtn.height * 0.7, 0)
-			snowCap.Color = Color3.fromRGB(255, 255, 255)
-			snowCap.Material = Enum.Material.Snow
-			snowCap.Anchored = true
-			snowCap.Parent = Workspace
-		end
-	end
-
-	-- Hills and terrain variation - EPIC rolling landscape
-	local hillFolder = Instance.new("Folder")
-	hillFolder.Name = "Hills"
-
-	for i = 1, 200 do  -- Plenty of rolling hills!
-		local x = (math.random() - 0.5) * WORLD_SIZE * 1.8  -- Stay within terrain bounds
-		local z = (math.random() - 0.5) * WORLD_SIZE * 1.8
-		local biome = getBiome(x, z)
-
-		local hill = Instance.new("Part")
-		hill.Name = "Hill_" .. i
-		hill.Shape = Enum.PartType.Ball
-		local size = 20 + math.random() * 80
-		hill.Size = Vector3.new(size, size * 0.5, size)
-		hill.Position = Vector3.new(x, -size * 0.2, z)
-		hill.Color = biome.groundColor
-		hill.Material = biome.material
-		hill.Anchored = true
-		hill.CastShadow = false  -- Performance boost
-		hill.Parent = hillFolder
-
-		-- Yield every 50 hills to prevent lag
-		if i % 50 == 0 then task.wait() end
-	end
-
-	hillFolder.Parent = Workspace
-
-	-- Rivers (long blue parts)
-	local rivers = {
-		{ start = Vector3.new(0, 0, 0), endPos = Vector3.new(1500, 0, 1500) },
-		{ start = Vector3.new(-500, 0, 200), endPos = Vector3.new(-2000, 0, -1000) },
-		{ start = Vector3.new(200, 0, -300), endPos = Vector3.new(2000, 0, -2000) },
-	}
-
-	for i, river in rivers do
-		local direction = (river.endPos - river.start)
-		local length = direction.Magnitude
-		local midpoint = river.start + direction / 2
-
-		local riverPart = Instance.new("Part")
-		riverPart.Name = "River_" .. i
-		riverPart.Size = Vector3.new(30, 3, length)
-		riverPart.CFrame = CFrame.lookAt(midpoint, river.endPos) * CFrame.new(0, -1, 0)
-		riverPart.Color = Color3.fromRGB(40, 80, 120)
-		riverPart.Material = Enum.Material.Water
-		riverPart.Transparency = 0.3
-		riverPart.Anchored = true
-		riverPart.CanCollide = false
-		riverPart.Parent = Workspace
-	end
-
-	-- Lava rivers in volcanic biome
-	local lavaRiver = Instance.new("Part")
-	lavaRiver.Name = "LavaRiver"
-	lavaRiver.Size = Vector3.new(40, 5, 800)
-	lavaRiver.Position = Vector3.new(-2200, 1, 1200)
-	lavaRiver.Color = Color3.fromRGB(255, 100, 0)
-	lavaRiver.Material = Enum.Material.Neon
-	lavaRiver.Anchored = true
-	lavaRiver.Parent = Workspace
-
-	local lavaLight = Instance.new("PointLight")
-	lavaLight.Color = Color3.fromRGB(255, 150, 50)
-	lavaLight.Brightness = 3
-	lavaLight.Range = 60
-	lavaLight.Parent = lavaRiver
-
-	print("[World] Terrain created with mountains, rivers, and varied biomes")
+	print("[World] Safety floor created at Y=-100")
 end
 
 -- Create a tree (biome-aware)

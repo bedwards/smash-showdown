@@ -1,29 +1,30 @@
 --!strict
 -- Alpine Terrain Generator - OPTIMIZED VERSION
 -- Uses WriteVoxels for batch terrain generation (100x faster)
+--
+-- IMPORTANT: This file uses Shared.getTerrainHeight() as the SINGLE SOURCE OF TRUTH
+-- for terrain height calculations. Do NOT duplicate height logic here!
 
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Wait for Shared module and import it
+local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
+
 local terrain = Workspace.Terrain
 
 -- ==========================================
--- CONFIGURATION - BALANCED FOR CONTENT + PERFORMANCE
+-- CONFIGURATION
 -- ==========================================
 
-local TERRAIN_SIZE = 3500  -- Big epic world! (was 5000, optimized down)
+local TERRAIN_SIZE = 3500  -- Big epic world!
 local RESOLUTION = 4       -- Terrain voxel size
-local CHUNK_SIZE = 64      -- Smaller chunks for WriteVoxels batching
+local CHUNK_SIZE = 64      -- Chunks for WriteVoxels batching
 
--- Height parameters
-local BASE_HEIGHT = 0
-local MAX_HEIGHT = 400
+-- Height parameters (for material selection only)
 local WATER_LEVEL = -5
 local SNOW_LINE = 250
 local TREELINE = 180
-
--- Noise seeds for consistent generation
-local SEED = 12345
 
 -- Signal when terrain is ready
 local TerrainReady = Instance.new("BindableEvent")
@@ -31,109 +32,12 @@ TerrainReady.Name = "TerrainReady"
 TerrainReady.Parent = ReplicatedStorage
 
 -- ==========================================
--- NOISE FUNCTIONS (simplified for speed)
+-- HEIGHT CALCULATION - USES SHARED MODULE
 -- ==========================================
 
-local function noise2D(x: number, z: number, scale: number, seed: number): number
-	return math.noise(x / scale + seed, z / scale + seed)
-end
-
--- Simplified FBM - fewer octaves for speed
-local function fbm(x: number, z: number, octaves: number, persistence: number, scale: number, seed: number): number
-	local total = 0
-	local frequency = 1
-	local amplitude = 1
-	local maxValue = 0
-
-	for i = 1, octaves do
-		total = total + noise2D(x * frequency, z * frequency, scale, seed + i * 100) * amplitude
-		maxValue = maxValue + amplitude
-		amplitude = amplitude * persistence
-		frequency = frequency * 2
-	end
-
-	return total / maxValue
-end
-
-local function ridgeNoise(x: number, z: number, scale: number, seed: number): number
-	local n = noise2D(x, z, scale, seed)
-	return 1 - math.abs(n)
-end
-
--- ==========================================
--- HEIGHT CALCULATION (cached where possible)
--- ==========================================
-
-local MOUNTAIN_ZONES = {
-	{ centerX = 300, centerZ = -400, radius = 400, height = 350 },
-	{ centerX = 400, centerZ = -200, radius = 350, height = 300 },
-	{ centerX = 200, centerZ = 200, radius = 300, height = 250 },
-	{ centerX = 350, centerZ = 350, radius = 400, height = 380 },
-	{ centerX = -350, centerZ = 300, radius = 250, height = 150 },
-}
-
-local VALLEY_PATHS = {
-	{ startX = -400, startZ = -300, finishX = -100, finishZ = 300, width = 50 },
-	{ startX = 100, startZ = -200, finishX = 300, finishZ = 200, width = 30 },
-	{ startX = -200, startZ = 100, finishX = 150, finishZ = 350, width = 40 },
-}
-
-local function getDistanceToPath(x: number, z: number, path: typeof(VALLEY_PATHS[1])): number
-	local abX, abZ = path.finishX - path.startX, path.finishZ - path.startZ
-	local apX, apZ = x - path.startX, z - path.startZ
-	local dotABAB = abX * abX + abZ * abZ
-	local t = math.clamp((apX * abX + apZ * abZ) / dotABAB, 0, 1)
-	local closestX = path.startX + abX * t
-	local closestZ = path.startZ + abZ * t
-	return math.sqrt((x - closestX)^2 + (z - closestZ)^2)
-end
-
+-- Single source of truth for terrain height
 local function calculateHeight(x: number, z: number): number
-	-- Simplified base undulation (fewer octaves)
-	-- NOTE: Base starts at 0, not +10, to align with flat ground
-	local base = fbm(x, z, 3, 0.5, 500, SEED) * 30
-	local hills = fbm(x, z, 2, 0.6, 200, SEED + 1000) * 20
-
-	-- Mountain influence
-	local mountainHeight = 0
-	for _, zone in ipairs(MOUNTAIN_ZONES) do
-		local dist = math.sqrt((x - zone.centerX)^2 + (z - zone.centerZ)^2)
-		if dist < zone.radius then
-			local influence = (1 - dist / zone.radius) ^ 1.5
-			local ridge = ridgeNoise(x, z, 100, SEED + 2000) * 50
-			local mtnHeight = zone.height * influence + ridge * influence
-			mountainHeight = math.max(mountainHeight, mtnHeight)
-		end
-	end
-
-	-- Valley carving
-	local valleyDepth = 0
-	for _, path in ipairs(VALLEY_PATHS) do
-		local dist = getDistanceToPath(x, z, path)
-		if dist < path.width * 2 then
-			local influence = (1 - dist / (path.width * 2)) ^ 2
-			valleyDepth = math.max(valleyDepth, influence * 40)
-		end
-	end
-
-	local height = base + hills + mountainHeight - valleyDepth
-
-	-- Flatten spawn area - spawn house is at (0, 0, -30)
-	local distFromSpawn = math.sqrt(x * x + (z + 30) * (z + 30))
-	if distFromSpawn < 100 then
-		-- Very flat near spawn house
-		local flatInfluence = 1 - (distFromSpawn / 100)
-		height = height * (1 - flatInfluence) + 0 * flatInfluence  -- Blend toward 0
-		height = math.max(height, 0)  -- Never go below ground level
-	elseif distFromSpawn < 200 then
-		-- Gradual transition
-		height = math.max(height, 0)
-	end
-
-	-- Global floor - never below -5 (water level)
-	height = math.max(height, WATER_LEVEL)
-
-	return height
+	return Shared.getTerrainHeight(x, z)
 end
 
 -- ==========================================
