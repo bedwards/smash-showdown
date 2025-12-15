@@ -122,34 +122,34 @@ local playerSurvivalState: { [Player]: {
 
 local FINDABLE_ITEMS = {
 	TOOTHBRUSH = {
-		count = 30,
+		count = 25,  -- Hygiene items scattered around
 		color = Color3.fromRGB(100, 200, 255),
 		size = Vector3.new(0.2, 1.5, 0.2),
 		spawnRadius = 600,
 	},
 	TOOTHPASTE = {
-		count = 20,
+		count = 18,  -- Gotta stay fresh!
 		color = Color3.fromRGB(255, 255, 255),
 		size = Vector3.new(0.5, 1, 0.5),
 		spawnRadius = 600,
 	},
 	SEEDS_WHEAT = {
-		count = 40,
+		count = 35,  -- Farming supplies
 		color = Color3.fromRGB(200, 180, 100),
 		size = Vector3.new(0.3, 0.3, 0.3),
-		spawnRadius = 400,
+		spawnRadius = 500,
 	},
 	SEEDS_CARROT = {
-		count = 30,
+		count = 28,  -- More farming
 		color = Color3.fromRGB(255, 150, 50),
 		size = Vector3.new(0.3, 0.3, 0.3),
-		spawnRadius = 400,
+		spawnRadius = 500,
 	},
 	SEEDS_POTATO = {
-		count = 25,
+		count = 22,  -- Potatoes!
 		color = Color3.fromRGB(180, 150, 100),
 		size = Vector3.new(0.4, 0.3, 0.4),
-		spawnRadius = 400,
+		spawnRadius = 500,
 	},
 }
 
@@ -1008,16 +1008,16 @@ local function spawnFindableItems()
 		for i = 1, config.count do
 			local angle = math.random() * math.pi * 2
 			local distance = math.random() * config.spawnRadius
-			local pos = Vector3.new(
-				math.cos(angle) * distance,
-				0.5,
-				math.sin(angle) * distance
-			)
+			local x = math.cos(angle) * distance
+			local z = math.sin(angle) * distance
+
+			-- Get terrain height at this position
+			local terrainHeight = Shared.getTerrainHeight(x, z)
 
 			local item = Instance.new("Part")
 			item.Name = "Findable_" .. itemType
 			item.Size = config.size
-			item.Position = pos + Vector3.new(0, config.size.Y / 2, 0)
+			item.Position = Vector3.new(x, terrainHeight + config.size.Y / 2 + 0.5, z)
 			item.Color = config.color
 			item.Material = Enum.Material.SmoothPlastic
 			item.Anchored = true
@@ -1370,15 +1370,25 @@ local function spawnWaterBodies()
 end
 
 -- ==========================================
--- MAIN GAME LOOP
+-- MAIN GAME LOOP (optimized with throttling)
 -- ==========================================
 
 local lastFarmUpdate = 0
+local lastCommunityCheck = 0
+local survivalFrameCount = 0
+local SURVIVAL_UPDATE_INTERVAL = 5  -- Update survival stats every 5 frames
 
 RunService.Heartbeat:Connect(function(dt)
+	survivalFrameCount = survivalFrameCount + 1
+
+	-- Throttle survival updates
+	if survivalFrameCount % SURVIVAL_UPDATE_INTERVAL ~= 0 then return end
+
+	local scaledDt = dt * SURVIVAL_UPDATE_INTERVAL  -- Scale dt for less frequent updates
+
 	-- Update each player
 	for player, state in playerSurvivalState do
-		updateHygiene(player, dt)
+		updateHygiene(player, scaledDt)
 
 		-- Track furthest position
 		local character = player.Character
@@ -1392,25 +1402,30 @@ RunService.Heartbeat:Connect(function(dt)
 				end
 			end
 		end
+	end
 
-		-- Update community boost status periodically
-		local nearbyCount = getNearbyPlayersCount(player)
-		if nearbyCount > 0 then
-			-- Visual/audio feedback could go here
+	-- Update community boost much less frequently (every 2 seconds)
+	local now = tick()
+	if now - lastCommunityCheck > 2 then
+		lastCommunityCheck = now
+		for player, _ in playerSurvivalState do
+			getNearbyPlayersCount(player)  -- Cache result if needed
 		end
 	end
 
 	-- Update farm growth (less frequently)
-	if tick() - lastFarmUpdate > 5 then
+	if now - lastFarmUpdate > 5 then
 		updateFarmGrowth()
-		lastFarmUpdate = tick()
+		lastFarmUpdate = now
 	end
 
-	-- Clean up expired fires
-	for i = #fires, 1, -1 do
-		local fireData = fires[i]
-		if not fireData.part or not fireData.part.Parent then
-			table.remove(fires, i)
+	-- Clean up expired fires (less frequently, every 30 frames)
+	if survivalFrameCount % 30 == 0 then
+		for i = #fires, 1, -1 do
+			local fireData = fires[i]
+			if not fireData.part or not fireData.part.Parent then
+				table.remove(fires, i)
+			end
 		end
 	end
 end)

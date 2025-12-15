@@ -109,6 +109,58 @@ KEEP MOVING. STAY ALIVE.
 - Dr. Helena Voss, Last Medical Officer]],
 	},
 
+	-- FLOOR 7½ DIRECTIONS (Near spawn, pointing northeast)
+	{
+		chapter = 1,
+		title = "FLOOR 7½ - THIS WAY",
+		position = Vector3.new(50, 0, -30),
+		content = [[THE MERTIN-FLEMMER BUILDING
+
+LOCATION: Northeast from here
+COORDINATES: (150, 0, -100)
+
+Look for the 20-story glass tower
+The tallest building on the horizon
+
+HOW TO ACCESS FLOOR 7½:
+1. Enter through the grand lobby
+2. Find elevator on LEFT wall
+3. Press the glowing "7½" button
+4. CROUCH - the ceiling is LOW
+
+WARNING: Floor 7½ is where
+the portal BLEEDS into reality.
+Something important waits there.
+
+The truth about the Incident
+lies within those cramped halls.
+
+→→→ HEAD NORTHEAST →→→]],
+	},
+	-- FLOOR 7½ ENTRANCE SIGN (At the building)
+	{
+		chapter = 1,
+		title = "Mertin-Flemmer HQ",
+		position = Vector3.new(150, 0, -70),
+		content = [[MERTIN-FLEMMER CORPORATION
+"Opening Doors to New Dimensions"
+
+FLOOR DIRECTORY:
+1-6: Administrative (ABANDONED)
+7: Research Labs (SEALED)
+7½: [REDACTED] (ACCESS RESTRICTED)
+8-15: Executive Offices (EMPTY)
+16-19: Server Rooms (OFFLINE)
+20: Penthouse (???)
+
+NOTICE TO ALL PERSONNEL:
+Floor 7½ does not exist.
+Do not speak of Floor 7½.
+If you see Floor 7½, report to
+your supervisor immediately.
+
+- Management]],
+	},
 	-- CHAPTER 2: THE NORTHERN PATH (Forest Route)
 	{
 		chapter = 2,
@@ -569,30 +621,44 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	local sign = Instance.new("Model")
 	sign.Name = "StorySign_Ch" .. signData.chapter
 
-	-- Post (taller for bigger sign)
+	-- Get terrain height at sign position
+	local terrainHeight = Shared.getTerrainHeight(signData.position.X, signData.position.Z)
+	local basePos = Vector3.new(signData.position.X, terrainHeight, signData.position.Z)
+
+	-- Post (MUCH taller for MASSIVE sign)
 	local post = Instance.new("Part")
 	post.Name = "Post"
-	post.Size = Vector3.new(0.5, 10, 0.5)
-	post.Position = signData.position + Vector3.new(0, 5, 0)
+	post.Size = Vector3.new(1, 16, 1)
+	post.Position = basePos + Vector3.new(0, 8, 0)
 	post.Color = Color3.fromRGB(70, 50, 35)
 	post.Material = Enum.Material.Wood
 	post.Anchored = true
 	post.Parent = sign
 
-	-- Sign board (larger for bigger text)
+	-- Sign board (MASSIVE for BIG BOLD text) - positioned IN FRONT of post
 	local board = Instance.new("Part")
 	board.Name = "Board"
-	board.Size = Vector3.new(10, 8, 0.3)
-	board.Position = signData.position + Vector3.new(0, 6, 0.5)
+	board.Size = Vector3.new(16, 12, 0.4)
+	board.Position = basePos + Vector3.new(0, 10, 3)  -- 3 studs in front of post
 	board.Color = Color3.fromRGB(90, 70, 50)
 	board.Material = Enum.Material.Wood
 	board.Anchored = true
 	board.Parent = sign
 
-	-- Chapter number decoration
+	-- Support beam connecting post to board
+	local support = Instance.new("Part")
+	support.Name = "Support"
+	support.Size = Vector3.new(0.8, 0.8, 3)
+	support.Position = basePos + Vector3.new(0, 10, 1.5)
+	support.Color = Color3.fromRGB(70, 50, 35)
+	support.Material = Enum.Material.Wood
+	support.Anchored = true
+	support.Parent = sign
+
+	-- Chapter number decoration (bigger badge) - on BACK of sign (toward post)
 	local chapterBadge = Instance.new("Part")
-	chapterBadge.Size = Vector3.new(1.5, 1.5, 0.4)
-	chapterBadge.Position = board.Position + Vector3.new(2, 2, 0.2)
+	chapterBadge.Size = Vector3.new(2.5, 2.5, 0.5)
+	chapterBadge.Position = board.Position + Vector3.new(4, 3, -0.3)
 	chapterBadge.Color = Color3.fromRGB(150, 100, 50)
 	chapterBadge.Material = Enum.Material.Metal
 	chapterBadge.Shape = Enum.PartType.Cylinder
@@ -603,40 +669,62 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	-- Sign content
 	local signGui = Instance.new("SurfaceGui")
 	signGui.Face = Enum.NormalId.Front
+	signGui.PixelsPerStud = 50  -- Higher resolution for crisp text
 	signGui.Parent = board
 
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 1, 0)
 	container.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
-	container.BackgroundTransparency = 0.2
+	container.BackgroundTransparency = 0.1
 	container.Parent = signGui
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
+	corner.CornerRadius = UDim.new(0, 15)
 	corner.Parent = container
 
+	-- Title - MASSIVE, BOLD, handwritten style
 	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Size = UDim2.new(1, -10, 0, 30)
-	titleLabel.Position = UDim2.new(0, 5, 0, 5)
+	titleLabel.Size = UDim2.new(1, -20, 0, 80)
+	titleLabel.Position = UDim2.new(0, 10, 0, 10)
 	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = "Chapter " .. signData.chapter .. ": " .. signData.title
-	titleLabel.TextColor3 = Color3.fromRGB(255, 220, 150)
-	titleLabel.Font = Enum.Font.Antique
-	titleLabel.TextSize = 32
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Text = "~ " .. signData.title .. " ~"
+	titleLabel.TextColor3 = Color3.fromRGB(255, 230, 180)
+	titleLabel.Font = Enum.Font.Fondamento  -- Handwritten/script style
+	titleLabel.TextSize = 72  -- BIG BOLD!
+	titleLabel.TextStrokeTransparency = 0.3  -- More visible stroke
+	titleLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 	titleLabel.Parent = container
 
+	-- Chapter subtitle (bigger)
+	local chapterLabel = Instance.new("TextLabel")
+	chapterLabel.Size = UDim2.new(1, -20, 0, 40)
+	chapterLabel.Position = UDim2.new(0, 10, 0, 85)
+	chapterLabel.BackgroundTransparency = 1
+	chapterLabel.Text = "Chapter " .. signData.chapter
+	chapterLabel.TextColor3 = Color3.fromRGB(180, 160, 120)
+	chapterLabel.Font = Enum.Font.Merriweather
+	chapterLabel.TextSize = 32  -- Bigger
+	chapterLabel.TextStrokeTransparency = 0.5
+	chapterLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
+	chapterLabel.TextXAlignment = Enum.TextXAlignment.Center
+	chapterLabel.Parent = container
+
+	-- Content - BIG, BOLD, readable handwritten
 	local contentLabel = Instance.new("TextLabel")
-	contentLabel.Size = UDim2.new(1, -10, 1, -40)
-	contentLabel.Position = UDim2.new(0, 5, 0, 35)
+	contentLabel.Size = UDim2.new(1, -30, 1, -140)
+	contentLabel.Position = UDim2.new(0, 15, 0, 130)
 	contentLabel.BackgroundTransparency = 1
 	contentLabel.Text = signData.content
-	contentLabel.TextColor3 = Color3.fromRGB(220, 210, 190)
-	contentLabel.Font = Enum.Font.Gotham
-	contentLabel.TextSize = 18
+	contentLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
+	contentLabel.Font = Enum.Font.Fondamento  -- Handwritten style
+	contentLabel.TextSize = 40  -- MUCH BIGGER!
+	contentLabel.TextStrokeTransparency = 0.4  -- More visible
+	contentLabel.TextStrokeColor3 = Color3.fromRGB(30, 25, 20)
 	contentLabel.TextWrapped = true
 	contentLabel.TextXAlignment = Enum.TextXAlignment.Left
 	contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+	contentLabel.LineHeight = 1.2
 	contentLabel.Parent = container
 
 	-- Weathering effects (moss/decay)

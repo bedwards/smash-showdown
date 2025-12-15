@@ -182,11 +182,11 @@ local function createSpawnSigns()
 	local signModel = Instance.new("Model")
 	signModel.Name = "SpawnSigns"
 
-	-- Central signpost
+	-- Central signpost (moved further from spawn house door)
 	local post = Instance.new("Part")
 	post.Name = "CentralPost"
-	post.Size = Vector3.new(1, 8, 1)
-	post.Position = SPAWN_CENTER + Vector3.new(0, 4, 15)
+	post.Size = Vector3.new(1.5, 12, 1.5)  -- Taller, thicker post
+	post.Position = SPAWN_CENTER + Vector3.new(0, 6, 50)  -- Much further from house
 	post.Color = Color3.fromRGB(80, 60, 40)
 	post.Material = Enum.Material.Wood
 	post.Anchored = true
@@ -205,7 +205,7 @@ local function createSpawnSigns()
 	for i, pathData in PATHS do
 		local signBoard = Instance.new("Part")
 		signBoard.Name = "Sign_" .. pathData.direction
-		signBoard.Size = Vector3.new(6, 2.5, 0.3)
+		signBoard.Size = Vector3.new(10, 4, 0.4)  -- Much bigger signs
 
 		-- Position signs at different heights pointing in direction
 		local height = 5 - (i - 1) * 2
@@ -234,22 +234,22 @@ local function createSpawnSigns()
 		signGui.Parent = signBoard
 
 		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Size = UDim2.new(1, 0, 0.35, 0)
+		titleLabel.Size = UDim2.new(1, 0, 0.4, 0)
 		titleLabel.BackgroundTransparency = 1
 		titleLabel.Text = pathData.name
 		titleLabel.TextColor3 = Color3.new(1, 1, 1)
 		titleLabel.Font = Enum.Font.Antique
-		titleLabel.TextSize = 28
+		titleLabel.TextScaled = true  -- Auto-scale to fill space
 		titleLabel.Parent = signGui
 
 		local descLabel = Instance.new("TextLabel")
-		descLabel.Size = UDim2.new(1, -10, 0.65, 0)
-		descLabel.Position = UDim2.new(0, 5, 0.35, 0)
+		descLabel.Size = UDim2.new(1, -10, 0.6, 0)
+		descLabel.Position = UDim2.new(0, 5, 0.4, 0)
 		descLabel.BackgroundTransparency = 1
 		descLabel.Text = pathData.description
 		descLabel.TextColor3 = Color3.fromRGB(220, 220, 200)
 		descLabel.Font = Enum.Font.Gotham
-		descLabel.TextSize = 24
+		descLabel.TextScaled = true  -- Auto-scale to fill space
 		descLabel.TextWrapped = true
 		descLabel.TextYAlignment = Enum.TextYAlignment.Top
 		descLabel.Parent = signGui
@@ -265,11 +265,11 @@ local function createSpawnSigns()
 		arrow.Parent = signModel
 	end
 
-	-- Welcome sign
+	-- Welcome sign (moved further from door so it doesn't block)
 	local welcomeSign = Instance.new("Part")
 	welcomeSign.Name = "WelcomeSign"
 	welcomeSign.Size = Vector3.new(8, 4, 0.5)
-	welcomeSign.Position = SPAWN_CENTER + Vector3.new(0, 3, 25)
+	welcomeSign.Position = SPAWN_CENTER + Vector3.new(0, 3, 40)  -- Much further out
 	welcomeSign.Color = Color3.fromRGB(80, 60, 40)
 	welcomeSign.Material = Enum.Material.Wood
 	welcomeSign.Anchored = true

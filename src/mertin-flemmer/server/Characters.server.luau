@@ -490,7 +490,7 @@ local characterStates: { [Model]: {
 	homePosition: Vector3,
 } } = {}
 
--- Create humanoid character
+-- Create humanoid character (simplified, working model)
 local function createHumanCharacter(template: CharacterTemplate, position: Vector3): Model
 	local char = Instance.new("Model")
 	char.Name = template.name
@@ -500,124 +500,94 @@ local function createHumanCharacter(template: CharacterTemplate, position: Vecto
 	local isStocky = template.bodyType == "stocky"
 	local isThin = template.bodyType == "thin"
 
-	-- Body proportions based on type
-	local torsoWidth = isStocky and 2.4 or (isThin and 1.6 or 2)
-	local torsoHeight = isChild and 1.5 or (isStocky and 2.2 or 2.5)
-	local headSize = isChild and 1.5 or 1.3 -- Kids have bigger heads proportionally
+	-- Simplified body - single torso with head
+	local torsoWidth = (isStocky and 2.2 or (isThin and 1.4 or 1.8)) * scale
+	local torsoHeight = (isChild and 2 or 3) * scale
+	local headSize = (isChild and 1.3 or 1.2) * scale
+	local legHeight = (isChild and 1.5 or 2.5) * scale
 
-	-- TORSO
+	-- Calculate total height
+	local totalHeight = legHeight + torsoHeight + headSize
+
+	-- TORSO (main body)
 	local torso = Instance.new("Part")
 	torso.Name = "Torso"
-	torso.Size = Vector3.new(torsoWidth, torsoHeight, 1) * scale
+	torso.Size = Vector3.new(torsoWidth, torsoHeight, torsoWidth * 0.6)
 	torso.Color = template.colors.clothing
-	torso.Material = Enum.Material.Fabric
-	torso.Anchored = false
+	torso.Material = Enum.Material.SmoothPlastic
+	torso.Anchored = true -- Anchor initially
+	torso.CanCollide = true
 	torso.Parent = char
 
 	-- HEAD
 	local head = Instance.new("Part")
 	head.Name = "Head"
-	head.Size = Vector3.new(headSize, headSize, headSize) * scale
+	head.Size = Vector3.new(headSize, headSize, headSize)
 	head.Color = template.colors.skin
 	head.Material = Enum.Material.SmoothPlastic
+	head.Anchored = true
+	head.CanCollide = true
 	head.Parent = char
 
-	-- Face decal
-	local face = Instance.new("Decal")
-	face.Face = Enum.NormalId.Front
-	face.Texture = isChild and "rbxassetid://7075771214" or "rbxassetid://7075769910"
-	face.Parent = head
+	-- LEGS (simplified as single part)
+	local legs = Instance.new("Part")
+	legs.Name = "Legs"
+	legs.Size = Vector3.new(torsoWidth * 0.8, legHeight, torsoWidth * 0.5)
+	legs.Color = template.colors.accent
+	legs.Material = Enum.Material.SmoothPlastic
+	legs.Anchored = true
+	legs.CanCollide = true
+	legs.Parent = char
 
-	-- HAIR (if specified)
-	if template.colors.hair then
-		local hair = Instance.new("Part")
-		hair.Name = "Hair"
-		local hairHeight = isChild and 0.4 or 0.5
-		hair.Size = Vector3.new(headSize * 1.1, hairHeight, headSize * 1.1) * scale
-		hair.Color = template.colors.hair
-		hair.Material = Enum.Material.SmoothPlastic
-		hair.Parent = char
-	end
-
-	-- LIMBS
-	local limbWidth = isChild and 0.6 or (isStocky and 1.1 or 0.9)
-	local armLength = isChild and 1.2 or 2
-	local legLength = isChild and 1.0 or 2
-
-	local leftArm = Instance.new("Part")
-	leftArm.Name = "Left Arm"
-	leftArm.Size = Vector3.new(limbWidth, armLength, limbWidth) * scale
-	leftArm.Color = template.colors.clothing
-	leftArm.Material = Enum.Material.Fabric
-	leftArm.Parent = char
-
-	local rightArm = Instance.new("Part")
-	rightArm.Name = "Right Arm"
-	rightArm.Size = Vector3.new(limbWidth, armLength, limbWidth) * scale
-	rightArm.Color = template.colors.clothing
-	rightArm.Material = Enum.Material.Fabric
-	rightArm.Parent = char
-
-	local leftLeg = Instance.new("Part")
-	leftLeg.Name = "Left Leg"
-	leftLeg.Size = Vector3.new(limbWidth, legLength, limbWidth) * scale
-	leftLeg.Color = template.colors.accent
-	leftLeg.Material = Enum.Material.Fabric
-	leftLeg.Parent = char
-
-	local rightLeg = Instance.new("Part")
-	rightLeg.Name = "Right Leg"
-	rightLeg.Size = Vector3.new(limbWidth, legLength, limbWidth) * scale
-	rightLeg.Color = template.colors.accent
-	rightLeg.Material = Enum.Material.Fabric
-	rightLeg.Parent = char
+	-- Position parts at spawn location
+	local baseY = position.Y + legHeight / 2
+	legs.Position = Vector3.new(position.X, baseY, position.Z)
+	torso.Position = Vector3.new(position.X, baseY + legHeight / 2 + torsoHeight / 2, position.Z)
+	head.Position = Vector3.new(position.X, baseY + legHeight / 2 + torsoHeight + headSize / 2, position.Z)
 
 	-- ROOT PART
 	local rootPart = Instance.new("Part")
 	rootPart.Name = "HumanoidRootPart"
-	rootPart.Size = Vector3.new(2, 2, 1) * scale
+	rootPart.Size = Vector3.new(torsoWidth, torsoHeight, torsoWidth * 0.6)
 	rootPart.Transparency = 1
 	rootPart.CanCollide = false
+	rootPart.Anchored = true
+	rootPart.Position = torso.Position
 	rootPart.Parent = char
+
+	-- Set as primary part first
+	char.PrimaryPart = rootPart
+
+	-- Weld everything together using WeldConstraints (simpler and more reliable)
+	local function weldParts(part0: BasePart, part1: BasePart)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = part0
+		weld.Part1 = part1
+		weld.Parent = part0
+	end
+
+	weldParts(rootPart, torso)
+	weldParts(torso, head)
+	weldParts(torso, legs)
+
+	-- Now unanchor all parts so they can move together
+	torso.Anchored = false
+	head.Anchored = false
+	legs.Anchored = false
+	rootPart.Anchored = false
 
 	-- HUMANOID
 	local humanoid = Instance.new("Humanoid")
 	humanoid.MaxHealth = 100
 	humanoid.Health = 100
 	humanoid.WalkSpeed = template.speed
+	humanoid.HipHeight = legHeight / 2
 	humanoid.Parent = char
-
-	-- Position parts
-	local baseY = position.Y + (torsoHeight * scale / 2) + (legLength * scale)
-	rootPart.Position = Vector3.new(position.X, baseY, position.Z)
-	torso.Position = rootPart.Position
-	head.Position = torso.Position + Vector3.new(0, (torsoHeight * scale / 2) + (headSize * scale / 2), 0)
-	leftArm.Position = torso.Position + Vector3.new(-(torsoWidth * scale / 2) - (limbWidth * scale / 2), 0, 0)
-	rightArm.Position = torso.Position + Vector3.new((torsoWidth * scale / 2) + (limbWidth * scale / 2), 0, 0)
-	leftLeg.Position = torso.Position + Vector3.new(-(limbWidth * scale / 2), -(torsoHeight * scale / 2) - (legLength * scale / 2), 0)
-	rightLeg.Position = torso.Position + Vector3.new((limbWidth * scale / 2), -(torsoHeight * scale / 2) - (legLength * scale / 2), 0)
-
-	-- Weld parts
-	local function weld(part0: BasePart, part1: BasePart, offset: Vector3)
-		local motor = Instance.new("Motor6D")
-		motor.Part0 = part0
-		motor.Part1 = part1
-		motor.C0 = CFrame.new(offset)
-		motor.Parent = part0
-	end
-
-	char.PrimaryPart = rootPart
-	weld(rootPart, torso, CFrame.new())
-	weld(torso, head, CFrame.new(0, (torsoHeight * scale / 2) + (headSize * scale / 2), 0))
-	weld(torso, leftArm, CFrame.new(-(torsoWidth * scale / 2) - (limbWidth * scale / 2), 0, 0))
-	weld(torso, rightArm, CFrame.new((torsoWidth * scale / 2) + (limbWidth * scale / 2), 0, 0))
-	weld(torso, leftLeg, CFrame.new(-(limbWidth * scale / 2), -(torsoHeight * scale / 2) - (legLength * scale / 2), 0))
-	weld(torso, rightLeg, CFrame.new((limbWidth * scale / 2), -(torsoHeight * scale / 2) - (legLength * scale / 2), 0))
 
 	-- NAME TAG
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.new(0, 150, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, (headSize * scale) + 1, 0)
+	billboard.StudsOffset = Vector3.new(0, headSize + 1, 0)
 	billboard.Adornee = head
 	billboard.Parent = char
 
@@ -662,7 +632,7 @@ local function createHumanCharacter(template: CharacterTemplate, position: Vecto
 	return char
 end
 
--- Create quadruped (animal) character
+-- Create quadruped (animal) character (simplified, working model)
 local function createAnimalCharacter(template: CharacterTemplate, position: Vector3): Model
 	local char = Instance.new("Model")
 	char.Name = template.name
@@ -670,73 +640,90 @@ local function createAnimalCharacter(template: CharacterTemplate, position: Vect
 	local scale = template.height
 	local isLarge = scale > 0.8
 
+	-- Simplified animal body
+	local bodyLength = (isLarge and 3 or 2) * scale
+	local bodyHeight = (isLarge and 1.2 or 0.8) * scale
+	local bodyWidth = (isLarge and 1.2 or 0.8) * scale
+	local legHeight = (isLarge and 1.5 or 1) * scale
+	local headSize = (isLarge and 1 or 0.7) * scale
+
 	-- BODY
 	local body = Instance.new("Part")
 	body.Name = "Body"
-	body.Size = Vector3.new(1.5, 1, 2.5) * scale
+	body.Size = Vector3.new(bodyWidth, bodyHeight, bodyLength)
 	body.Color = template.colors.skin
 	body.Material = Enum.Material.SmoothPlastic
+	body.Anchored = true
 	body.Parent = char
 
 	-- HEAD
 	local head = Instance.new("Part")
 	head.Name = "Head"
-	local headSize = isLarge and 0.8 or 0.6
-	head.Size = Vector3.new(headSize, headSize, headSize) * scale
+	head.Size = Vector3.new(headSize, headSize, headSize)
 	head.Color = template.colors.skin
 	head.Material = Enum.Material.SmoothPlastic
+	head.Anchored = true
 	head.Parent = char
 
-	-- LEGS (4)
-	local legSize = isLarge and 0.3 or 0.2
-	local legHeight = isLarge and 1 or 0.6
+	-- LEGS (simplified as single part underneath body)
+	local legs = Instance.new("Part")
+	legs.Name = "Legs"
+	legs.Size = Vector3.new(bodyWidth * 0.8, legHeight, bodyLength * 0.8)
+	legs.Color = template.colors.skin
+	legs.Material = Enum.Material.SmoothPlastic
+	legs.Transparency = 0.3 -- Slightly transparent to look like 4 legs
+	legs.Anchored = true
+	legs.Parent = char
 
-	for i, offset in { Vector3.new(-0.5, 0, -0.8), Vector3.new(0.5, 0, -0.8), Vector3.new(-0.5, 0, 0.8), Vector3.new(0.5, 0, 0.8) } do
-		local leg = Instance.new("Part")
-		leg.Name = "Leg" .. i
-		leg.Size = Vector3.new(legSize, legHeight, legSize) * scale
-		leg.Color = template.colors.skin
-		leg.Material = Enum.Material.SmoothPlastic
-		leg.Parent = char
-	end
-
-	-- TAIL
-	local tail = Instance.new("Part")
-	tail.Name = "Tail"
-	tail.Size = Vector3.new(0.15, 0.15, 0.8) * scale
-	tail.Color = template.colors.accent or template.colors.skin
-	tail.Material = Enum.Material.SmoothPlastic
-	tail.Parent = char
+	-- Position parts
+	local baseY = position.Y + legHeight / 2
+	legs.Position = Vector3.new(position.X, baseY, position.Z)
+	body.Position = Vector3.new(position.X, baseY + legHeight / 2 + bodyHeight / 2, position.Z)
+	head.Position = Vector3.new(position.X, baseY + legHeight / 2 + bodyHeight / 2 + headSize * 0.3, position.Z - bodyLength / 2 - headSize / 2)
 
 	-- ROOT PART
 	local rootPart = Instance.new("Part")
 	rootPart.Name = "HumanoidRootPart"
-	rootPart.Size = Vector3.new(1.5, 1, 2.5) * scale
+	rootPart.Size = Vector3.new(bodyWidth, bodyHeight, bodyLength)
 	rootPart.Transparency = 1
 	rootPart.CanCollide = false
+	rootPart.Anchored = true
+	rootPart.Position = body.Position
 	rootPart.Parent = char
+
+	-- Set primary part
+	char.PrimaryPart = rootPart
+
+	-- Weld everything together
+	local function weldParts(part0: BasePart, part1: BasePart)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = part0
+		weld.Part1 = part1
+		weld.Parent = part0
+	end
+
+	weldParts(rootPart, body)
+	weldParts(body, head)
+	weldParts(body, legs)
+
+	-- Unanchor all parts so they can move
+	body.Anchored = false
+	head.Anchored = false
+	legs.Anchored = false
+	rootPart.Anchored = false
 
 	-- HUMANOID
 	local humanoid = Instance.new("Humanoid")
 	humanoid.MaxHealth = 50
 	humanoid.Health = 50
 	humanoid.WalkSpeed = template.speed
-	humanoid.HipHeight = legHeight * scale * 0.8
+	humanoid.HipHeight = legHeight * 0.5
 	humanoid.Parent = char
-
-	-- Position
-	local baseY = position.Y + (legHeight * scale) + (scale * 0.5)
-	rootPart.Position = Vector3.new(position.X, baseY, position.Z)
-	body.Position = rootPart.Position
-	head.Position = body.Position + Vector3.new(0, scale * 0.3, -scale * 1.2)
-	tail.Position = body.Position + Vector3.new(0, scale * 0.3, scale * 1.4)
-
-	char.PrimaryPart = rootPart
 
 	-- NAME TAG
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.new(0, 100, 0, 30)
-	billboard.StudsOffset = Vector3.new(0, 1.5 * scale, 0)
+	billboard.StudsOffset = Vector3.new(0, bodyHeight + 1, 0)
 	billboard.Adornee = body
 	billboard.Parent = char
 
@@ -758,7 +745,6 @@ local function createAnimalCharacter(template: CharacterTemplate, position: Vect
 		glow.Range = 20
 		glow.Parent = body
 
-		-- Sparkles
 		local sparkles = Instance.new("ParticleEmitter")
 		sparkles.Color = ColorSequence.new(Color3.fromRGB(255, 255, 200))
 		sparkles.Size = NumberSequence.new(0.2, 0)
@@ -797,30 +783,31 @@ local function spawnCharacters()
 	for _, t in MYTHICAL do table.insert(allTemplates, t) end
 
 	-- Spawn locations with character type preferences
+	-- NOTE: Keep NPCs AWAY from spawn house (0, 0, -30) - at least 150 studs!
 	local spawnPoints = {
-		-- Near spawn (friendly humans and pets)
-		{ pos = Vector3.new(30, 0, -20), types = { "elder_woman", "child_boy", "dog_loyal" } },
-		{ pos = Vector3.new(-25, 0, -40), types = { "farmer", "cat_tabby" } },
-		{ pos = Vector3.new(50, 0, 10), types = { "elder_man", "child_girl" } },
+		-- Forest area (friendly humans and pets) - FAR from spawn
+		{ pos = Vector3.new(200, 0, 150), types = { "elder_woman", "dog_loyal" } },
+		{ pos = Vector3.new(-200, 0, 200), types = { "farmer", "cat_tabby" } },
+		{ pos = Vector3.new(250, 0, -150), types = { "elder_man", "child_girl" } },
 
-		-- Forest (animals and forest creatures)
-		{ pos = Vector3.new(150, 0, 100), types = { "deer", "rabbit", "fairy" } },
-		{ pos = Vector3.new(-100, 0, 150), types = { "hunter", "dog_stray", "crow" } },
-		{ pos = Vector3.new(200, 0, -50), types = { "forest_spirit", "pixie" } },
+		-- Deeper forest (animals and forest creatures)
+		{ pos = Vector3.new(400, 0, 300), types = { "deer", "rabbit", "fairy" } },
+		{ pos = Vector3.new(-300, 0, 350), types = { "hunter", "dog_stray", "crow" } },
+		{ pos = Vector3.new(450, 0, -200), types = { "forest_spirit", "pixie" } },
 
-		-- Paths and roads
-		{ pos = Vector3.new(300, 0, 0), types = { "wanderer", "horse" } },
-		{ pos = Vector3.new(-200, 0, 100), types = { "merchant", "dog_loyal" } },
-		{ pos = Vector3.new(0, 0, 300), types = { "teenager", "cat_black" } },
+		-- Paths and roads (scattered across world)
+		{ pos = Vector3.new(600, 0, 100), types = { "horse" } },
+		{ pos = Vector3.new(-400, 0, 250), types = { "dog_loyal" } },
+		{ pos = Vector3.new(150, 0, 400), types = { "teenager", "cat_black" } },
 
-		-- Wilderness
-		{ pos = Vector3.new(500, 0, 200), types = { "wisp", "goblin" } },
-		{ pos = Vector3.new(-400, 0, -200), types = { "troll", "crow" } },
-		{ pos = Vector3.new(300, 0, -400), types = { "spirit_ancestor", "unicorn" } },
+		-- Wilderness (far from spawn)
+		{ pos = Vector3.new(700, 0, 400), types = { "wisp", "goblin" } },
+		{ pos = Vector3.new(-600, 0, -400), types = { "troll", "crow" } },
+		{ pos = Vector3.new(500, 0, -500), types = { "spirit_ancestor", "unicorn" } },
 
-		-- Villages/settlements
-		{ pos = Vector3.new(-80, 0, -150), types = { "blacksmith", "mother", "child_boy" } },
-		{ pos = Vector3.new(120, 0, -200), types = { "healer", "elder_sage", "cat_tabby" } },
+		-- Villages/settlements (not near spawn)
+		{ pos = Vector3.new(-350, 0, -300), types = { "blacksmith", "mother", "child_boy" } },
+		{ pos = Vector3.new(350, 0, -350), types = { "elder_sage", "cat_tabby" } },
 	}
 
 	for _, spawnPoint in spawnPoints do
@@ -836,7 +823,11 @@ local function spawnCharacters()
 
 			if template then
 				local offset = Vector3.new((math.random() - 0.5) * 20, 0, (math.random() - 0.5) * 20)
-				local char = createCharacter(template, spawnPoint.pos + offset)
+				local x = spawnPoint.pos.X + offset.X
+				local z = spawnPoint.pos.Z + offset.Z
+				-- Get terrain height at spawn position
+				local terrainHeight = Shared.getTerrainHeight(x, z)
+				local char = createCharacter(template, Vector3.new(x, terrainHeight + 2, z))
 
 				table.insert(allCharacters, char)
 				characterStates[char] = {

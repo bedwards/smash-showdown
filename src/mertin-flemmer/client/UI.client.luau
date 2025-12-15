@@ -24,6 +24,8 @@ local MissionUpdateRemote = ReplicatedStorage:WaitForChild("MissionUpdate") :: R
 local MissionCompleteRemote = ReplicatedStorage:WaitForChild("MissionComplete") :: RemoteEvent
 local TradingRemote = ReplicatedStorage:WaitForChild("Trading") :: RemoteEvent
 local OpenShopRemote = ReplicatedStorage:WaitForChild("OpenShop") :: RemoteEvent
+local DiscoveryRemote = ReplicatedStorage:WaitForChild("Discovery") :: RemoteEvent
+local RespawnRemote = ReplicatedStorage:WaitForChild("RespawnNotify") :: RemoteEvent
 
 -- Create UI
 local screenGui = Instance.new("ScreenGui")
@@ -1147,6 +1149,630 @@ MissionCompleteRemote.OnClientEvent:Connect(function(eventType: string, data: an
 		-- Epic level up notification
 		showAnnouncement("LEVEL UP!\nYou are now level " .. data, Color3.fromRGB(255, 215, 100))
 	end
+end)
+
+-- ==========================================
+-- TUTORIAL & URGENT OBJECTIVES SYSTEM
+-- ==========================================
+
+-- Tutorial state
+local tutorialDismissed = false
+local tutorialStep = 1
+
+-- Create urgent objective display (top center, big and obvious)
+local urgentFrame = Instance.new("Frame")
+urgentFrame.Name = "UrgentObjective"
+urgentFrame.Size = UDim2.new(0, 400, 0, 80)
+urgentFrame.Position = UDim2.new(0.5, -200, 0, 60)
+urgentFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+urgentFrame.BackgroundTransparency = 0.2
+urgentFrame.BorderSizePixel = 0
+urgentFrame.Parent = screenGui
+
+local urgentCorner = Instance.new("UICorner")
+urgentCorner.CornerRadius = UDim.new(0, 10)
+urgentCorner.Parent = urgentFrame
+
+local urgentBorder = Instance.new("UIStroke")
+urgentBorder.Color = Color3.fromRGB(255, 100, 100)
+urgentBorder.Thickness = 2
+urgentBorder.Parent = urgentFrame
+
+local urgentIcon = Instance.new("TextLabel")
+urgentIcon.Name = "Icon"
+urgentIcon.Size = UDim2.new(0, 60, 1, 0)
+urgentIcon.BackgroundTransparency = 1
+urgentIcon.Text = "!"
+urgentIcon.TextColor3 = Color3.fromRGB(255, 100, 100)
+urgentIcon.Font = Enum.Font.GothamBlack
+urgentIcon.TextSize = 48
+urgentIcon.Parent = urgentFrame
+
+local urgentLabel = Instance.new("TextLabel")
+urgentLabel.Name = "Label"
+urgentLabel.Size = UDim2.new(0, 60, 0, 20)
+urgentLabel.Position = UDim2.new(0, 0, 0, 0)
+urgentLabel.BackgroundTransparency = 1
+urgentLabel.Text = "DO NOW"
+urgentLabel.TextColor3 = Color3.fromRGB(255, 150, 100)
+urgentLabel.Font = Enum.Font.GothamBold
+urgentLabel.TextSize = 10
+urgentLabel.Parent = urgentFrame
+
+local urgentTitle = Instance.new("TextLabel")
+urgentTitle.Name = "Title"
+urgentTitle.Size = UDim2.new(1, -70, 0, 30)
+urgentTitle.Position = UDim2.new(0, 65, 0, 8)
+urgentTitle.BackgroundTransparency = 1
+urgentTitle.Text = "FIND FOOD NOW"
+urgentTitle.TextColor3 = Color3.new(1, 1, 1)
+urgentTitle.TextXAlignment = Enum.TextXAlignment.Left
+urgentTitle.Font = Enum.Font.GothamBlack
+urgentTitle.TextSize = 22
+urgentTitle.Parent = urgentFrame
+
+local urgentDesc = Instance.new("TextLabel")
+urgentDesc.Name = "Desc"
+urgentDesc.Size = UDim2.new(1, -70, 0, 40)
+urgentDesc.Position = UDim2.new(0, 65, 0, 38)
+urgentDesc.BackgroundTransparency = 1
+urgentDesc.Text = "Glowing items nearby are food. Walk into them to collect. Press 1 to eat."
+urgentDesc.TextColor3 = Color3.fromRGB(200, 200, 200)
+urgentDesc.TextXAlignment = Enum.TextXAlignment.Left
+urgentDesc.TextWrapped = true
+urgentDesc.Font = Enum.Font.Gotham
+urgentDesc.TextSize = 13
+urgentDesc.Parent = urgentFrame
+
+-- Survival tips that rotate at the bottom
+local SURVIVAL_TIPS = {
+	"Glowing items on the ground are resources - walk into them to collect",
+	"Press 1 to eat food when hungry (orange bar is hunger)",
+	"Press F to toggle flashlight - batteries run out!",
+	"Press 2 to use a battery when your flashlight dies",
+	"Night is dangerous - creatures hunt in the dark",
+	"Find radio towers for shelter and music",
+	"Collect signal parts and survive 5 nights to call for rescue",
+	"Stay near light sources at night - creatures fear the light",
+	"Press 3 to add wood to campfires for warmth and safety",
+	"Hold SHIFT to sprint - watch your stamina (blue bar)",
+}
+
+local tipsLabel = Instance.new("TextLabel")
+tipsLabel.Name = "SurvivalTip"
+tipsLabel.Size = UDim2.new(0, 600, 0, 25)
+tipsLabel.Position = UDim2.new(0.5, -300, 1, -90)
+tipsLabel.BackgroundColor3 = Color3.fromRGB(20, 30, 40)
+tipsLabel.BackgroundTransparency = 0.4
+tipsLabel.Text = "TIP: " .. SURVIVAL_TIPS[1]
+tipsLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+tipsLabel.Font = Enum.Font.Gotham
+tipsLabel.TextSize = 12
+tipsLabel.Parent = screenGui
+
+local tipsCorner = Instance.new("UICorner")
+tipsCorner.CornerRadius = UDim.new(0, 6)
+tipsCorner.Parent = tipsLabel
+
+-- Rotate tips every 8 seconds
+local currentTip = 1
+task.spawn(function()
+	while true do
+		task.wait(8)
+		currentTip = currentTip % #SURVIVAL_TIPS + 1
+		tipsLabel.Text = "TIP: " .. SURVIVAL_TIPS[currentTip]
+	end
+end)
+
+-- Tutorial intro panel (big, center screen)
+local tutorialPanel = Instance.new("Frame")
+tutorialPanel.Name = "TutorialIntro"
+tutorialPanel.Size = UDim2.new(0, 550, 0, 400)
+tutorialPanel.Position = UDim2.new(0.5, -275, 0.5, -200)
+tutorialPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+tutorialPanel.BackgroundTransparency = 0.05
+tutorialPanel.BorderSizePixel = 0
+tutorialPanel.Parent = screenGui
+
+local tutorialCorner = Instance.new("UICorner")
+tutorialCorner.CornerRadius = UDim.new(0, 12)
+tutorialCorner.Parent = tutorialPanel
+
+local tutorialBorder = Instance.new("UIStroke")
+tutorialBorder.Color = Color3.fromRGB(255, 200, 100)
+tutorialBorder.Thickness = 3
+tutorialBorder.Parent = tutorialPanel
+
+local tutorialTitle = Instance.new("TextLabel")
+tutorialTitle.Size = UDim2.new(1, 0, 0, 50)
+tutorialTitle.BackgroundColor3 = Color3.fromRGB(40, 25, 25)
+tutorialTitle.BackgroundTransparency = 0.5
+tutorialTitle.Text = "SURVIVAL BASICS"
+tutorialTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
+tutorialTitle.Font = Enum.Font.GothamBlack
+tutorialTitle.TextSize = 28
+tutorialTitle.Parent = tutorialPanel
+
+local tutorialTitleCorner = Instance.new("UICorner")
+tutorialTitleCorner.CornerRadius = UDim.new(0, 12)
+tutorialTitleCorner.Parent = tutorialTitle
+
+local tutorialContent = Instance.new("TextLabel")
+tutorialContent.Size = UDim2.new(1, -40, 1, -130)
+tutorialContent.Position = UDim2.new(0, 20, 0, 60)
+tutorialContent.BackgroundTransparency = 1
+tutorialContent.TextColor3 = Color3.new(1, 1, 1)
+tutorialContent.TextXAlignment = Enum.TextXAlignment.Left
+tutorialContent.TextYAlignment = Enum.TextYAlignment.Top
+tutorialContent.TextWrapped = true
+tutorialContent.Font = Enum.Font.Gotham
+tutorialContent.TextSize = 16
+tutorialContent.RichText = true
+tutorialContent.Text = [[<font size="20" color="#FF6666"><b>YOU WILL DIE IF YOU DO NOTHING!</b></font>
+
+<font size="18" color="#FFCC66"><b>IMMEDIATE PRIORITIES:</b></font>
+
+<font color="#FF9999">1. EAT FOOD</font> - Your hunger bar (orange) drains constantly.
+   Find glowing items on the ground. Press <b>1</b> to eat.
+
+<font color="#99CCFF">2. FIND LIGHT</font> - Creatures hunt at night.
+   Press <b>F</b> for flashlight. Stay near radio towers.
+
+<font color="#99FF99">3. COLLECT SUPPLIES</font> - Walk into glowing items:
+   <b>Food</b> (red/orange) | <b>Batteries</b> (yellow) | <b>Wood</b> (brown)
+
+<font color="#FFFF99">4. SURVIVE 5 NIGHTS</font> - Find 3 signal parts to call rescue.
+
+<font size="14" color="#AAAAAA">Controls: WASD move | SHIFT sprint | F flashlight | 1/2/3 use items</font>]]
+tutorialContent.Parent = tutorialPanel
+
+local dismissButton = Instance.new("TextButton")
+dismissButton.Size = UDim2.new(0, 200, 0, 50)
+dismissButton.Position = UDim2.new(0.5, -100, 1, -65)
+dismissButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+dismissButton.Text = "I UNDERSTAND - SURVIVE!"
+dismissButton.TextColor3 = Color3.new(1, 1, 1)
+dismissButton.Font = Enum.Font.GothamBold
+dismissButton.TextSize = 16
+dismissButton.Parent = tutorialPanel
+
+local dismissCorner = Instance.new("UICorner")
+dismissCorner.CornerRadius = UDim.new(0, 8)
+dismissCorner.Parent = dismissButton
+
+dismissButton.MouseButton1Click:Connect(function()
+	tutorialDismissed = true
+	tutorialPanel.Visible = false
+end)
+
+-- Critical warning overlay (pulses when starving/danger)
+local criticalWarning = Instance.new("Frame")
+criticalWarning.Name = "CriticalWarning"
+criticalWarning.Size = UDim2.new(1, 0, 1, 0)
+criticalWarning.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+criticalWarning.BackgroundTransparency = 1
+criticalWarning.BorderSizePixel = 0
+criticalWarning.ZIndex = 0
+criticalWarning.Parent = screenGui
+
+local criticalText = Instance.new("TextLabel")
+criticalText.Name = "CriticalText"
+criticalText.Size = UDim2.new(1, 0, 0, 60)
+criticalText.Position = UDim2.new(0, 0, 0.15, 0)
+criticalText.BackgroundTransparency = 1
+criticalText.Text = ""
+criticalText.TextColor3 = Color3.fromRGB(255, 50, 50)
+criticalText.TextStrokeTransparency = 0
+criticalText.TextStrokeColor3 = Color3.new(0, 0, 0)
+criticalText.Font = Enum.Font.GothamBlack
+criticalText.TextSize = 32
+criticalText.TextTransparency = 1
+criticalText.Parent = screenGui
+
+-- Priority system for urgent objectives
+local URGENT_PRIORITIES = {
+	{
+		condition = function() return currentHunger < 20 end,
+		title = "EAT NOW OR DIE!",
+		desc = "Your hunger is critical! Press 1 to eat food. If you have none, find glowing food items nearby!",
+		color = Color3.fromRGB(255, 50, 50),
+		critical = true,
+	},
+	{
+		condition = function() return currentHunger < 40 end,
+		title = "FIND FOOD SOON",
+		desc = "Hunger getting low. Look for glowing red/orange items on the ground. Walk into them to collect.",
+		color = Color3.fromRGB(255, 150, 50),
+		critical = false,
+	},
+	{
+		condition = function()
+			local hour = Lighting.ClockTime
+			return hour >= 19 or hour < 6
+		end,
+		title = "NIGHT - STAY IN LIGHT!",
+		desc = "Creatures are hunting! Stay near radio towers, campfires, or use your flashlight (F key).",
+		color = Color3.fromRGB(100, 100, 255),
+		critical = false,
+	},
+	{
+		condition = function() return inventory.food < 2 end,
+		title = "COLLECT MORE FOOD",
+		desc = "You're running low on food. Explore to find glowing food items scattered across the world.",
+		color = Color3.fromRGB(255, 180, 100),
+		critical = false,
+	},
+	{
+		condition = function() return true end, -- Default
+		title = "EXPLORE & SURVIVE",
+		desc = "Find signal parts (blue glowing), collect supplies, survive 5 nights to call for rescue!",
+		color = Color3.fromRGB(100, 200, 100),
+		critical = false,
+	},
+}
+
+-- Update urgent objective based on current situation
+local lastUrgentUpdate = 0
+local criticalPulsePhase = 0
+
+local function updateUrgentObjective()
+	for _, priority in URGENT_PRIORITIES do
+		if priority.condition() then
+			urgentTitle.Text = priority.title
+			urgentDesc.Text = priority.desc
+			urgentBorder.Color = priority.color
+			urgentIcon.TextColor3 = priority.color
+
+			if priority.critical then
+				-- Pulsing critical warning
+				criticalPulsePhase = (criticalPulsePhase + 0.1) % (math.pi * 2)
+				local pulse = (math.sin(criticalPulsePhase) + 1) / 2
+				criticalWarning.BackgroundTransparency = 0.9 + pulse * 0.1
+				criticalText.Text = priority.title
+				criticalText.TextTransparency = 0.3 + pulse * 0.4
+				urgentFrame.BackgroundColor3 = Color3.fromRGB(50 + pulse * 30, 20, 20)
+			else
+				criticalWarning.BackgroundTransparency = 1
+				criticalText.TextTransparency = 1
+				urgentFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+			end
+			break
+		end
+	end
+end
+
+-- Update urgent objective every frame
+RunService.Heartbeat:Connect(function()
+	if not tutorialDismissed then return end
+	updateUrgentObjective()
+end)
+
+-- Hide tutorial after a delay if player starts moving
+task.spawn(function()
+	task.wait(30) -- Auto-dismiss after 30 seconds
+	if not tutorialDismissed then
+		tutorialDismissed = true
+		tutorialPanel.Visible = false
+	end
+end)
+
+-- ==========================================
+-- DISCOVERY NOTIFICATION SYSTEM
+-- ==========================================
+
+-- Discovery popup (big, centered, celebratory!)
+local discoveryFrame = Instance.new("Frame")
+discoveryFrame.Name = "DiscoveryPopup"
+discoveryFrame.Size = UDim2.new(0, 450, 0, 250)
+discoveryFrame.Position = UDim2.new(0.5, -225, 0.5, -125)
+discoveryFrame.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
+discoveryFrame.BackgroundTransparency = 0.1
+discoveryFrame.BorderSizePixel = 0
+discoveryFrame.Visible = false
+discoveryFrame.ZIndex = 10
+discoveryFrame.Parent = screenGui
+
+local discoveryCorner = Instance.new("UICorner")
+discoveryCorner.CornerRadius = UDim.new(0, 16)
+discoveryCorner.Parent = discoveryFrame
+
+local discoveryBorder = Instance.new("UIStroke")
+discoveryBorder.Color = Color3.fromRGB(255, 200, 100)
+discoveryBorder.Thickness = 4
+discoveryBorder.Parent = discoveryFrame
+
+-- Glowing background effect
+local discoveryGlow = Instance.new("Frame")
+discoveryGlow.Size = UDim2.new(1, 20, 1, 20)
+discoveryGlow.Position = UDim2.new(0, -10, 0, -10)
+discoveryGlow.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+discoveryGlow.BackgroundTransparency = 0.9
+discoveryGlow.BorderSizePixel = 0
+discoveryGlow.ZIndex = 9
+discoveryGlow.Parent = discoveryFrame
+
+local glowCorner = Instance.new("UICorner")
+glowCorner.CornerRadius = UDim.new(0, 20)
+glowCorner.Parent = discoveryGlow
+
+-- Title (e.g. "SPECTACULAR DISCOVERY!")
+local discoveryTitle = Instance.new("TextLabel")
+discoveryTitle.Name = "Title"
+discoveryTitle.Size = UDim2.new(1, 0, 0, 45)
+discoveryTitle.BackgroundTransparency = 1
+discoveryTitle.Text = "DISCOVERY!"
+discoveryTitle.TextColor3 = Color3.fromRGB(255, 200, 100)
+discoveryTitle.Font = Enum.Font.GothamBlack
+discoveryTitle.TextSize = 32
+discoveryTitle.ZIndex = 11
+discoveryTitle.Parent = discoveryFrame
+
+-- Location name
+local discoveryName = Instance.new("TextLabel")
+discoveryName.Name = "LocationName"
+discoveryName.Size = UDim2.new(1, -20, 0, 35)
+discoveryName.Position = UDim2.new(0, 10, 0, 50)
+discoveryName.BackgroundTransparency = 1
+discoveryName.Text = "Location Name"
+discoveryName.TextColor3 = Color3.new(1, 1, 1)
+discoveryName.Font = Enum.Font.GothamBold
+discoveryName.TextSize = 24
+discoveryName.ZIndex = 11
+discoveryName.Parent = discoveryFrame
+
+-- Description
+local discoveryDesc = Instance.new("TextLabel")
+discoveryDesc.Name = "Description"
+discoveryDesc.Size = UDim2.new(1, -20, 0, 40)
+discoveryDesc.Position = UDim2.new(0, 10, 0, 90)
+discoveryDesc.BackgroundTransparency = 1
+discoveryDesc.Text = "Description of the place"
+discoveryDesc.TextColor3 = Color3.fromRGB(180, 180, 180)
+discoveryDesc.Font = Enum.Font.Gotham
+discoveryDesc.TextSize = 14
+discoveryDesc.TextWrapped = true
+discoveryDesc.ZIndex = 11
+discoveryDesc.Parent = discoveryFrame
+
+-- Rewards header
+local rewardsHeader = Instance.new("TextLabel")
+rewardsHeader.Size = UDim2.new(1, 0, 0, 25)
+rewardsHeader.Position = UDim2.new(0, 0, 0, 135)
+rewardsHeader.BackgroundTransparency = 1
+rewardsHeader.Text = "REWARDS COLLECTED!"
+rewardsHeader.TextColor3 = Color3.fromRGB(100, 255, 100)
+rewardsHeader.Font = Enum.Font.GothamBold
+rewardsHeader.TextSize = 16
+rewardsHeader.ZIndex = 11
+rewardsHeader.Parent = discoveryFrame
+
+-- Rewards display
+local rewardsFrame = Instance.new("Frame")
+rewardsFrame.Size = UDim2.new(1, -40, 0, 50)
+rewardsFrame.Position = UDim2.new(0, 20, 0, 165)
+rewardsFrame.BackgroundColor3 = Color3.fromRGB(30, 40, 30)
+rewardsFrame.BackgroundTransparency = 0.5
+rewardsFrame.BorderSizePixel = 0
+rewardsFrame.ZIndex = 11
+rewardsFrame.Parent = discoveryFrame
+
+local rewardsCorner = Instance.new("UICorner")
+rewardsCorner.CornerRadius = UDim.new(0, 8)
+rewardsCorner.Parent = rewardsFrame
+
+-- Individual reward labels
+local foodReward = Instance.new("TextLabel")
+foodReward.Size = UDim2.new(0.33, 0, 1, 0)
+foodReward.Position = UDim2.new(0, 0, 0, 0)
+foodReward.BackgroundTransparency = 1
+foodReward.Text = "+5 Food"
+foodReward.TextColor3 = Color3.fromRGB(255, 150, 100)
+foodReward.Font = Enum.Font.GothamBold
+foodReward.TextSize = 18
+foodReward.ZIndex = 12
+foodReward.Parent = rewardsFrame
+
+local batteryReward = Instance.new("TextLabel")
+batteryReward.Size = UDim2.new(0.33, 0, 1, 0)
+batteryReward.Position = UDim2.new(0.33, 0, 0, 0)
+batteryReward.BackgroundTransparency = 1
+batteryReward.Text = "+3 Batteries"
+batteryReward.TextColor3 = Color3.fromRGB(255, 220, 100)
+batteryReward.Font = Enum.Font.GothamBold
+batteryReward.TextSize = 18
+batteryReward.ZIndex = 12
+batteryReward.Parent = rewardsFrame
+
+local woodReward = Instance.new("TextLabel")
+woodReward.Size = UDim2.new(0.33, 0, 1, 0)
+woodReward.Position = UDim2.new(0.66, 0, 0, 0)
+woodReward.BackgroundTransparency = 1
+woodReward.Text = "+8 Wood"
+woodReward.TextColor3 = Color3.fromRGB(180, 130, 80)
+woodReward.Font = Enum.Font.GothamBold
+woodReward.TextSize = 18
+woodReward.ZIndex = 12
+woodReward.Parent = rewardsFrame
+
+-- Continue button
+local continueButton = Instance.new("TextButton")
+continueButton.Size = UDim2.new(0, 150, 0, 35)
+continueButton.Position = UDim2.new(0.5, -75, 1, -45)
+continueButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+continueButton.Text = "CONTINUE"
+continueButton.TextColor3 = Color3.new(1, 1, 1)
+continueButton.Font = Enum.Font.GothamBold
+continueButton.TextSize = 16
+continueButton.ZIndex = 12
+continueButton.Parent = discoveryFrame
+
+local continueCorner = Instance.new("UICorner")
+continueCorner.CornerRadius = UDim.new(0, 8)
+continueCorner.Parent = continueButton
+
+continueButton.MouseButton1Click:Connect(function()
+	discoveryFrame.Visible = false
+end)
+
+-- Show discovery popup
+local function showDiscovery(data: {
+	name: string,
+	description: string,
+	rewards: { food: number, batteries: number, wood: number },
+	title: string,
+	color: Color3,
+})
+	-- Update content
+	discoveryTitle.Text = data.title
+	discoveryTitle.TextColor3 = data.color
+	discoveryBorder.Color = data.color
+	discoveryName.Text = data.name
+	discoveryDesc.Text = data.description
+	foodReward.Text = "+" .. data.rewards.food .. " Food"
+	batteryReward.Text = "+" .. data.rewards.batteries .. " Batteries"
+	woodReward.Text = "+" .. data.rewards.wood .. " Wood"
+
+	-- Update inventory display immediately
+	inventory.food += data.rewards.food
+	inventory.batteries += data.rewards.batteries
+	inventory.wood += data.rewards.wood
+	foodLabel.Text = "[1] Food: " .. inventory.food
+	batteryLabel.Text = "[2] Batteries: " .. inventory.batteries
+	woodLabel.Text = "[3] Wood: " .. inventory.wood
+
+	-- Animate in
+	discoveryFrame.Position = UDim2.new(0.5, -225, 0, -300)
+	discoveryFrame.Visible = true
+
+	local tweenIn = TweenService:Create(discoveryFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, -225, 0.5, -125)
+	})
+	tweenIn:Play()
+
+	-- Pulse glow
+	task.spawn(function()
+		for i = 1, 5 do
+			local pulseIn = TweenService:Create(discoveryGlow, TweenInfo.new(0.3), {
+				BackgroundTransparency = 0.7
+			})
+			pulseIn:Play()
+			pulseIn.Completed:Wait()
+			local pulseOut = TweenService:Create(discoveryGlow, TweenInfo.new(0.3), {
+				BackgroundTransparency = 0.9
+			})
+			pulseOut:Play()
+			pulseOut.Completed:Wait()
+		end
+	end)
+
+	-- Auto-hide after 8 seconds
+	task.delay(8, function()
+		if discoveryFrame.Visible then
+			local tweenOut = TweenService:Create(discoveryFrame, TweenInfo.new(0.3, Enum.EasingStyle.Sine), {
+				Position = UDim2.new(0.5, -225, 0, -300)
+			})
+			tweenOut:Play()
+			tweenOut.Completed:Wait()
+			discoveryFrame.Visible = false
+		end
+	end)
+end
+
+-- Handle discovery events
+DiscoveryRemote.OnClientEvent:Connect(function(eventType: string, data: any)
+	if eventType == "DISCOVERED" then
+		showDiscovery(data)
+	end
+end)
+
+-- Track total discoveries for stats
+local totalDiscoveries = 0
+DiscoveryRemote.OnClientEvent:Connect(function(eventType: string)
+	if eventType == "DISCOVERED" then
+		totalDiscoveries += 1
+	end
+end)
+
+-- ==========================================
+-- RESPAWN NOTIFICATION
+-- ==========================================
+
+-- Respawn notification (shows progress kept)
+local respawnFrame = Instance.new("Frame")
+respawnFrame.Name = "RespawnNotify"
+respawnFrame.Size = UDim2.new(0, 400, 0, 120)
+respawnFrame.Position = UDim2.new(0.5, -200, 0.3, 0)
+respawnFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 20)
+respawnFrame.BackgroundTransparency = 0.2
+respawnFrame.BorderSizePixel = 0
+respawnFrame.Visible = false
+respawnFrame.ZIndex = 10
+respawnFrame.Parent = screenGui
+
+local respawnCorner = Instance.new("UICorner")
+respawnCorner.CornerRadius = UDim.new(0, 12)
+respawnCorner.Parent = respawnFrame
+
+local respawnBorder = Instance.new("UIStroke")
+respawnBorder.Color = Color3.fromRGB(255, 100, 100)
+respawnBorder.Thickness = 3
+respawnBorder.Parent = respawnFrame
+
+local respawnTitle = Instance.new("TextLabel")
+respawnTitle.Size = UDim2.new(1, 0, 0, 40)
+respawnTitle.BackgroundTransparency = 1
+respawnTitle.Text = "YOU DIED"
+respawnTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
+respawnTitle.Font = Enum.Font.GothamBlack
+respawnTitle.TextSize = 28
+respawnTitle.ZIndex = 11
+respawnTitle.Parent = respawnFrame
+
+local respawnInfo = Instance.new("TextLabel")
+respawnInfo.Size = UDim2.new(1, -20, 0, 30)
+respawnInfo.Position = UDim2.new(0, 10, 0, 45)
+respawnInfo.BackgroundTransparency = 1
+respawnInfo.Text = "Respawned 1/3 of the way back to spawn"
+respawnInfo.TextColor3 = Color3.fromRGB(200, 200, 200)
+respawnInfo.Font = Enum.Font.Gotham
+respawnInfo.TextSize = 14
+respawnInfo.ZIndex = 11
+respawnInfo.Parent = respawnFrame
+
+local progressKept = Instance.new("TextLabel")
+progressKept.Size = UDim2.new(1, 0, 0, 35)
+progressKept.Position = UDim2.new(0, 0, 0, 75)
+progressKept.BackgroundTransparency = 1
+progressKept.Text = "67% PROGRESS KEPT"
+progressKept.TextColor3 = Color3.fromRGB(100, 255, 100)
+progressKept.Font = Enum.Font.GothamBold
+progressKept.TextSize = 20
+progressKept.ZIndex = 11
+progressKept.Parent = respawnFrame
+
+-- Handle respawn notification
+RespawnRemote.OnClientEvent:Connect(function(data: any)
+	respawnInfo.Text = "Moved back " .. data.distanceLost .. " studs toward spawn"
+	progressKept.Text = data.progressKept .. "% PROGRESS KEPT"
+
+	respawnFrame.Visible = true
+
+	-- Animate in
+	respawnFrame.Position = UDim2.new(0.5, -200, 0, -150)
+	local tweenIn = TweenService:Create(respawnFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0.5, -200, 0.3, 0)
+	})
+	tweenIn:Play()
+
+	-- Auto-hide after 4 seconds
+	task.delay(4, function()
+		local tweenOut = TweenService:Create(respawnFrame, TweenInfo.new(0.3, Enum.EasingStyle.Sine), {
+			Position = UDim2.new(0.5, -200, 0, -150)
+		})
+		tweenOut:Play()
+		tweenOut.Completed:Wait()
+		respawnFrame.Visible = false
+	end)
 end)
 
 print("[UI] Mertin-Flemmer UI ready! Survive the night, find food, stay in the light.")

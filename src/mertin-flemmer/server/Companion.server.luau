@@ -167,15 +167,15 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	-- SCALED DOWN CAMEL (0.5x size so it can fit through doors)
 	local SCALE = 0.5
 
-	-- Body
+	-- Body (HumanoidRootPart) - MUST collide to stand on terrain!
 	local body = Instance.new("Part")
 	body.Name = "Body"
 	body.Size = Vector3.new(3, 2.5, 5) * SCALE
-	body.Position = position + Vector3.new(0, 2.5 * SCALE, 0)
+	body.Position = position + Vector3.new(0, 3, 0)  -- Spawn higher above ground
 	body.Color = personality.color
 	body.Material = Enum.Material.SmoothPlastic
 	body.Anchored = false
-	body.CanCollide = false -- Can walk through doors!
+	body.CanCollide = true  -- MUST collide to walk on terrain!
 	body.Parent = camel
 
 	-- Hump 1
@@ -245,7 +245,7 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	eye2.CanCollide = false
 	eye2.Parent = camel
 
-	-- Legs
+	-- Legs - need collision to walk on terrain
 	for i, offset in { Vector3.new(1, -2, 1.5), Vector3.new(-1, -2, 1.5), Vector3.new(1, -2, -1.5), Vector3.new(-1, -2, -1.5) } do
 		local leg = Instance.new("Part")
 		leg.Name = "Leg" .. i
@@ -254,7 +254,7 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 		leg.Color = personality.color
 		leg.Material = Enum.Material.SmoothPlastic
 		leg.Anchored = false
-		leg.CanCollide = false
+		leg.CanCollide = true  -- Legs need collision for walking
 		leg.Parent = camel
 	end
 
@@ -269,17 +269,49 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	tail.CanCollide = false
 	tail.Parent = camel
 
-	-- SEAT for riding!
+	-- SEAT for riding! (Press E or click to mount)
 	local seat = Instance.new("Seat")
 	seat.Name = "CamelSeat"
-	seat.Size = Vector3.new(1.5, 0.3, 1.5) * SCALE
-	seat.Position = body.Position + Vector3.new(0, 1.5 * SCALE, 0)
-	seat.Color = Color3.fromRGB(100, 60, 40)
-	seat.Material = Enum.Material.Fabric
+	seat.Size = Vector3.new(2, 0.5, 2) * SCALE
+	seat.Position = body.Position + Vector3.new(0, 1.8 * SCALE, 0)
+	seat.Color = Color3.fromRGB(139, 90, 43) -- Saddle brown
+	seat.Material = Enum.Material.Leather
 	seat.Anchored = false
-	seat.CanCollide = false
-	seat.Transparency = 0.5
+	seat.CanCollide = true -- Player can sit on it!
+	seat.Transparency = 0
 	seat.Parent = camel
+
+	-- Saddle blanket underneath
+	local blanket = Instance.new("Part")
+	blanket.Name = "SaddleBlanket"
+	blanket.Size = Vector3.new(2.5, 0.2, 3) * SCALE
+	blanket.Position = body.Position + Vector3.new(0, 1.5 * SCALE, 0)
+	blanket.Color = Color3.fromRGB(150, 50, 50) -- Red blanket
+	blanket.Material = Enum.Material.Fabric
+	blanket.Anchored = false
+	blanket.CanCollide = false
+	blanket.Parent = camel
+
+	-- ProximityPrompt to make mounting easy!
+	local ridePrompt = Instance.new("ProximityPrompt")
+	ridePrompt.ObjectText = personality.name
+	ridePrompt.ActionText = "Ride Camel"
+	ridePrompt.KeyboardKeyCode = Enum.KeyCode.E
+	ridePrompt.HoldDuration = 0.3
+	ridePrompt.MaxActivationDistance = 10
+	ridePrompt.Parent = body
+
+	-- When prompted, seat the player
+	ridePrompt.Triggered:Connect(function(player: Player)
+		local character = player.Character
+		if not character then return end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.SeatPart == nil then
+			seat:Sit(humanoid)
+			print("[Companion]", player.Name, "is now riding", personality.name, "!")
+		end
+	end)
 
 	-- Name tag (adjusted for smaller camel)
 	local billboard = Instance.new("BillboardGui")
@@ -625,8 +657,18 @@ local function spawnCompanion(player: Player)
 	-- Pick random personality
 	local personality = PERSONALITIES[math.random(#PERSONALITIES)]
 
-	-- Create camel
-	local position = rootPart.Position + Vector3.new(5, 0, 0)
+	-- Create camel - spawn OUTSIDE the spawn house (house is at 0, 0, -30)
+	-- Always spawn in the front yard area, not inside buildings
+	local CAMEL_SPAWN_SPOTS = {
+		Vector3.new(30, 0, -10),   -- Front right of spawn house
+		Vector3.new(-30, 0, -10),  -- Front left of spawn house
+		Vector3.new(25, 0, 15),    -- Further out front
+		Vector3.new(-25, 0, 15),   -- Further out front left
+		Vector3.new(40, 0, 0),     -- Side yard right
+	}
+	local spawnSpot = CAMEL_SPAWN_SPOTS[math.random(#CAMEL_SPAWN_SPOTS)]
+	local terrainHeight = Shared.getTerrainHeight(spawnSpot.X, spawnSpot.Z)
+	local position = Vector3.new(spawnSpot.X, terrainHeight + 2, spawnSpot.Z)
 	local model = createCamelModel(personality, position)
 
 	companions[player] = {

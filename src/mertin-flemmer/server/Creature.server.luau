@@ -1205,19 +1205,19 @@ CREATURE_TYPES.WENDIGO = {
 -- STATE AND CONFIGURATION
 -- ==========================================
 
-local WORLD_SIZE = 5000
+local WORLD_SIZE = 3000  -- Must stay within terrain bounds (3500)
 local SAFE_ZONE_RADIUS = 20 -- Safe zone around campfires
 local FLASHLIGHT_RANGE = 40 -- How far flashlight reaches
 
 -- Creature counts per type
 local CREATURE_COUNTS = {
-	SHADOW = 15,
-	WOLF = 12,
-	BEAR = 4,
-	OWL = 8,
-	RAM = 6,
-	DEER_MONSTER = 3,
-	WENDIGO = 0, -- Spawned during blood nights
+	SHADOW = 12,    -- Spooky shadows lurking
+	WOLF = 10,      -- Wolf packs roaming
+	BEAR = 4,       -- Bears in the mountains
+	OWL = 8,        -- Owls watching from trees
+	RAM = 6,        -- Mountain rams
+	DEER_MONSTER = 3, -- Terrifying deer monsters
+	WENDIGO = 0,    -- Spawned during blood nights
 }
 
 -- State
@@ -1268,54 +1268,100 @@ local function getBiome(x: number, z: number): string
 end
 
 -- ==========================================
--- UTILITY FUNCTIONS
+-- PERFORMANCE CACHES (updated periodically, not every frame)
 -- ==========================================
 
--- Check if position is near a light source
-local function isNearLight(position: Vector3): boolean
-	for _, obj in workspace:GetDescendants() do
+local campfirePositions: { Vector3 } = {}
+local playerFlashlights: { [Player]: { enabled: boolean, position: Vector3?, lookDir: Vector3? } } = {}
+local lastCacheUpdate = 0
+local CACHE_UPDATE_INTERVAL = 0.5  -- Update caches twice per second
+
+local function updateCaches()
+	local now = tick()
+	if now - lastCacheUpdate < CACHE_UPDATE_INTERVAL then return end
+	lastCacheUpdate = now
+
+	-- Update campfire positions
+	campfirePositions = {}
+	local campfireFolder = workspace:FindFirstChild("Campfires")
+	if campfireFolder then
+		for _, obj in campfireFolder:GetChildren() do
+			if obj:IsA("Model") then
+				local fire = obj:FindFirstChild("Fire")
+				if fire and fire:IsA("BasePart") then
+					table.insert(campfirePositions, fire.Position)
+				end
+			end
+		end
+	end
+
+	-- Also check for individual campfires in workspace (backwards compat)
+	for _, obj in workspace:GetChildren() do
 		if obj.Name == "Campfire" and obj:IsA("Model") then
 			local fire = obj:FindFirstChild("Fire")
 			if fire and fire:IsA("BasePart") then
-				if (fire.Position - position).Magnitude < SAFE_ZONE_RADIUS then
-					return true
-				end
+				table.insert(campfirePositions, fire.Position)
 			end
+		end
+	end
+
+	-- Update player flashlight states
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		if not character then
+			playerFlashlights[player] = { enabled = false }
+			continue
+		end
+
+		local head = character:FindFirstChild("Head") :: BasePart?
+		if not head then
+			playerFlashlights[player] = { enabled = false }
+			continue
+		end
+
+		-- Check for flashlight (just check common locations, not GetDescendants)
+		local flashlightEnabled = false
+		local tool = character:FindFirstChildOfClass("Tool")
+		if tool then
+			local light = tool:FindFirstChildOfClass("SpotLight")
+			if light and light.Enabled then
+				flashlightEnabled = true
+			end
+		end
+
+		playerFlashlights[player] = {
+			enabled = flashlightEnabled,
+			position = head.Position,
+			lookDir = head.CFrame.LookVector,
+		}
+	end
+end
+
+-- ==========================================
+-- UTILITY FUNCTIONS (optimized)
+-- ==========================================
+
+-- Check if position is near a light source (uses cache)
+local function isNearLight(position: Vector3): boolean
+	for _, campfirePos in campfirePositions do
+		if (campfirePos - position).Magnitude < SAFE_ZONE_RADIUS then
+			return true
 		end
 	end
 	return false
 end
 
--- Check if creature is being hit by flashlight
+-- Check if creature is being hit by flashlight (uses cache)
 local function isInFlashlight(creaturePos: Vector3): boolean
-	for _, player in Players:GetPlayers() do
-		local character = player.Character
-		if not character then continue end
+	for player, data in playerFlashlights do
+		if not data.enabled or not data.position or not data.lookDir then continue end
 
-		local head = character:FindFirstChild("Head") :: BasePart?
-		if not head then continue end
-
-		-- Check if player has flashlight on (look for SpotLight in character)
-		local flashlight: SpotLight? = nil
-		for _, desc in character:GetDescendants() do
-			if desc:IsA("SpotLight") and desc.Enabled then
-				flashlight = desc
-				break
-			end
-		end
-
-		if not flashlight then continue end
-
-		-- Check if creature is in flashlight cone
-		local toCreature = (creaturePos - head.Position)
+		local toCreature = (creaturePos - data.position)
 		local distance = toCreature.Magnitude
 
 		if distance > FLASHLIGHT_RANGE then continue end
 
-		local lookDir = head.CFrame.LookVector
-		local angle = math.acos(math.clamp(lookDir:Dot(toCreature.Unit), -1, 1))
-
-		-- Flashlight cone is roughly 30 degrees
+		local angle = math.acos(math.clamp(data.lookDir:Dot(toCreature.Unit), -1, 1))
 		if math.deg(angle) < 30 then
 			return true
 		end
@@ -1388,15 +1434,18 @@ local function spawnCreature(creatureType: string, position: Vector3?): Model?
 		repeat
 			local angle = math.random() * math.pi * 2
 			local distance = 200 + math.random() * (WORLD_SIZE - 200)
-			spawnPos = Vector3.new(
-				math.cos(angle) * distance,
-				10,
-				math.sin(angle) * distance
-			)
-			spawnBiome = getBiome(spawnPos.X, spawnPos.Z)
+			local x = math.cos(angle) * distance
+			local z = math.sin(angle) * distance
+			-- Get terrain height at this position
+			local terrainHeight = Shared.getTerrainHeight(x, z)
+			spawnPos = Vector3.new(x, terrainHeight + 5, z)
+			spawnBiome = getBiome(x, z)
 			attempts += 1
 		until table.find(typeData.biomes, spawnBiome) or table.find(typeData.biomes, "ALL") or attempts > 10
 	else
+		-- Adjust provided position to terrain height
+		local terrainHeight = Shared.getTerrainHeight(spawnPos.X, spawnPos.Z)
+		spawnPos = Vector3.new(spawnPos.X, terrainHeight + 5, spawnPos.Z)
 		spawnBiome = getBiome(spawnPos.X, spawnPos.Z)
 	end
 
@@ -1671,13 +1720,20 @@ local function triggerBloodNight()
 end
 
 -- ==========================================
--- MAIN LOOP
+-- MAIN LOOP (optimized with throttling)
 -- ==========================================
 
 local lastTimeCheck = 0
 local wasNight = false
+local frameCount = 0
+local CREATURE_UPDATE_INTERVAL = 3  -- Update creatures every 3 frames (20fps instead of 60)
 
 RunService.Heartbeat:Connect(function()
+	frameCount = frameCount + 1
+
+	-- Update caches (handles its own throttling)
+	updateCaches()
+
 	local hour = Lighting.ClockTime
 
 	-- Update night status
@@ -1698,6 +1754,9 @@ RunService.Heartbeat:Connect(function()
 	end
 
 	wasNight = isNightTime
+
+	-- Throttle creature updates (every 3 frames = ~20fps)
+	if frameCount % CREATURE_UPDATE_INTERVAL ~= 0 then return end
 
 	-- Update all creatures
 	for creature, data in creatures do

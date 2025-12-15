@@ -9,10 +9,10 @@ local RunService = game:GetService("RunService")
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 
--- Resource configuration
+-- Resource configuration - plenty of loot scattered around!
 local RESOURCE_CONFIG = {
 	FOOD = {
-		count = 40,
+		count = 35,  -- Lots of food to find
 		respawnTime = 120,
 		collectRadius = 4,
 		hungerRestore = 30,
@@ -24,7 +24,7 @@ local RESOURCE_CONFIG = {
 		},
 	},
 	BATTERY = {
-		count = 25,
+		count = 20,  -- Batteries for flashlights
 		respawnTime = 180,
 		collectRadius = 3,
 		batteryRestore = 60, -- seconds of flashlight
@@ -34,7 +34,7 @@ local RESOURCE_CONFIG = {
 		},
 	},
 	WOOD = {
-		count = 50,
+		count = 40,  -- Wood for campfires
 		respawnTime = 90,
 		collectRadius = 5,
 		campfireFuel = 60, -- seconds added to campfire
@@ -70,8 +70,8 @@ local playerInventories: { [Player]: {
 	wood: number,
 } } = {}
 
--- World bounds
-local WORLD_SIZE = 800
+-- World bounds - must match terrain size!
+local WORLD_SIZE = 3000  -- Slightly smaller than terrain (3500) to keep resources within playable area
 
 -- Create a resource pickup
 local function createResource(resourceType: string, position: Vector3): BasePart?
@@ -80,12 +80,15 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 
 	local modelData = config.models[math.random(#config.models)]
 
+	-- Get terrain height at this position
+	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
+
 	local resource = Instance.new("Part")
 	resource.Name = "Resource_" .. resourceType .. "_" .. modelData.name
 	resource.Size = modelData.size
 	resource.Color = modelData.color
 	resource.Material = Enum.Material.SmoothPlastic
-	resource.Position = position + Vector3.new(0, modelData.size.Y / 2 + 0.5, 0)
+	resource.Position = Vector3.new(position.X, terrainHeight + modelData.size.Y / 2 + 0.5, position.Z)
 	resource.Anchored = true
 	resource.CanCollide = false
 
@@ -98,7 +101,7 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 	highlight.Parent = resource
 
 	-- Add floating animation
-	local originalY = resource.Position.Y
+	local baseY = terrainHeight + modelData.size.Y / 2 + 0.5
 	local floatOffset = math.random() * math.pi * 2
 
 	-- Hover and rotate effect
@@ -112,7 +115,7 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 		local t = tick() + floatOffset
 		resource.Position = Vector3.new(
 			resource.Position.X,
-			originalY + math.sin(t * 2) * 0.3,
+			baseY + math.sin(t * 2) * 0.3,
 			resource.Position.Z
 		)
 		resource.Orientation = Vector3.new(0, (t * 30) % 360, 0)

@@ -5,7 +5,7 @@
 local Workspace = game:GetService("Workspace")
 
 -- Configuration
-local WORLD_SIZE = 5000 -- MASSIVE world
+local WORLD_SIZE = 3500 -- Matches AlpineTerrain size - BIG EPIC WORLD
 local RunService = game:GetService("RunService")
 
 -- BIOME DEFINITIONS
@@ -136,10 +136,13 @@ local function createGround()
 		end
 	end
 
-	-- Hills and terrain variation
-	for i = 1, 300 do
-		local x = (math.random() - 0.5) * WORLD_SIZE * 2
-		local z = (math.random() - 0.5) * WORLD_SIZE * 2
+	-- Hills and terrain variation - EPIC rolling landscape
+	local hillFolder = Instance.new("Folder")
+	hillFolder.Name = "Hills"
+
+	for i = 1, 200 do  -- Plenty of rolling hills!
+		local x = (math.random() - 0.5) * WORLD_SIZE * 1.8  -- Stay within terrain bounds
+		local z = (math.random() - 0.5) * WORLD_SIZE * 1.8
 		local biome = getBiome(x, z)
 
 		local hill = Instance.new("Part")
@@ -151,8 +154,14 @@ local function createGround()
 		hill.Color = biome.groundColor
 		hill.Material = biome.material
 		hill.Anchored = true
-		hill.Parent = Workspace
+		hill.CastShadow = false  -- Performance boost
+		hill.Parent = hillFolder
+
+		-- Yield every 50 hills to prevent lag
+		if i % 50 == 0 then task.wait() end
 	end
+
+	hillFolder.Parent = Workspace
 
 	-- Rivers (long blue parts)
 	local rivers = {
@@ -428,7 +437,7 @@ local function createOfficeBuilding75(position: Vector3)
 	local buildingDepth = 50
 	local floorHeight = 14 -- Normal floor height
 	local totalFloors = 20 -- 20 story building
-	local floor75Height = 5 -- Very low ceiling - forces crouching feel
+	local floor75Height = 4 -- VERY low ceiling - you MUST crouch! (Being John Malkovich)
 	local lobbyHeight = 20 -- Grand lobby
 
 	-- Calculate positions
@@ -861,9 +870,16 @@ local function createCampfire(position: Vector3)
 end
 
 -- Create a fast travel portal
+-- Track portal cooldowns per player to prevent teleport loops
+local portalCooldowns: { [Player]: number } = {}
+local PORTAL_COOLDOWN = 3  -- 3 seconds between portal uses
+
 local function createPortal(position: Vector3, destination: Vector3, portalName: string, color: Color3)
 	local portal = Instance.new("Model")
 	portal.Name = "Portal_" .. portalName
+
+	-- Get terrain height at destination for proper landing
+	local destTerrainHeight = Shared.getTerrainHeight(destination.X, destination.Z)
 
 	-- Portal ring
 	local ring = Instance.new("Part")
@@ -917,16 +933,33 @@ local function createPortal(position: Vector3, destination: Vector3, portalName:
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = label
 
-	-- Teleport on touch
+	-- Teleport on touch (WITH COOLDOWN to prevent loops!)
 	center.Touched:Connect(function(hit)
 		local character = hit.Parent
 		if not character then return end
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if humanoid and rootPart then
-			rootPart.CFrame = CFrame.new(destination + Vector3.new(0, 3, 0))
-			print("[Portal] Traveling to", portalName)
+		if not humanoid or not rootPart then return end
+
+		-- Get the player
+		local player = Players:GetPlayerFromCharacter(character)
+		if not player then return end
+
+		-- Check cooldown
+		local lastUse = portalCooldowns[player] or 0
+		if tick() - lastUse < PORTAL_COOLDOWN then
+			return  -- Still on cooldown
 		end
+
+		-- Set cooldown
+		portalCooldowns[player] = tick()
+
+		-- Teleport AWAY from the return portal (offset 20 studs to the side)
+		-- This prevents landing directly on the return portal
+		local landingPos = Vector3.new(destination.X + 20, destTerrainHeight + 5, destination.Z)
+		rootPart.CFrame = CFrame.new(landingPos)
+
+		print("[Portal]", player.Name, "traveling to", portalName)
 	end)
 
 	portal.Parent = Workspace
@@ -1361,15 +1394,26 @@ local function createSpawnHouse(position: Vector3)
 	foundation.Anchored = true
 	foundation.Parent = house
 
-	-- Floor
+	-- Floor (doesn't extend to doorway to avoid blocking)
 	local floor = Instance.new("Part")
 	floor.Name = "Floor"
-	floor.Size = Vector3.new(width, 1, depth)
-	floor.Position = position + Vector3.new(0, 0.5, 0)
+	floor.Size = Vector3.new(width, 1, depth - 2)  -- Shorter to not reach door
+	floor.Position = position + Vector3.new(0, 0.5, -1)  -- Moved back slightly
 	floor.Color = Color3.fromRGB(120, 90, 60)
 	floor.Material = Enum.Material.Wood
 	floor.Anchored = true
 	floor.Parent = house
+
+	-- Doorstep (thin, at ground level, in doorway)
+	local doorstep = Instance.new("Part")
+	doorstep.Name = "Doorstep"
+	doorstep.Size = Vector3.new(6, 0.2, 2)  -- Thin step
+	doorstep.Position = position + Vector3.new(0, 0.1, depth / 2 - 0.5)  -- At door, very low
+	doorstep.Color = Color3.fromRGB(100, 80, 60)
+	doorstep.Material = Enum.Material.Wood
+	doorstep.Anchored = true
+	doorstep.CanCollide = false  -- Don't block walking
+	doorstep.Parent = house
 
 	-- Walls
 	local wallColor = Color3.fromRGB(100, 85, 70)
@@ -1404,7 +1448,8 @@ local function createSpawnHouse(position: Vector3)
 	rightWall.Anchored = true
 	rightWall.Parent = house
 
-	-- Front wall with doorway
+	-- Front wall with doorway (door is 6 wide x 8 tall)
+	-- Left side of front wall
 	local frontWallLeft = Instance.new("Part")
 	frontWallLeft.Name = "FrontWallLeft"
 	frontWallLeft.Size = Vector3.new((width - 6) / 2, height, 1)
@@ -1414,6 +1459,7 @@ local function createSpawnHouse(position: Vector3)
 	frontWallLeft.Anchored = true
 	frontWallLeft.Parent = house
 
+	-- Right side of front wall
 	local frontWallRight = Instance.new("Part")
 	frontWallRight.Name = "FrontWallRight"
 	frontWallRight.Size = Vector3.new((width - 6) / 2, height, 1)
@@ -1423,10 +1469,11 @@ local function createSpawnHouse(position: Vector3)
 	frontWallRight.Anchored = true
 	frontWallRight.Parent = house
 
+	-- Top of doorway (above the door opening) - NO BOTTOM PIECE
 	local frontWallTop = Instance.new("Part")
 	frontWallTop.Name = "FrontWallTop"
-	frontWallTop.Size = Vector3.new(6, height - 8, 1)
-	frontWallTop.Position = position + Vector3.new(0, height - 3, depth / 2)
+	frontWallTop.Size = Vector3.new(6, 3, 1)  -- Just the part above door
+	frontWallTop.Position = position + Vector3.new(0, height - 0.5, depth / 2)  -- At top of wall
 	frontWallTop.Color = wallColor
 	frontWallTop.Material = Enum.Material.Wood
 	frontWallTop.Anchored = true
@@ -1504,11 +1551,11 @@ local function createSpawnHouse(position: Vector3)
 	signText.TextScaled = true
 	signText.Parent = signGui
 
-	-- Porch/walkway outside door
+	-- Porch/walkway outside door (positioned to not block doorway)
 	local porch = Instance.new("Part")
 	porch.Name = "Porch"
-	porch.Size = Vector3.new(10, 1, 6)
-	porch.Position = position + Vector3.new(0, 0.5, depth / 2 + 3)
+	porch.Size = Vector3.new(10, 0.5, 6)  -- Thinner so it doesn't block
+	porch.Position = position + Vector3.new(0, 0.25, depth / 2 + 4)  -- Further out, lower
 	porch.Color = Color3.fromRGB(100, 80, 60)
 	porch.Material = Enum.Material.Wood
 	porch.Anchored = true
@@ -1543,11 +1590,12 @@ local function generateWorld()
 
 	-- FAST TRAVEL PORTAL NETWORK
 	local portalLocations = {
-		{ pos = Vector3.new(0, 0, 50), dest = Vector3.new(2000, 0, 0), name = "Frozen Wastes", color = Color3.fromRGB(150, 200, 255) },
-		{ pos = Vector3.new(50, 0, 0), dest = Vector3.new(1500, 0, 2000), name = "Scorched Sands", color = Color3.fromRGB(255, 200, 100) },
-		{ pos = Vector3.new(-50, 0, 0), dest = Vector3.new(-2000, 0, 1500), name = "Ashen Peaks", color = Color3.fromRGB(255, 100, 50) },
-		{ pos = Vector3.new(0, 0, -50), dest = Vector3.new(-1500, 0, -1500), name = "Murky Depths", color = Color3.fromRGB(100, 150, 100) },
-		{ pos = Vector3.new(-30, 0, 30), dest = Vector3.new(0, 0, -2500), name = "Shimmering Caverns", color = Color3.fromRGB(200, 150, 255) },
+		-- Portals spread out more from spawn to reduce clutter
+		{ pos = Vector3.new(0, 0, 100), dest = Vector3.new(2000, 0, 0), name = "Frozen Wastes", color = Color3.fromRGB(150, 200, 255) },
+		{ pos = Vector3.new(100, 0, 50), dest = Vector3.new(1500, 0, 2000), name = "Scorched Sands", color = Color3.fromRGB(255, 200, 100) },
+		{ pos = Vector3.new(-100, 0, 50), dest = Vector3.new(-2000, 0, 1500), name = "Ashen Peaks", color = Color3.fromRGB(255, 100, 50) },
+		{ pos = Vector3.new(0, 0, -100), dest = Vector3.new(-1500, 0, -1500), name = "Murky Depths", color = Color3.fromRGB(100, 150, 100) },
+		{ pos = Vector3.new(-80, 0, 80), dest = Vector3.new(0, 0, -2500), name = "Shimmering Caverns", color = Color3.fromRGB(200, 150, 255) },
 	}
 
 	print("[World] Creating fast travel portal network...")
@@ -1576,8 +1624,8 @@ local function generateWorld()
 	-- TREES - lots of them, spread across all biomes
 	print("[World] Planting forests across all biomes...")
 	for i = 1, 2000 do
-		local x = (math.random() - 0.5) * WORLD_SIZE * 2
-		local z = (math.random() - 0.5) * WORLD_SIZE * 2
+		local x = (math.random() - 0.5) * WORLD_SIZE * 1.8  -- Stay within terrain bounds
+		local z = (math.random() - 0.5) * WORLD_SIZE * 1.8
 		local pos = Vector3.new(x, 0, z)
 
 		-- Avoid spawn area and building
@@ -1706,7 +1754,7 @@ local function generateWorld()
 	-- ========================================
 	print("[World] Placing mission boards...")
 	local missionBoardLocations = {
-		{ pos = Vector3.new(20, 0, -20), missions = {
+		{ pos = Vector3.new(60, 0, 30), missions = { -- Moved away from spawn door
 			"SURVIVE THE NIGHT - Find shelter before darkness falls. Campfires provide safety.",
 			"GATHER RESOURCES - Collect food, wood, and batteries to survive.",
 			"EXPLORE THE WORLD - Use portals to travel to distant biomes.",
@@ -1927,7 +1975,7 @@ local function generateWorld()
 	local table = Instance.new("Part")
 	table.Name = "Table"
 	table.Size = Vector3.new(6, 3, 4)
-	table.Position = Vector3.new(-40, 1.5, -20)
+	table.Position = Vector3.new(-60, 1.5, 20) -- Moved away from spawn door
 	table.Color = Color3.fromRGB(60, 45, 30)
 	table.Material = Enum.Material.Wood
 	table.Anchored = true
@@ -1938,7 +1986,7 @@ local function generateWorld()
 	cauldron.Name = "Cauldron"
 	cauldron.Shape = Enum.PartType.Cylinder
 	cauldron.Size = Vector3.new(2, 3, 3)
-	cauldron.CFrame = CFrame.new(Vector3.new(-40, 4, -20)) * CFrame.Angles(0, 0, math.rad(90))
+	cauldron.CFrame = CFrame.new(Vector3.new(-60, 4, 20)) * CFrame.Angles(0, 0, math.rad(90))
 	cauldron.Color = Color3.fromRGB(40, 40, 45)
 	cauldron.Material = Enum.Material.Metal
 	cauldron.Anchored = true
@@ -1949,7 +1997,7 @@ local function generateWorld()
 	liquid.Name = "Liquid"
 	liquid.Shape = Enum.PartType.Cylinder
 	liquid.Size = Vector3.new(0.5, 2.5, 2.5)
-	liquid.CFrame = CFrame.new(Vector3.new(-40, 4.5, -20)) * CFrame.Angles(0, 0, math.rad(90))
+	liquid.CFrame = CFrame.new(Vector3.new(-60, 4.5, 20)) * CFrame.Angles(0, 0, math.rad(90))
 	liquid.Color = Color3.fromRGB(100, 255, 150)
 	liquid.Material = Enum.Material.Neon
 	liquid.Transparency = 0.3
@@ -1986,7 +2034,7 @@ local function generateWorld()
 		local bottle = Instance.new("Part")
 		bottle.Name = "Bottle_" .. b
 		bottle.Size = Vector3.new(0.6, 1.2, 0.6)
-		bottle.Position = Vector3.new(-42 + b * 1.2, 3.6, -18)
+		bottle.Position = Vector3.new(-62 + b * 1.2, 3.6, 22)
 		bottle.Color = color
 		bottle.Material = Enum.Material.Glass
 		bottle.Transparency = 0.3
@@ -1998,7 +2046,7 @@ local function generateWorld()
 	local alchemySign = Instance.new("Part")
 	alchemySign.Name = "Sign"
 	alchemySign.Size = Vector3.new(5, 2, 0.3)
-	alchemySign.Position = Vector3.new(-40, 7, -22)
+	alchemySign.Position = Vector3.new(-60, 7, 18)
 	alchemySign.Color = Color3.fromRGB(60, 45, 30)
 	alchemySign.Material = Enum.Material.Wood
 	alchemySign.Anchored = true
@@ -2018,6 +2066,346 @@ local function generateWorld()
 	alchemySignText.Parent = alchemySignGui
 
 	alchemyTable.Parent = Workspace
+
+	-- ========================================
+	-- SPECIAL ENVIRONMENTAL EFFECTS
+	-- Unique animations at specific locations!
+	-- ========================================
+	print("[World] Creating magical environmental effects...")
+
+	-- 1. SNOW FALLING - Frozen Peaks area
+	local snowZone = Instance.new("Part")
+	snowZone.Name = "SnowZone"
+	snowZone.Size = Vector3.new(600, 10, 600)
+	snowZone.Position = Vector3.new(2000, 150, 0)  -- High in the frozen mountains
+	snowZone.Transparency = 1
+	snowZone.CanCollide = false
+	snowZone.Anchored = true
+	snowZone.Parent = Workspace
+
+	local snowfall = Instance.new("ParticleEmitter")
+	snowfall.Name = "Snowfall"
+	snowfall.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+	snowfall.Transparency = NumberSequence.new(0, 0.3, 1)
+	snowfall.Size = NumberSequence.new(0.3, 0.5, 0.2)
+	snowfall.Texture = "rbxassetid://241876428"  -- Soft particle
+	snowfall.Lifetime = NumberRange.new(8, 12)
+	snowfall.Rate = 50
+	snowfall.Speed = NumberRange.new(5, 15)
+	snowfall.SpreadAngle = Vector2.new(30, 30)
+	snowfall.Rotation = NumberRange.new(0, 360)
+	snowfall.RotSpeed = NumberRange.new(-30, 30)
+	snowfall.EmissionDirection = Enum.NormalId.Bottom
+	snowfall.Parent = snowZone
+
+	-- 2. SPARKS FLYING - Volcanic Forge area
+	local sparkZone = Instance.new("Part")
+	sparkZone.Name = "SparkZone"
+	sparkZone.Size = Vector3.new(80, 20, 80)
+	sparkZone.Position = Vector3.new(-2300, 30, 1300)  -- Near obsidian tower
+	sparkZone.Transparency = 1
+	sparkZone.CanCollide = false
+	sparkZone.Anchored = true
+	sparkZone.Parent = Workspace
+
+	local sparks = Instance.new("ParticleEmitter")
+	sparks.Name = "VolcanicSparks"
+	sparks.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 50)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 100, 20)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 0)),
+	})
+	sparks.Transparency = NumberSequence.new(0, 0.5, 1)
+	sparks.Size = NumberSequence.new(0.8, 0.3, 0)
+	sparks.LightEmission = 1
+	sparks.LightInfluence = 0
+	sparks.Lifetime = NumberRange.new(2, 4)
+	sparks.Rate = 30
+	sparks.Speed = NumberRange.new(20, 50)
+	sparks.SpreadAngle = Vector2.new(60, 60)
+	sparks.Acceleration = Vector3.new(0, -20, 0)  -- Fall back down
+	sparks.EmissionDirection = Enum.NormalId.Top
+	sparks.Parent = sparkZone
+
+	-- Ember glow
+	local emberGlow = Instance.new("PointLight")
+	emberGlow.Color = Color3.fromRGB(255, 100, 20)
+	emberGlow.Brightness = 3
+	emberGlow.Range = 100
+	emberGlow.Parent = sparkZone
+
+	-- 3. STARS STREAMING TO HEAVEN - Sacred Grove
+	local starZone = Instance.new("Part")
+	starZone.Name = "StarZone"
+	starZone.Shape = Enum.PartType.Cylinder
+	starZone.Size = Vector3.new(200, 100, 100)
+	starZone.CFrame = CFrame.new(Vector3.new(0, 100, -800)) * CFrame.Angles(0, 0, math.rad(90))
+	starZone.Transparency = 1
+	starZone.CanCollide = false
+	starZone.Anchored = true
+	starZone.Parent = Workspace
+
+	local risingStars = Instance.new("ParticleEmitter")
+	risingStars.Name = "RisingStars"
+	risingStars.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 200)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 200, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+	})
+	risingStars.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.1, 0),
+		NumberSequenceKeypoint.new(0.8, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	risingStars.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.5),
+		NumberSequenceKeypoint.new(0.5, 1.5),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	risingStars.Texture = "rbxassetid://244221613"  -- Sparkle/star
+	risingStars.LightEmission = 1
+	risingStars.Lifetime = NumberRange.new(5, 8)
+	risingStars.Rate = 15
+	risingStars.Speed = NumberRange.new(30, 60)
+	risingStars.SpreadAngle = Vector2.new(10, 10)
+	risingStars.EmissionDirection = Enum.NormalId.Top
+	risingStars.Parent = starZone
+
+	-- Sacred stone at center
+	local sacredStone = Instance.new("Part")
+	sacredStone.Name = "SacredStone"
+	sacredStone.Size = Vector3.new(15, 25, 15)
+	sacredStone.Position = Vector3.new(0, 12, -800)
+	sacredStone.Color = Color3.fromRGB(180, 180, 200)
+	sacredStone.Material = Enum.Material.Marble
+	sacredStone.Anchored = true
+	sacredStone.Parent = Workspace
+
+	-- 4. RAINBOW LASERS - Crystal Cavern entrance
+	local rainbowZone = Instance.new("Part")
+	rainbowZone.Name = "RainbowZone"
+	rainbowZone.Size = Vector3.new(50, 100, 50)
+	rainbowZone.Position = Vector3.new(600, 50, 1500)  -- Near Crystal Hollow
+	rainbowZone.Transparency = 1
+	rainbowZone.CanCollide = false
+	rainbowZone.Anchored = true
+	rainbowZone.Parent = Workspace
+
+	-- Crystal that emits rainbows
+	local rainbowCrystal = Instance.new("Part")
+	rainbowCrystal.Name = "RainbowCrystal"
+	rainbowCrystal.Size = Vector3.new(8, 20, 8)
+	rainbowCrystal.Position = Vector3.new(600, 10, 1500)
+	rainbowCrystal.Color = Color3.fromRGB(255, 255, 255)
+	rainbowCrystal.Material = Enum.Material.Glass
+	rainbowCrystal.Transparency = 0.3
+	rainbowCrystal.Anchored = true
+	rainbowCrystal.Parent = Workspace
+
+	local rainbowBeams = Instance.new("ParticleEmitter")
+	rainbowBeams.Name = "RainbowLasers"
+	rainbowBeams.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+		ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 165, 0)),
+		ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+		ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(238, 130, 238)),
+	})
+	rainbowBeams.Transparency = NumberSequence.new(0.2, 0.5, 1)
+	rainbowBeams.Size = NumberSequence.new(2, 8, 0)
+	rainbowBeams.LightEmission = 1
+	rainbowBeams.Lifetime = NumberRange.new(3, 5)
+	rainbowBeams.Rate = 8
+	rainbowBeams.Speed = NumberRange.new(40, 80)
+	rainbowBeams.SpreadAngle = Vector2.new(30, 30)
+	rainbowBeams.EmissionDirection = Enum.NormalId.Top
+	rainbowBeams.Parent = rainbowCrystal
+
+	-- 5. TELESCOPE EFFECT - Observatory on mountain peak
+	local observatoryBase = Instance.new("Part")
+	observatoryBase.Name = "Observatory"
+	observatoryBase.Shape = Enum.PartType.Cylinder
+	observatoryBase.Size = Vector3.new(10, 60, 60)
+	observatoryBase.CFrame = CFrame.new(Vector3.new(350, 200, 350)) * CFrame.Angles(0, 0, math.rad(90))
+	observatoryBase.Color = Color3.fromRGB(200, 200, 210)
+	observatoryBase.Material = Enum.Material.Concrete
+	observatoryBase.Anchored = true
+	observatoryBase.Parent = Workspace
+
+	-- Dome
+	local dome = Instance.new("Part")
+	dome.Name = "ObservatoryDome"
+	dome.Shape = Enum.PartType.Ball
+	dome.Size = Vector3.new(50, 50, 50)
+	dome.Position = Vector3.new(350, 230, 350)
+	dome.Color = Color3.fromRGB(150, 160, 180)
+	dome.Material = Enum.Material.Metal
+	dome.Anchored = true
+	dome.Parent = Workspace
+
+	-- Telescope beam shooting into sky!
+	local telescopeBeam = Instance.new("Part")
+	telescopeBeam.Name = "TelescopeBeam"
+	telescopeBeam.Size = Vector3.new(5, 500, 5)
+	telescopeBeam.Position = Vector3.new(350, 500, 350)
+	telescopeBeam.Color = Color3.fromRGB(150, 180, 255)
+	telescopeBeam.Material = Enum.Material.Neon
+	telescopeBeam.Transparency = 0.7
+	telescopeBeam.CanCollide = false
+	telescopeBeam.Anchored = true
+	telescopeBeam.Parent = Workspace
+
+	-- Telescope particles going up the beam
+	local telescopeParticles = Instance.new("ParticleEmitter")
+	telescopeParticles.Name = "TelescopeRays"
+	telescopeParticles.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 150, 255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 220, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+	})
+	telescopeParticles.Transparency = NumberSequence.new(0.5, 0.8, 1)
+	telescopeParticles.Size = NumberSequence.new(1, 3, 0)
+	telescopeParticles.LightEmission = 1
+	telescopeParticles.Lifetime = NumberRange.new(4, 6)
+	telescopeParticles.Rate = 20
+	telescopeParticles.Speed = NumberRange.new(80, 120)
+	telescopeParticles.SpreadAngle = Vector2.new(5, 5)
+	telescopeParticles.EmissionDirection = Enum.NormalId.Top
+	telescopeParticles.Parent = dome
+
+	-- Twinkling stars around dome
+	local domeStars = Instance.new("ParticleEmitter")
+	domeStars.Name = "DomeStars"
+	domeStars.Color = ColorSequence.new(Color3.fromRGB(255, 255, 200))
+	domeStars.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.3, 0),
+		NumberSequenceKeypoint.new(0.7, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	domeStars.Size = NumberSequence.new(0.5, 1, 0.5)
+	domeStars.LightEmission = 1
+	domeStars.Lifetime = NumberRange.new(1, 2)
+	domeStars.Rate = 10
+	domeStars.Speed = NumberRange.new(0, 2)
+	domeStars.SpreadAngle = Vector2.new(180, 180)
+	domeStars.Parent = dome
+
+	-- 6. KALEIDOSCOPE - Mystical Portal ruins
+	local kaleidoscopeBase = Instance.new("Part")
+	kaleidoscopeBase.Name = "KaleidoscopeBase"
+	kaleidoscopeBase.Shape = Enum.PartType.Cylinder
+	kaleidoscopeBase.Size = Vector3.new(3, 40, 40)
+	kaleidoscopeBase.CFrame = CFrame.new(Vector3.new(-800, 20, -500)) * CFrame.Angles(0, 0, math.rad(90))
+	kaleidoscopeBase.Color = Color3.fromRGB(50, 30, 60)
+	kaleidoscopeBase.Material = Enum.Material.Slate
+	kaleidoscopeBase.Anchored = true
+	kaleidoscopeBase.Parent = Workspace
+
+	-- Central prism
+	local prism = Instance.new("Part")
+	prism.Name = "KaleidoscopePrism"
+	prism.Size = Vector3.new(6, 12, 6)
+	prism.Position = Vector3.new(-800, 30, -500)
+	prism.Color = Color3.fromRGB(255, 255, 255)
+	prism.Material = Enum.Material.Glass
+	prism.Transparency = 0.4
+	prism.Anchored = true
+	prism.Parent = Workspace
+
+	-- Rotating colored beams (kaleidoscope effect!)
+	local kaleidoColors = {
+		Color3.fromRGB(255, 50, 100),   -- Pink
+		Color3.fromRGB(100, 255, 150),  -- Mint
+		Color3.fromRGB(100, 150, 255),  -- Sky blue
+		Color3.fromRGB(255, 200, 50),   -- Gold
+		Color3.fromRGB(200, 100, 255),  -- Purple
+		Color3.fromRGB(50, 255, 255),   -- Cyan
+	}
+
+	for i, color in ipairs(kaleidoColors) do
+		local beam = Instance.new("Part")
+		beam.Name = "KaleidoBeam" .. i
+		beam.Size = Vector3.new(1, 80, 1)
+		local angle = (i / #kaleidoColors) * math.pi * 2
+		beam.CFrame = CFrame.new(Vector3.new(-800, 70, -500))
+			* CFrame.Angles(math.rad(30), angle, 0)
+			* CFrame.new(0, 40, 0)
+		beam.Color = color
+		beam.Material = Enum.Material.Neon
+		beam.Transparency = 0.5
+		beam.CanCollide = false
+		beam.Anchored = true
+		beam.CastShadow = false
+		beam.Parent = Workspace
+
+		-- Particles along each beam
+		local beamParticles = Instance.new("ParticleEmitter")
+		beamParticles.Name = "BeamGlow"
+		beamParticles.Color = ColorSequence.new(color)
+		beamParticles.Transparency = NumberSequence.new(0.3, 1)
+		beamParticles.Size = NumberSequence.new(0.5, 2, 0)
+		beamParticles.LightEmission = 1
+		beamParticles.Lifetime = NumberRange.new(1, 2)
+		beamParticles.Rate = 5
+		beamParticles.Speed = NumberRange.new(10, 20)
+		beamParticles.SpreadAngle = Vector2.new(10, 10)
+		beamParticles.Parent = beam
+	end
+
+	-- Central swirling particles
+	local kaleidoSwirl = Instance.new("ParticleEmitter")
+	kaleidoSwirl.Name = "KaleidoscopeSwirl"
+	kaleidoSwirl.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 100)),
+		ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 200, 50)),
+		ColorSequenceKeypoint.new(0.4, Color3.fromRGB(100, 255, 150)),
+		ColorSequenceKeypoint.new(0.6, Color3.fromRGB(100, 150, 255)),
+		ColorSequenceKeypoint.new(0.8, Color3.fromRGB(200, 100, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 50, 100)),
+	})
+	kaleidoSwirl.Transparency = NumberSequence.new(0, 0.5, 1)
+	kaleidoSwirl.Size = NumberSequence.new(0.5, 3, 0)
+	kaleidoSwirl.Texture = "rbxassetid://243098098"  -- Ring
+	kaleidoSwirl.LightEmission = 1
+	kaleidoSwirl.Lifetime = NumberRange.new(2, 3)
+	kaleidoSwirl.Rate = 15
+	kaleidoSwirl.Speed = NumberRange.new(5, 15)
+	kaleidoSwirl.SpreadAngle = Vector2.new(180, 180)
+	kaleidoSwirl.RotSpeed = NumberRange.new(100, 200)
+	kaleidoSwirl.Rotation = NumberRange.new(0, 360)
+	kaleidoSwirl.Parent = prism
+
+	-- Floating geometric shapes
+	local shapePositions = {
+		Vector3.new(-795, 50, -495),
+		Vector3.new(-805, 55, -505),
+		Vector3.new(-800, 60, -490),
+		Vector3.new(-790, 45, -510),
+	}
+	for j, pos in ipairs(shapePositions) do
+		local floatingShape = Instance.new("Part")
+		floatingShape.Name = "FloatingShape" .. j
+		floatingShape.Size = Vector3.new(3, 3, 3)
+		floatingShape.Position = pos
+		floatingShape.Color = kaleidoColors[(j % #kaleidoColors) + 1]
+		floatingShape.Material = Enum.Material.Neon
+		floatingShape.Transparency = 0.3
+		floatingShape.CanCollide = false
+		floatingShape.Anchored = true
+		floatingShape.CastShadow = false
+		floatingShape.Parent = Workspace
+	end
+
+	print("[World] - Snow falling in Frozen Peaks")
+	print("[World] - Volcanic sparks at Obsidian Tower")
+	print("[World] - Stars rising at Sacred Grove")
+	print("[World] - Rainbow lasers at Crystal Hollow")
+	print("[World] - Telescope beam at Mountain Observatory")
+	print("[World] - Kaleidoscope at Mystical Portal")
 
 	print("[World] ========================================")
 	print("[World] EPIC WORLD GENERATED!")
