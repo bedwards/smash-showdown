@@ -55,12 +55,33 @@ local ASSETS: { [string]: AssetEntry } = {
 		required = true,
 	},
 
-	-- Animals (from tools/blender/create_animals.py - TODO)
+	-- Animals (from tools/blender/create_animals.py)
 	Deer = {
 		name = "Deer",
 		category = "Animals",
 		blenderScript = "tools/blender/create_animals.py",
 		description = "Passive day animal, flees from player",
+		required = false,
+	},
+	Bird = {
+		name = "Bird",
+		category = "Animals",
+		blenderScript = "tools/blender/create_animals.py",
+		description = "Small bird, perches and flies away",
+		required = false,
+	},
+	Rabbit = {
+		name = "Rabbit",
+		category = "Animals",
+		blenderScript = "tools/blender/create_animals.py",
+		description = "Small passive animal, fast escape",
+		required = false,
+	},
+	Fish = {
+		name = "Fish",
+		category = "Animals",
+		blenderScript = "tools/blender/create_animals.py",
+		description = "Ocean fish, swims in schools",
 		required = false,
 	},
 	Wolf = {
@@ -70,11 +91,18 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Night predator, pack hunter",
 		required = false,
 	},
-	Rabbit = {
-		name = "Rabbit",
+	Coyote = {
+		name = "Coyote",
 		category = "Animals",
 		blenderScript = "tools/blender/create_animals.py",
-		description = "Small passive animal",
+		description = "Solo night hunter, fast",
+		required = false,
+	},
+	MountainLion = {
+		name = "MountainLion",
+		category = "Animals",
+		blenderScript = "tools/blender/create_animals.py",
+		description = "Rare powerful predator, stalks silently",
 		required = false,
 	},
 
