@@ -100,9 +100,9 @@ local DayNightService = require(script.Services.DayNightService)
 -- Phase 2: Core Gameplay services
 local EarthquakeService = require(script.Services.EarthquakeService)
 local MusicService = require(script.Services.MusicService)
+local NarrativeService = require(script.Services.NarrativeService)
 -- TODO: Add as implemented
 -- local NPCService = require(script.Services.NPCService)
--- local ObjectiveService = require(script.Services.ObjectiveService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -110,9 +110,11 @@ HungerService:Initialize()
 DayNightService:Initialize()
 EarthquakeService:Initialize()
 MusicService:Initialize()
+NarrativeService:Initialize()
 
 -- Connect services that need cross-references
 EarthquakeService:SetMusicService(MusicService)
+NarrativeService:SetEarthquakeService(EarthquakeService)
 
 print("[FaultlineFear] Services initialized")
 

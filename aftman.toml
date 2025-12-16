@@ -12,6 +12,6 @@ stylua = "JohnnyMorganz/StyLua@0.20.0"
 wally-package-types = "JohnnyMorganz/wally-package-types@1.3.2"
 
 # Advanced tooling (run: aftman install)
-lune = "lune-org/lune@0.8.9"
+lune = "lune-org/lune@0.10.4"
 remodel = "rojo-rbx/remodel@0.11.0"
 tarmac = "Roblox/tarmac@0.7.6"
