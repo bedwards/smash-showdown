@@ -13,6 +13,7 @@ Shared.Heightmap = require(script.Heightmap)
 -- Utilities (TerrainUtils now wraps Heightmap for compatibility)
 Shared.TerrainUtils = require(script.TerrainUtils)
 Shared.InputService = require(script.InputService)
+Shared.ObjectPool = require(script.ObjectPool)
 
 -- Re-export commonly used functions for convenience
 -- These now use Heightmap internally for O(1) lookups
