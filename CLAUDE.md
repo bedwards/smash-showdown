@@ -462,15 +462,20 @@ blender --background --python tools/blender/create_creatures.py
 3. Export to `assets/models/<category>/`
 4. Run: `blender --background --python tools/blender/your_script.py`
 
-### Need to Install
+### Full Tool Stack (aftman.toml)
 
-```toml
-# Add to aftman.toml:
-lune = "lune-org/lune@0.8.0"
-remodel = "rojo-rbx/remodel@0.11.0"
-tarmac = "Roblox/tarmac@0.7.0"
-run-in-roblox = "rojo-rbx/run-in-roblox@0.3.0"
-```
+All tools already installed:
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Lune | 0.10.4 | Standalone Luau runtime for tests/scripts |
+| Remodel | 0.11.0 | Manipulate .rbxl/.rbxlx without Studio |
+| run-in-roblox | 0.3.0 | Execute scripts in Studio from CLI |
+| Rojo | 7.7.0-rc.1 | File sync to Studio |
+| Selene | 0.27.1 | Linter |
+| StyLua | 0.20.0 | Formatter |
+| Wally | 0.3.2 | Package manager |
+| Tarmac | 0.8.2 | Asset pipeline for images/textures |
 
 ### Tool Purposes
 
@@ -478,6 +483,80 @@ run-in-roblox = "rojo-rbx/run-in-roblox@0.3.0"
 - **Remodel**: Manipulate .rbxl/.rbxlx files without Studio
 - **Tarmac**: Asset pipeline for images/textures
 - **run-in-roblox**: Execute scripts in Studio from command line
+
+### In-Game Debug Tooling (BUILT-IN)
+
+**Debug Overlay (Desktop Only)**:
+- Press **F3** to toggle debug overlay
+- Press **F4** to dump detailed metrics to console
+- Shows: FPS, Memory, Ping, Position, Zone, Terrain Height, Instances
+- Shows: Service status (Heightmap, Remotes), Recent errors
+- File: `src/faultline-fear/client/Controllers/DebugOverlayController.luau`
+- Only activates if physical keyboard detected (not mobile)
+
+**Validation Service (Server)**:
+- Runs automatically on game load (1 second delay)
+- Checks: SharedModules, Config, Heightmap, Remotes, Workspace folders, SpawnLocation
+- Severity levels: info, warning, error, critical
+- Prints formatted report to server console
+- Shows on-screen warning to players if critical errors detected
+- File: `src/faultline-fear/server/Services/ValidationService.luau`
+
+**Built-in Roblox Debug**:
+- **Shift+F5**: Toggle stats (FPS, memory, etc.)
+- **Ctrl+F6**: MicroProfiler (frame timing analysis)
+
+### Future Tooling (GitHub Issues)
+
+| Issue | Tool | Purpose |
+|-------|------|---------|
+| #69 | Lune Testing | Run Luau tests locally without Studio |
+| #70 | run-in-roblox | Automated Studio verification |
+| #71 | Screenshot Automation | Visual verification for Claude |
+| #72 | TestEZ | BDD-style unit testing in Roblox |
+
+**How These Help Claude**:
+- Lune: Claude can write and run tests autonomously
+- run-in-roblox: Claude can verify game behavior in actual Studio
+- Screenshots: Claude can SEE what players see (multimodal)
+- TestEZ: Industry-standard testing for complex systems
+
+### Pre-Publish Verification Workflow
+
+**Before publishing**, Claude should run these checks:
+
+```bash
+# 1. Lint entire codebase
+selene src/faultline-fear/
+
+# 2. Verify Rojo project parses
+rojo serve faultline-fear.project.json  # Should start without errors
+
+# 3. Check all shared modules exist
+# Look at shared/init.luau exports vs what services import
+```
+
+**In-Game Verification** (human provides screenshots):
+1. Start Rojo server and connect Studio
+2. Play the game, check server Output for ValidationService report
+3. Press F3 to show debug overlay
+4. Walk around, verify terrain heights, zone detection
+5. Screenshot any errors or issues
+
+**ValidationService Output Example** (good):
+```
+╔════════════════════════════════════════════════╗
+║       FAULTLINE FEAR VALIDATION REPORT         ║
+╚════════════════════════════════════════════════╝
+[✓] [INFO] SharedModules - All 5 shared modules loaded
+[✓] [INFO] Config - Config values valid
+[✓] [INFO] Heightmap - Heightmap generated and returning valid heights
+[✓] [INFO] Remotes - 8 remote events registered
+[✓] [INFO] Workspace - 6/6 workspace folders created
+[✓] [INFO] Spawn - SpawnLocation configured
+Summary: 6 passed, 0 warnings, 0 errors, 0 critical
+✅ All validation checks passed!
+```
 
 ### Claude Code Limitations
 
@@ -487,14 +566,15 @@ run-in-roblox = "rojo-rbx/run-in-roblox@0.3.0"
 - Analyze place files with Remodel
 - Create GitHub issues
 - Sync with Rojo
+- Read screenshots (multimodal - human provides path)
 
 **CANNOT DO**:
-- See the game visually (no screenshots without human)
-- Run Roblox Studio
-- Test gameplay directly
+- See the game visually without human screenshot
+- Run Roblox Studio directly
+- Test gameplay without human
 - Trigger roblox-screenshot (requires Studio running + visible)
 
-**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path.
+**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path. Claude can read the image file.
 
 ---
 
