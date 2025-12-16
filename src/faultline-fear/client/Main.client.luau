@@ -61,6 +61,7 @@ local PerformanceController = require(script.Controllers.PerformanceController)
 local CreditsController = require(script.Controllers.CreditsController)
 local DialogueController = require(script.Controllers.DialogueController)
 local BeaconController = require(script.Controllers.BeaconController)
+local FlashlightController = require(script.Controllers.FlashlightController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 
@@ -72,6 +73,7 @@ PerformanceController:Initialize() -- FPS monitoring, battery saver
 CreditsController:Initialize() -- Ending sequence
 DialogueController:Initialize() -- NPC dialogue UI
 BeaconController:Initialize() -- Objective beacons
+FlashlightController:Initialize() -- Flashlight with battery
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS
@@ -131,11 +133,7 @@ if InputService:HasPhysicalKeyboard() then
 			print("[FaultlineFear Client] Eat food (not implemented)")
 		end
 
-		-- Flashlight
-		if input.KeyCode == Config.KEYBINDS.FLASHLIGHT then
-			-- TODO: Toggle flashlight
-			print("[FaultlineFear Client] Toggle flashlight (not implemented)")
-		end
+		-- Flashlight handled by FlashlightController via ContextActionService
 
 		-- Call pet
 		if input.KeyCode == Config.KEYBINDS.CALL_PET then
