@@ -51,6 +51,8 @@ __pycache__/
 # Assets - keep scripts, ignore large binaries
 assets/*
 !assets/models/
+!assets/badges/
+!assets/marketing/
 assets/models/**/*.fbx
 assets/models/**/*.obj
 assets/models/**/*.blend
