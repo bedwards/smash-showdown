@@ -506,20 +506,14 @@ All tools already installed:
 - **Shift+F5**: Toggle stats (FPS, memory, etc.)
 - **Ctrl+F6**: MicroProfiler (frame timing analysis)
 
-### Future Tooling (GitHub Issues)
+### CRITICAL: Claude's Testing Capabilities
 
-| Issue | Tool | Purpose |
-|-------|------|---------|
-| #69 | Lune Testing | Run Luau tests locally without Studio |
-| #70 | run-in-roblox | Automated Studio verification |
-| #71 | Screenshot Automation | Visual verification for Claude |
-| #72 | TestEZ | BDD-style unit testing in Roblox |
+**Claude CAN run 84 automated tests autonomously:**
+- 32 Lune tests (no Studio needed)
+- 35 verification checks (via run-in-roblox)
+- 17 TestEZ BDD tests (via run-in-roblox)
 
-**How These Help Claude**:
-- Lune: Claude can write and run tests autonomously
-- run-in-roblox: Claude can verify game behavior in actual Studio
-- Screenshots: Claude can SEE what players see (multimodal)
-- TestEZ: Industry-standard testing for complex systems
+**This was verified working on this machine.** Studio is installed. run-in-roblox works.
 
 ### Automated Testing (Claude Can Run These)
 
@@ -551,7 +545,7 @@ run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
 - 35 checks, executes in Studio and returns stdout
 - Script: `tools/verify-game.luau`
 
-**3. Lint & Format**:
+**4. Lint & Format**:
 ```bash
 selene src/faultline-fear/      # Lint
 stylua --check src/faultline-fear/  # Format check
@@ -570,12 +564,13 @@ Workflow file: `.github/workflows/ci.yml`
 ### Pre-Publish Checklist
 
 ```bash
-# Run all checks before publishing:
+# Run ALL checks before publishing (84 total tests):
 selene src/faultline-fear/
 stylua --check src/faultline-fear/
-lune run tests/run.luau
+lune run tests/run.luau                                                    # 32 tests
 rojo build faultline-fear.project.json -o faultline-fear.rbxl
-run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
+run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau  # 35 checks
+run-in-roblox --place faultline-fear.rbxl --script tools/run-testez.luau   # 17 tests
 ```
 
 All should pass with 0 errors before publishing.
