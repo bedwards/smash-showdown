@@ -124,6 +124,7 @@ local AnimalService = require(script.Services.AnimalService)
 local FlashlightService = require(script.Services.FlashlightService)
 local CaveService = require(script.Services.CaveService)
 local LiminalZoneService = require(script.Services.LiminalZoneService)
+local SignService = require(script.Services.SignService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -161,6 +162,9 @@ CaveService:Initialize()
 
 -- Initialize liminal space zones (eerie atmosphere, music muting)
 LiminalZoneService:Initialize()
+
+-- Initialize signage system (player guidance)
+SignService:Initialize()
 
 -- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
