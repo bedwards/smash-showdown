@@ -48,6 +48,10 @@ node_modules/
 __pycache__/
 *.pyc
 
-# Assets (allow models, ignore generated)
+# Assets - keep scripts, ignore large binaries
 assets/*
 !assets/models/
+assets/models/**/*.fbx
+assets/models/**/*.obj
+assets/models/**/*.blend
+assets/models/**/*.blend1
