@@ -62,6 +62,7 @@ local CreditsController = require(script.Controllers.CreditsController)
 local DialogueController = require(script.Controllers.DialogueController)
 local BeaconController = require(script.Controllers.BeaconController)
 local FlashlightController = require(script.Controllers.FlashlightController)
+local LiminalZoneController = require(script.Controllers.LiminalZoneController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 
@@ -74,6 +75,7 @@ CreditsController:Initialize() -- Ending sequence
 DialogueController:Initialize() -- NPC dialogue UI
 BeaconController:Initialize() -- Objective beacons
 FlashlightController:Initialize() -- Flashlight with battery
+LiminalZoneController:Initialize() -- Liminal space effects
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS
