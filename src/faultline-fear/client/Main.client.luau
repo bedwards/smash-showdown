@@ -63,6 +63,7 @@ local DialogueController = require(script.Controllers.DialogueController)
 local BeaconController = require(script.Controllers.BeaconController)
 local FlashlightController = require(script.Controllers.FlashlightController)
 local LiminalZoneController = require(script.Controllers.LiminalZoneController)
+local DebugOverlayController = require(script.Controllers.DebugOverlayController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 
@@ -76,6 +77,7 @@ DialogueController:Initialize() -- NPC dialogue UI
 BeaconController:Initialize() -- Objective beacons
 FlashlightController:Initialize() -- Flashlight with battery
 LiminalZoneController:Initialize() -- Liminal space effects
+DebugOverlayController:Initialize() -- F3 debug overlay (desktop only)
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS

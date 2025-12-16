@@ -125,6 +125,7 @@ local FlashlightService = require(script.Services.FlashlightService)
 local CaveService = require(script.Services.CaveService)
 local LiminalZoneService = require(script.Services.LiminalZoneService)
 local SignService = require(script.Services.SignService)
+local ValidationService = require(script.Services.ValidationService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -165,6 +166,9 @@ LiminalZoneService:Initialize()
 
 -- Initialize signage system (player guidance)
 SignService:Initialize()
+
+-- Initialize validation (runs checks and reports issues)
+ValidationService:Initialize()
 
 -- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
