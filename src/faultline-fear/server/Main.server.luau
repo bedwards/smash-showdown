@@ -122,6 +122,7 @@ local PetService = require(script.Services.PetService)
 local TerrainAssetSpawner = require(script.Services.TerrainAssetSpawner)
 local AnimalService = require(script.Services.AnimalService)
 local FlashlightService = require(script.Services.FlashlightService)
+local CaveService = require(script.Services.CaveService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -153,6 +154,9 @@ AnimalService:Initialize()
 
 -- Initialize flashlight system
 FlashlightService:Initialize()
+
+-- Initialize cave system (safe zones, secrets)
+CaveService:Initialize()
 
 -- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
