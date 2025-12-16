@@ -56,6 +56,7 @@ local ObjectiveUpdate = Remotes:WaitForChild("ObjectiveUpdate") :: RemoteEvent
 
 local HUDController = require(script.Controllers.HUDController)
 local AudioController = require(script.Controllers.AudioController)
+local TouchController = require(script.Controllers.TouchController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 -- local InputController = require(script.Controllers.InputController)
@@ -63,6 +64,7 @@ local AudioController = require(script.Controllers.AudioController)
 -- Initialize controllers
 HUDController:Initialize()
 AudioController:Initialize()
+TouchController:Initialize() -- Only activates on touch devices
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS
@@ -98,10 +100,8 @@ end)
 -- ==========================================
 
 if showTouchControls then
-	print("[FaultlineFear Client] Setting up touch controls...")
-	-- TODO: Create touch button UI
-	-- local TouchControls = require(script.Controllers.TouchControls)
-	-- TouchControls:Initialize()
+	print("[FaultlineFear Client] Touch controls enabled via TouchController")
+	-- TouchController handles all touch UI automatically
 end
 
 -- ==========================================
@@ -116,10 +116,7 @@ if InputService:HasPhysicalKeyboard() then
 			return
 		end
 
-		-- Toggle HUD (handled by HUDController internally, but log here)
-		if input.KeyCode == Config.KEYBINDS.TOGGLE_HUD then
-			-- HUDController handles its own keybind
-		end
+		-- Note: HUD toggle (Tab) is handled by HUDController internally
 
 		-- Eat food
 		if input.KeyCode == Config.KEYBINDS.EAT then
@@ -145,11 +142,11 @@ end
 -- CHARACTER SETUP
 -- ==========================================
 
-local function onCharacterAdded(character: Model)
+local function onCharacterAdded(_character: Model)
 	print("[FaultlineFear Client] Character loaded")
 
 	-- TODO: Setup character-specific client systems
-	-- CameraController:SetupCamera(character)
+	-- CameraController:SetupCamera(_character)
 end
 
 if player.Character then
