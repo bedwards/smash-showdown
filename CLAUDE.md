@@ -588,11 +588,35 @@ All should pass with 0 errors before publishing.
 - Read screenshots (multimodal - human provides path)
 
 **CANNOT DO**:
-- See the game visually without human screenshot
+- See the game visually without human providing screenshot
 - Play the game interactively
-- Take screenshots autonomously
 
-**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path.
+### Screenshot Workflow
+
+**Option 1: Human takes screenshot** (simplest):
+```bash
+# Human presses Cmd+Shift+4 on Mac, provides path to Claude
+# Claude can read the image file directly
+```
+
+**Option 2: roblox-screenshot automation** (requires setup):
+```bash
+# Terminal 1: Start screenshot server
+cd tools/roblox-screenshot && node .
+
+# Terminal 2: In Studio, run the capture script
+# Or use via command bar: require(game.ServerScriptService.Server).captureScreenshots()
+```
+- Server runs on port 28081
+- Screenshots saved to `tools/roblox-screenshot/screenshots/`
+- Script: `tools/take-screenshots.luau`
+- **Limitation**: Studio must be visible on screen (not minimized)
+
+**Reading screenshots**:
+Claude can read any image file. Just provide the path:
+```
+"Here's a screenshot: /path/to/screenshot.png"
+```
 
 ---
 
