@@ -251,6 +251,64 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Mountain cliff face",
 		required = false,
 	},
+
+	-- Cave Assets (from tools/blender/create_caves.py)
+	CaveEntrance_Small = {
+		name = "CaveEntrance_Small",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Small cave entrance arch",
+		required = false,
+	},
+	CaveEntrance_Medium = {
+		name = "CaveEntrance_Medium",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Medium cave entrance arch",
+		required = false,
+	},
+	CaveEntrance_Large = {
+		name = "CaveEntrance_Large",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Large cave entrance arch",
+		required = false,
+	},
+	CaveInteriorSegment = {
+		name = "CaveInteriorSegment",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Cave tunnel segment",
+		required = false,
+	},
+	CaveChamber = {
+		name = "CaveChamber",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Large cave chamber room",
+		required = false,
+	},
+	RockPillar = {
+		name = "RockPillar",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Floor-to-ceiling rock pillar",
+		required = false,
+	},
+	Stalactite = {
+		name = "Stalactite",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Hanging cave formation",
+		required = false,
+	},
+	Stalagmite = {
+		name = "Stalagmite",
+		category = "Caves",
+		blenderScript = "tools/blender/create_caves.py",
+		description = "Floor cave formation",
+		required = false,
+	},
 }
 
 -- ==========================================
