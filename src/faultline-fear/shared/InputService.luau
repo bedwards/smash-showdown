@@ -144,16 +144,15 @@ end
 
 -- Listen for input type changes
 local function checkInputTypeChange()
-	local newType = InputService:GetDeviceType()
 	local oldType = cachedDeviceType
 
 	-- Force recalculation
 	cachedDeviceType = nil
-	local recalculated = InputService:GetDeviceType()
+	local newType = InputService:GetDeviceType()
 
-	if oldType and recalculated ~= oldType then
+	if oldType and newType ~= oldType then
 		for _, callback in ipairs(inputChangeCallbacks) do
-			task.spawn(callback, recalculated)
+			task.spawn(callback, newType)
 		end
 	end
 end

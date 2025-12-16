@@ -17,6 +17,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 
@@ -29,7 +30,13 @@ local NPCService = {}
 -- State
 local survivors: { [string]: Model } = {}
 local rescuedSurvivors: { [Player]: { string } } = {}
+local followingPlayers: { [string]: Player } = {} -- Which player each survivor follows
 local npcsFolder: Folder = nil :: any
+
+-- Following constants
+local FOLLOW_DISTANCE = 5 -- Studs behind player
+local FOLLOW_SPEED = 14 -- Walk speed when following
+local MAX_FOLLOW_DISTANCE = 50 -- Teleport if too far
 
 -- Survivor definitions - 10 unique NPCs
 local SURVIVOR_DATA = {
@@ -382,7 +389,55 @@ function NPCService:RescueSurvivor(player: Player, survivorId: string)
 
 	print(string.format("[NPCService] %s rescued survivor: %s", player.Name, survivorId))
 
+	-- Start following the player
+	followingPlayers[survivorId] = player
+	model:SetAttribute("FollowingPlayer", player.Name)
+
 	-- StoryBeatProcessor will handle the rest via ObjectTag trigger
+end
+
+--[[
+	Update survivor following behavior (called each frame).
+]]
+local function updateSurvivorFollowing()
+	for survivorId, player in pairs(followingPlayers) do
+		local model = survivors[survivorId]
+		if not model or not model.Parent then
+			followingPlayers[survivorId] = nil
+			continue
+		end
+
+		local character = player.Character
+		if not character then continue end
+
+		local playerRoot = character:FindFirstChild("HumanoidRootPart")
+		local survivorRoot = model.PrimaryPart
+		if not playerRoot or not survivorRoot then continue end
+
+		local playerPos = playerRoot.Position
+		local survivorPos = survivorRoot.Position
+
+		local distance = (playerPos - survivorPos).Magnitude
+
+		-- Teleport if too far
+		if distance > MAX_FOLLOW_DISTANCE then
+			local behindPlayer = playerPos - playerRoot.CFrame.LookVector * FOLLOW_DISTANCE
+			local terrainY = Heightmap:GetHeight(behindPlayer.X, behindPlayer.Z)
+			model:PivotTo(CFrame.new(behindPlayer.X, terrainY + 2, behindPlayer.Z))
+		elseif distance > FOLLOW_DISTANCE then
+			-- Move toward player
+			local direction = (playerPos - survivorPos).Unit
+			local targetPos = survivorPos + direction * FOLLOW_SPEED * 0.016 -- ~60fps
+
+			-- Keep on terrain
+			local terrainY = Heightmap:GetHeight(targetPos.X, targetPos.Z)
+			local newCFrame = CFrame.new(targetPos.X, terrainY + 2, targetPos.Z)
+
+			-- Face the player
+			local lookCFrame = CFrame.lookAt(newCFrame.Position, Vector3.new(playerPos.X, newCFrame.Position.Y, playerPos.Z))
+			model:PivotTo(lookCFrame)
+		end
+	end
 end
 
 function NPCService:GetRescuedCount(player: Player): number
@@ -441,9 +496,18 @@ function NPCService:Initialize()
 	-- Spawn all survivors
 	self:SpawnAllSurvivors()
 
+	-- Update following behavior each frame
+	RunService.Heartbeat:Connect(updateSurvivorFollowing)
+
 	-- Clean up tracking on player leave
 	Players.PlayerRemoving:Connect(function(player)
 		rescuedSurvivors[player] = nil
+		-- Remove from followingPlayers
+		for survivorId, followingPlayer in pairs(followingPlayers) do
+			if followingPlayer == player then
+				followingPlayers[survivorId] = nil
+			end
+		end
 	end)
 
 	print("[NPCService] Initialized")
