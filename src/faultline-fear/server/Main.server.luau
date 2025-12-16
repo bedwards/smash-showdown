@@ -117,6 +117,7 @@ local StoryZoneManager = require(script.Services.StoryZoneManager)
 local CollectibleSpawner = require(script.Services.CollectibleSpawner)
 local NPCService = require(script.Services.NPCService)
 local CreatureService = require(script.Services.CreatureService)
+local StructureSpawner = require(script.Services.StructureSpawner)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -138,6 +139,9 @@ CreatureService:Initialize()
 
 -- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
+
+-- Spawn structures (landmarks, beacons, buildings)
+StructureSpawner:Initialize()
 
 -- Spawn collectibles BEFORE StoryBeatProcessor (it listens for collectible tags)
 CollectibleSpawner:Initialize()
