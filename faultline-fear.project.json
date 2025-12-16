@@ -56,7 +56,14 @@
         "Brightness": 2,
         "ClockTime": 14,
         "GeographicLatitude": 37.7749,
-        "OutdoorAmbient": [0.2, 0.2, 0.22]
+        "OutdoorAmbient": [0.2, 0.2, 0.22],
+        "Technology": "Voxel"
+      },
+      "ColorGradingEffect": {
+        "$className": "ColorGradingEffect",
+        "$properties": {
+          "ToneMapperPreset": "Retro"
+        }
       }
     },
 

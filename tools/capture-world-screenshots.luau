@@ -118,7 +118,7 @@ end
 
 local function takeScreenshot(name)
 	local success, result = httpRequest("/screenshot", {
-		destination = "world-verify/" .. name .. ".png",
+		destination = "world-verify/" .. name,  -- Server adds .png automatically
 	})
 	return success
 end
