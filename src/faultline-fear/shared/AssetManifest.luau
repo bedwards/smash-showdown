@@ -137,6 +137,92 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Player's animal companion",
 		required = false,
 	},
+
+	-- Terrain Assets (from tools/blender/create_terrain_assets.py)
+	Boulder_Small = {
+		name = "Boulder_Small",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Small boulder rock",
+		required = false,
+	},
+	Boulder_Medium = {
+		name = "Boulder_Medium",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Medium boulder rock",
+		required = false,
+	},
+	Boulder_Large = {
+		name = "Boulder_Large",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Large boulder rock",
+		required = false,
+	},
+	Boulder_Huge = {
+		name = "Boulder_Huge",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Huge boulder rock",
+		required = false,
+	},
+	RockCluster_1 = {
+		name = "RockCluster_1",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Cluster of small rocks",
+		required = false,
+	},
+	RockCluster_2 = {
+		name = "RockCluster_2",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Cluster of small rocks (variant)",
+		required = false,
+	},
+	FallenRocks = {
+		name = "FallenRocks",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Pile of fallen debris",
+		required = false,
+	},
+	FaultEdge_Left = {
+		name = "FaultEdge_Left",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Left edge of fault line crack",
+		required = false,
+	},
+	FaultEdge_Right = {
+		name = "FaultEdge_Right",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Right edge of fault line crack",
+		required = false,
+	},
+	SteamVent = {
+		name = "SteamVent",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Steam vent from fault line",
+		required = false,
+	},
+	Cliff_Coastal = {
+		name = "Cliff_Coastal",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Coastal cliff face",
+		required = false,
+	},
+	Cliff_Mountain = {
+		name = "Cliff_Mountain",
+		category = "Terrain",
+		blenderScript = "tools/blender/create_terrain_assets.py",
+		description = "Mountain cliff face",
+		required = false,
+	},
 }
 
 -- ==========================================

@@ -119,6 +119,7 @@ local NPCService = require(script.Services.NPCService)
 local CreatureService = require(script.Services.CreatureService)
 local StructureSpawner = require(script.Services.StructureSpawner)
 local PetService = require(script.Services.PetService)
+local TerrainAssetSpawner = require(script.Services.TerrainAssetSpawner)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -148,6 +149,9 @@ StoryZoneManager:Initialize()
 
 -- Spawn structures (landmarks, beacons, buildings)
 StructureSpawner:Initialize()
+
+-- Spawn terrain assets (boulders, fault line edges, steam vents, cliffs)
+TerrainAssetSpawner:Initialize()
 
 -- Spawn collectibles BEFORE StoryBeatProcessor (it listens for collectible tags)
 CollectibleSpawner:Initialize()
