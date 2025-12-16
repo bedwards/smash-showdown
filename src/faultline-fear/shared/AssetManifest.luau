@@ -346,6 +346,43 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Underpass with sodium lights",
 		required = false,
 	},
+
+	-- Sign Assets (from tools/blender/create_signs.py)
+	DirectionalSign = {
+		name = "DirectionalSign",
+		category = "Signs",
+		blenderScript = "tools/blender/create_signs.py",
+		description = "Highway-style directional sign",
+		required = false,
+	},
+	WarningSign = {
+		name = "WarningSign",
+		category = "Signs",
+		blenderScript = "tools/blender/create_signs.py",
+		description = "Diamond-shaped warning sign",
+		required = false,
+	},
+	StoryPlaque = {
+		name = "StoryPlaque",
+		category = "Signs",
+		blenderScript = "tools/blender/create_signs.py",
+		description = "Wooden plaque for lore text",
+		required = false,
+	},
+	ObjectiveMarker = {
+		name = "ObjectiveMarker",
+		category = "Signs",
+		blenderScript = "tools/blender/create_signs.py",
+		description = "Tall objective checkpoint marker",
+		required = false,
+	},
+	RoadSign = {
+		name = "RoadSign",
+		category = "Signs",
+		blenderScript = "tools/blender/create_signs.py",
+		description = "Standard road sign",
+		required = false,
+	},
 }
 
 -- ==========================================
