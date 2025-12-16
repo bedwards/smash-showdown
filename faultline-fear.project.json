@@ -58,12 +58,6 @@
         "GeographicLatitude": 37.7749,
         "OutdoorAmbient": [0.2, 0.2, 0.22],
         "Technology": "Voxel"
-      },
-      "ColorGradingEffect": {
-        "$className": "ColorGradingEffect",
-        "$properties": {
-          "ToneMapperPreset": "Retro"
-        }
       }
     },
 
