@@ -28,6 +28,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
+local AssetManifest = Shared.AssetManifest
 
 local CreatureService = {}
 
@@ -101,20 +102,17 @@ type CreatureData = {
 -- CREATURE MODEL CREATION
 -- ==========================================
 
-local function createCreatureModel(creatureType: string, position: Vector3): Model
-	local config = CREATURE_CONFIG[creatureType]
-	if not config then
-		error("[CreatureService] Unknown creature type: " .. creatureType)
-	end
-
+--[[
+	Create a placeholder model when imported assets aren't available.
+]]
+local function createPlaceholderModel(creatureType: string, config: typeof(CREATURE_CONFIG.ShadowStalker)): Model
 	local model = Instance.new("Model")
 	model.Name = creatureType
 
-	-- Body (placeholder - will be replaced with FBX mesh)
+	-- Body (placeholder box)
 	local body = Instance.new("Part")
 	body.Name = "HumanoidRootPart"
 	body.Size = config.size
-	body.Position = position
 	body.Anchored = false
 	body.CanCollide = true
 	body.Color = config.color
@@ -129,7 +127,7 @@ local function createCreatureModel(creatureType: string, position: Vector3): Mod
 			eye.Name = "Eye"
 			eye.Shape = Enum.PartType.Ball
 			eye.Size = Vector3.new(eyeSize, eyeSize, eyeSize)
-			eye.Position = position + Vector3.new(offset.X, offset.Y, offset.Z) + Vector3.new(0, 0, 0) * side * 0.2
+			eye.CFrame = CFrame.new(offset + Vector3.new(side * config.size.X * 0.15, 0, 0))
 			eye.Anchored = false
 			eye.CanCollide = false
 			eye.Color = config.eyeColor
@@ -151,15 +149,88 @@ local function createCreatureModel(creatureType: string, position: Vector3): Mod
 		end
 	end
 
-	-- Humanoid (for pathfinding and health)
-	local humanoid = Instance.new("Humanoid")
+	model.PrimaryPart = body
+	return model
+end
+
+--[[
+	Prepare an imported model for use (add Humanoid, set properties).
+]]
+local function prepareImportedModel(model: Model, _creatureType: string, _config: typeof(CREATURE_CONFIG.ShadowStalker))
+	-- Find or create HumanoidRootPart
+	local rootPart = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+	if not rootPart then
+		-- Use first MeshPart or Part as root
+		for _, child in model:GetDescendants() do
+			if child:IsA("MeshPart") or child:IsA("Part") then
+				rootPart = child
+				break
+			end
+		end
+	end
+
+	if rootPart then
+		rootPart.Name = "HumanoidRootPart"
+		rootPart.Anchored = false
+		rootPart.CanCollide = true
+		model.PrimaryPart = rootPart
+	end
+
+	-- Ensure all parts are unanchored
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part ~= rootPart then
+			part.Anchored = false
+			-- Weld to root if not already connected
+			if not part:FindFirstChildOfClass("WeldConstraint") then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = rootPart
+				weld.Part1 = part
+				weld.Parent = part
+			end
+		end
+	end
+end
+
+--[[
+	Create a creature model, using imported assets if available.
+]]
+local function createCreatureModel(creatureType: string, position: Vector3): Model
+	local config = CREATURE_CONFIG[creatureType]
+	if not config then
+		error("[CreatureService] Unknown creature type: " .. creatureType)
+	end
+
+	local model: Model
+
+	-- Try to get imported model from AssetManifest
+	local importedModel = AssetManifest:CloneAsset(creatureType)
+	if importedModel then
+		model = importedModel
+		prepareImportedModel(model, creatureType, config)
+		print(string.format("[CreatureService] Using imported model for %s", creatureType))
+	else
+		-- Fall back to placeholder
+		model = createPlaceholderModel(creatureType, config)
+		print(string.format("[CreatureService] Using placeholder model for %s (asset not imported)", creatureType))
+	end
+
+	model.Name = creatureType
+
+	-- Position the model
+	if model.PrimaryPart then
+		model:PivotTo(CFrame.new(position))
+	end
+
+	-- Add Humanoid (for pathfinding and health)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		humanoid = Instance.new("Humanoid")
+		humanoid.Parent = model
+	end
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.MaxHealth = config.health
 	humanoid.Health = config.health
 	humanoid.WalkSpeed = config.speed
-	humanoid.Parent = model
-
-	model.PrimaryPart = body
 
 	-- Tags
 	CollectionService:AddTag(model, "Creature")
