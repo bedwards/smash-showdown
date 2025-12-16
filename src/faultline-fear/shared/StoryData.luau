@@ -350,6 +350,12 @@ StoryData.Events = {
 		description = "The massive earthquake that changes the world",
 		triggersAct = "ACT_3_ORDEAL",
 	},
+	BIG_ONE_ENDED = {
+		id = "BIG_ONE_ENDED",
+		name = "The Aftermath",
+		description = "The Big One is over - the world has changed forever",
+		triggersObjective = "survive_big_one",
+	},
 	RADIO_BROADCAST = {
 		id = "RADIO_BROADCAST",
 		name = "Radio Broadcast",

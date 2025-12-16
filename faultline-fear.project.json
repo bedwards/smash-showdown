@@ -65,6 +65,13 @@
       "$properties": {
         "AmbientReverb": "Forest"
       }
+    },
+
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
+      }
     }
   }
 }

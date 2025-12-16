@@ -271,6 +271,9 @@ end
 -- PERMANENT CHANGES (THE BIG ONE)
 -- ==========================================
 
+-- Reference to TerrainGenerator (set during initialization)
+local TerrainGenerator: any = nil
+
 function EarthquakeService:ApplyPermanentChanges()
 	if bigOneTriggered then
 		print("[EarthquakeService] The Big One already triggered")
@@ -280,16 +283,80 @@ function EarthquakeService:ApplyPermanentChanges()
 	bigOneTriggered = true
 	print("[EarthquakeService] THE BIG ONE - Permanent world changes!")
 
-	-- Clear terrain cache (terrain has changed)
-	Shared.TerrainUtils.clearCache()
+	-- Apply heightmap terrain changes (widen and deepen fault line)
+	local Heightmap = Shared.Heightmap
+	local changesApplied = Heightmap:ApplyBigOneChanges()
 
-	-- TODO: Major terrain deformation along fault line
-	-- TODO: Collapse specific buildings
-	-- TODO: Open new areas
-	-- TODO: Trigger narrative events
+	if changesApplied then
+		-- Clear terrain cache since heights have changed
+		if Shared.TerrainUtils and Shared.TerrainUtils.clearCache then
+			Shared.TerrainUtils.clearCache()
+		end
 
-	-- For now, just log
-	warn("[EarthquakeService] THE BIG ONE complete - implement terrain changes!")
+		-- Regenerate visual terrain for the fault line area
+		-- This updates the Roblox Terrain voxels to match the new heightmap
+		if TerrainGenerator and TerrainGenerator.RegenerateFaultLineArea then
+			task.spawn(function()
+				TerrainGenerator:RegenerateFaultLineArea()
+			end)
+		else
+			-- Fallback: regenerate all visual terrain (slower but works)
+			print("[EarthquakeService] TerrainGenerator not available for partial regeneration")
+		end
+
+		-- Apply structural damage to buildings near the fault
+		self:ApplyStructuralDamage(1.0)
+
+		-- Fire event for story system
+		task.delay(2, function()
+			-- Notify clients that terrain has changed
+			if EarthquakeEvent then
+				EarthquakeEvent:FireAllClients({
+					warning = false,
+					active = false,
+					terrainChanged = true,
+					bigOneComplete = true,
+				})
+			end
+
+			-- Trigger story event
+			local NarrativeService = self:GetNarrativeService()
+			if NarrativeService then
+				NarrativeService:TriggerStoryEvent("BIG_ONE_ENDED")
+			end
+		end)
+	end
+
+	print("[EarthquakeService] THE BIG ONE permanent changes applied!")
+end
+
+--[[
+	Set reference to TerrainGenerator for visual terrain updates.
+]]
+function EarthquakeService:SetTerrainGenerator(generator: any)
+	TerrainGenerator = generator
+	print("[EarthquakeService] TerrainGenerator connected")
+end
+
+-- Cached reference to NarrativeService
+local NarrativeService: any = nil
+
+function EarthquakeService:GetNarrativeService(): any
+	if not NarrativeService then
+		-- Try to get it from ServerScriptService
+		local ServerScriptService = game:GetService("ServerScriptService")
+		local Server = ServerScriptService:FindFirstChild("Server")
+		if Server then
+			local Services = Server:FindFirstChild("Services")
+			if Services then
+				local narrativeMod = Services:FindFirstChild("NarrativeService")
+				if narrativeMod then
+					NarrativeService = require(narrativeMod)
+				end
+			end
+		end
+	end
+	return NarrativeService
 end
 
 --[[

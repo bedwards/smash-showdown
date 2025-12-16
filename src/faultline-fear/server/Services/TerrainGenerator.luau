@@ -271,6 +271,63 @@ function TerrainGenerator:PrepareBuilding(
 end
 
 -- ==========================================
+-- THE BIG ONE - TERRAIN REGENERATION
+-- ==========================================
+
+--[[
+	Regenerate visual terrain for the fault line area after The Big One.
+	This updates the Roblox Terrain voxels to match the modified heightmap.
+]]
+function TerrainGenerator:RegenerateFaultLineArea()
+	if not isHeightmapReady then
+		warn("[TerrainGenerator] Cannot regenerate - heightmap not ready!")
+		return
+	end
+
+	print("[TerrainGenerator] Regenerating fault line area after The Big One...")
+	local startTime = tick()
+
+	local zones = Config.ZONES
+	local halfWorld = Config.WORLD_SIZE / 2
+	local chunkSize = 64
+	local voxelSize = 4
+
+	-- Calculate affected Z range (fault line plus buffer)
+	local affectedZMin = zones.FAULT_LINE.zMin - 150
+	local affectedZMax = zones.FAULT_LINE.zMax + 150
+
+	-- Convert to chunk coordinates
+	local minChunkZ = math.floor((affectedZMin + halfWorld) / chunkSize) * chunkSize - halfWorld
+	local maxChunkZ = math.ceil((affectedZMax + halfWorld) / chunkSize) * chunkSize - halfWorld
+
+	-- Regenerate all chunks in the X direction for the affected Z range
+	local chunksRegenerated = 0
+	for chunkX = -halfWorld, halfWorld - chunkSize, chunkSize do
+		for chunkZ = minChunkZ, maxChunkZ, chunkSize do
+			-- Make sure chunk is within world bounds
+			if chunkZ >= -halfWorld and chunkZ < halfWorld then
+				self:GenerateVisualChunk(chunkX, chunkZ, chunkSize, voxelSize)
+				chunksRegenerated += 1
+			end
+		end
+
+		-- Yield to prevent timeout
+		if chunksRegenerated % 8 == 0 then
+			task.wait()
+		end
+	end
+
+	local elapsed = tick() - startTime
+	print(
+		string.format(
+			"[TerrainGenerator] Fault line regeneration complete: %d chunks in %.2fs",
+			chunksRegenerated,
+			elapsed
+		)
+	)
+end
+
+-- ==========================================
 -- BLENDER EXPORT
 -- ==========================================
 

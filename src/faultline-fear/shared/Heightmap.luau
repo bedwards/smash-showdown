@@ -614,4 +614,127 @@ function Heightmap:GetBlenderMetadata(): {
 	}
 end
 
+-- ==========================================
+-- THE BIG ONE - PERMANENT TERRAIN CHANGES
+-- ==========================================
+
+-- Track if Big One changes have been applied
+local bigOneApplied: boolean = false
+
+--[[
+	Apply permanent terrain changes for The Big One earthquake.
+	This dramatically widens and deepens the fault line, creating
+	new paths and destroying old ones.
+
+	Returns true if changes were applied, false if already applied.
+]]
+function Heightmap:ApplyBigOneChanges(): boolean
+	if bigOneApplied then
+		print("[Heightmap] The Big One changes already applied")
+		return false
+	end
+
+	if not isGenerated then
+		warn("[Heightmap] Cannot apply Big One - heightmap not generated!")
+		return false
+	end
+
+	if not Config then
+		Config = require(script.Parent.Config)
+	end
+
+	print("[Heightmap] THE BIG ONE - Applying permanent terrain changes...")
+	local startTime = tick()
+
+	local zones = Config.ZONES
+	local faultZoneCenter = (zones.FAULT_LINE.zMin + zones.FAULT_LINE.zMax) / 2
+
+	-- Original fault parameters
+	local originalWidth = Config.FAULT_LINE_WIDTH -- 30 studs
+	local originalDepth = Config.FAULT_LINE_DEPTH -- 50 studs
+
+	-- New dramatic fault parameters
+	local newWidth = originalWidth * 3 -- Triple the width
+	local newDepth = originalDepth * 1.6 -- 60% deeper
+	local newHalfWidth = newWidth / 2
+
+	-- Modify heightmap cells in and around the fault line
+	local modifiedCells = 0
+
+	for cellX = 1, cellCount do
+		for cellZ = 1, cellCount do
+			local worldX, worldZ = cellToWorld(cellX, cellZ)
+
+			-- Only modify near the fault line zone
+			if worldZ >= zones.FAULT_LINE.zMin - 100 and worldZ <= zones.FAULT_LINE.zMax + 100 then
+				local distFromCenter = math.abs(worldZ - faultZoneCenter)
+				local originalHeight = heightData[cellX][cellZ]
+				local newHeight = originalHeight
+
+				if distFromCenter < newHalfWidth then
+					-- Inside the widened fault crack
+					local riftFactor = 1 - (distFromCenter / newHalfWidth)
+
+					-- Add dramatic noise for unstable edges
+					local collapseNoise = octaveNoise(worldX, worldZ, 4, 0.6, 20, seed + 999) * 15
+
+					-- Calculate new depth with noise
+					local riftDepth = newDepth * riftFactor + collapseNoise
+
+					-- The deeper in, the more dramatic
+					newHeight = 30 - riftDepth
+
+					-- Add some rubble/debris variation at the bottom
+					if riftFactor > 0.7 then
+						local debrisNoise = octaveNoise(worldX, worldZ, 2, 0.5, 10, seed + 1000) * 8
+						newHeight = newHeight + math.abs(debrisNoise)
+					end
+				elseif distFromCenter < newHalfWidth + 30 then
+					-- Crumbling edges - terrain slopes more dramatically into the rift
+					local edgeFactor = (distFromCenter - newHalfWidth) / 30
+					local collapseNoise = octaveNoise(worldX, worldZ, 3, 0.5, 30, seed + 999) * 20
+
+					-- Blend from edge to original terrain
+					local targetEdgeHeight = 30 - newDepth * 0.3 + collapseNoise
+					newHeight = targetEdgeHeight + (originalHeight - targetEdgeHeight) * edgeFactor
+				end
+
+				if math.abs(newHeight - originalHeight) > 0.1 then
+					heightData[cellX][cellZ] = newHeight
+					modifiedCells += 1
+				end
+			end
+		end
+	end
+
+	bigOneApplied = true
+	local elapsed = tick() - startTime
+
+	print(
+		string.format(
+			"[Heightmap] Big One complete: %d cells modified, fault widened to %.0f studs, depth %.0f studs (%.2fs)",
+			modifiedCells,
+			newWidth,
+			newDepth,
+			elapsed
+		)
+	)
+
+	return true
+end
+
+--[[
+	Check if Big One terrain changes have been applied.
+]]
+function Heightmap:IsBigOneApplied(): boolean
+	return bigOneApplied
+end
+
+--[[
+	Mark Big One as applied (for loading saved state).
+]]
+function Heightmap:SetBigOneApplied(applied: boolean)
+	bigOneApplied = applied
+end
+
 return Heightmap

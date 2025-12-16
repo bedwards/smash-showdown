@@ -328,6 +328,52 @@ assets/faultline-fear/
 3. **Event-Driven**: Services communicate via events, not direct calls
 4. **Terrain Height**: ALWAYS use `TerrainUtils.getTerrainHeight(x, z)` - NEVER hardcode Y
 
+### World Coordinate System (CRITICAL)
+
+**WORLD_SIZE = 4000** means world extends from **-2000 to +2000** in both X and Z axes.
+
+**Zone Boundaries (Z axis, south to north)**:
+| Zone | Z Min | Z Max | Typical Height |
+|------|-------|-------|----------------|
+| Ocean | -2000 | -1200 | -10 (below sea level) |
+| Beach | -1200 | -800 | 1-5 (just above water) |
+| Coastal | -800 | -200 | 10-20 |
+| Valley | -200 | 400 | 20-30 |
+| **Fault Line** | 400 | 800 | 30-50 edges, **-13 in rift** |
+| Forest | 800 | 1500 | 60-170 (rising hills) |
+| Mountains | 1500 | 2000 | 200-400 (peaks) |
+
+**COMMON BUG**: Camera positions or spawn points outside world bounds return height = 0.
+```lua
+-- WRONG: Position outside world (world is -2000 to +2000)
+{ x = 0, z = 3500 }  -- Returns height 0, zone "Mountains" but no actual terrain!
+
+-- CORRECT: Position within world bounds
+{ x = 0, z = 1750 }  -- Mountains zone, proper height ~300
+```
+
+### HttpService Configuration (CRITICAL)
+
+**HttpService MUST be enabled in project.json, NOT in scripts.**
+
+Scripts cannot set `HttpService.HttpEnabled = true` - they lack LocalUser capability.
+
+```json
+// faultline-fear.project.json
+{
+  "tree": {
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
+      }
+    }
+  }
+}
+```
+
+This is already configured in `faultline-fear.project.json`. localhost HTTP requests work.
+
 ### Ground Level Elevation (CRITICAL)
 
 **THE PROBLEM WE SOLVED**: Items spawning inside terrain or floating due to race conditions.
@@ -527,8 +573,7 @@ lune run tests/run.luau
 
 **2. TestEZ Tests** (BDD-style, runs IN Studio):
 ```bash
-rojo build faultline-fear.project.json -o faultline-fear.rbxl
-run-in-roblox --place faultline-fear.rbxl --script tools/run-testez.luau
+./tools/run-studio-test.sh tools/run-testez.luau
 ```
 - Uses TestEZ expect() assertions
 - Tests Config, Heightmap, StoryData
@@ -537,8 +582,7 @@ run-in-roblox --place faultline-fear.rbxl --script tools/run-testez.luau
 
 **3. run-in-roblox Verification** (runs IN actual Studio):
 ```bash
-rojo build faultline-fear.project.json -o faultline-fear.rbxl
-run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
+./tools/run-studio-test.sh tools/verify-game.luau
 ```
 - **THIS WORKS** - Claude can run this autonomously
 - Verifies: module loading, config, structure, workspace setup
@@ -549,6 +593,43 @@ run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
 ```bash
 selene src/faultline-fear/      # Lint
 stylua --check src/faultline-fear/  # Format check
+```
+
+**5. World Screenshot Capture** (terrain verification):
+```bash
+./tools/run-studio-test.sh tools/capture-world-screenshots.luau
+```
+- Positions camera at 26 locations across all zones
+- Outputs zone name and terrain height for each position
+- **Even without screenshots**, this verifies terrain heights are correct
+- Camera positions are documented in script with zone boundary comments
+
+### Studio Cleanup (CRITICAL)
+
+**ALWAYS use the wrapper script** `./tools/run-studio-test.sh` for Studio tests.
+
+`run-in-roblox` spawns Studio instances that may not close automatically. Without cleanup:
+- Zombie Studio instances accumulate
+- Each test run leaves another instance
+- Memory/CPU waste
+
+The wrapper script:
+1. Kills existing Studio instances before running
+2. Builds the place file
+3. Runs the test
+4. **Kills Studio after completion**
+
+```bash
+# WRONG - leaves Studio running
+run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
+
+# CORRECT - automatic cleanup
+./tools/run-studio-test.sh tools/verify-game.luau
+```
+
+**Manual cleanup** (if needed):
+```bash
+pkill -f "RobloxStudio"
 ```
 
 ### GitHub Actions CI
@@ -564,16 +645,16 @@ Workflow file: `.github/workflows/ci.yml`
 ### Pre-Publish Checklist
 
 ```bash
-# Run ALL checks before publishing (84 total tests):
+# Run ALL checks before publishing:
 selene src/faultline-fear/
 stylua --check src/faultline-fear/
-lune run tests/run.luau                                                    # 32 tests
-rojo build faultline-fear.project.json -o faultline-fear.rbxl
-run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau  # 35 checks
-run-in-roblox --place faultline-fear.rbxl --script tools/run-testez.luau   # 17 tests
+lune run tests/run.luau                                      # 32 Lune tests
+./tools/run-studio-test.sh tools/verify-game.luau            # 35 verification checks
+./tools/run-studio-test.sh tools/run-testez.luau             # 17 TestEZ tests
+./tools/run-studio-test.sh tools/capture-world-screenshots.luau  # Terrain verification
 ```
 
-All should pass with 0 errors before publishing.
+All should pass with 0 errors before publishing. The wrapper script handles Studio cleanup automatically.
 
 ### In-Game Debug Tools
 
@@ -604,18 +685,27 @@ All should pass with 0 errors before publishing.
 # Claude can read the image file directly
 ```
 
-**Option 2: roblox-screenshot automation** (requires setup):
+**Option 2: World Screenshot Capture** (automated terrain verification):
 ```bash
-# Terminal 1: Start screenshot server
+# 1. Start screenshot server (requires macOS Screen Recording permission!)
 cd tools/roblox-screenshot && node .
 
-# Terminal 2: In Studio, run the capture script
-# Or use via command bar: require(game.ServerScriptService.Server).captureScreenshots()
+# 2. Build and run capture script
+rojo build faultline-fear.project.json -o faultline-fear.rbxl
+run-in-roblox --place faultline-fear.rbxl --script tools/capture-world-screenshots.luau
 ```
-- Server runs on port 28081
-- Screenshots saved to `tools/roblox-screenshot/screenshots/`
-- Script: `tools/take-screenshots.luau`
-- **Limitation**: Studio must be visible on screen (not minimized)
+- Captures 26 camera positions across all zones
+- Outputs terrain heights and zone info to console (useful even without screenshots)
+- Screenshots saved to `tools/roblox-screenshot/screenshots/world-verify/`
+- Script: `tools/capture-world-screenshots.luau`
+
+**CRITICAL: macOS Screen Recording Permission**:
+The screenshot server uses `screencapture` which requires permission:
+1. Open **System Settings → Privacy & Security → Screen Recording**
+2. Add **Terminal.app** (or your terminal application)
+3. Restart Terminal and the screenshot server
+
+Without this permission, HTTP requests succeed but screenshots fail with "could not create image from display".
 
 **Reading screenshots**:
 Claude can read any image file. Just provide the path:
