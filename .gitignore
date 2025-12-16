@@ -43,4 +43,11 @@ node_modules/
 
 # Logs
 *.log
-assets/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Assets (allow models, ignore generated)
+assets/*
+!assets/models/

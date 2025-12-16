@@ -116,6 +116,7 @@ local StoryBeatProcessor = require(script.Services.StoryBeatProcessor)
 local StoryZoneManager = require(script.Services.StoryZoneManager)
 local CollectibleSpawner = require(script.Services.CollectibleSpawner)
 local NPCService = require(script.Services.NPCService)
+local CreatureService = require(script.Services.CreatureService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
@@ -130,6 +131,10 @@ MusicService:Initialize()
 EarthquakeService:SetMusicService(MusicService)
 NarrativeService:SetEarthquakeService(EarthquakeService)
 PlayerDataService:SetNarrativeService(NarrativeService)
+CreatureService:SetDayNightService(DayNightService)
+
+-- Initialize creature spawning (after DayNightService connection)
+CreatureService:Initialize()
 
 -- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
