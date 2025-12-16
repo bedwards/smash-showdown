@@ -29,6 +29,115 @@ if Heightmap and not Heightmap:IsGenerated() then
 end
 
 -- ==========================================
+-- VISUAL TERRAIN GENERATION
+-- run-in-roblox doesn't run Main.server, so we generate terrain here
+-- ==========================================
+
+local function generateVisualChunk(terrain, startX: number, startZ: number, size: number, voxelSize: number)
+	local voxelsPerAxis = math.floor(size / voxelSize)
+
+	-- Pre-allocate 3D arrays
+	local materials: { { { Enum.Material } } } = {}
+	local occupancy: { { { number } } } = {}
+
+	for xi = 1, voxelsPerAxis do
+		materials[xi] = {}
+		occupancy[xi] = {}
+		for yi = 1, voxelsPerAxis do
+			materials[xi][yi] = {}
+			occupancy[xi][yi] = {}
+			for zi = 1, voxelsPerAxis do
+				materials[xi][yi][zi] = Enum.Material.Air
+				occupancy[xi][yi][zi] = 0
+			end
+		end
+	end
+
+	-- Fill from heightmap
+	for xi = 1, voxelsPerAxis do
+		local worldX = startX + (xi - 0.5) * voxelSize
+		for zi = 1, voxelsPerAxis do
+			local worldZ = startZ + (zi - 0.5) * voxelSize
+			local height = Heightmap:GetHeight(worldX, worldZ)
+			local material = Heightmap:GetMaterial(worldX, worldZ)
+
+			for yi = 1, voxelsPerAxis do
+				local worldY = (yi - 0.5) * voxelSize
+				if worldY <= height then
+					materials[xi][yi][zi] = material
+					occupancy[xi][yi][zi] = 1
+				elseif worldY <= height + voxelSize then
+					local surfaceBlend = 1 - (worldY - height) / voxelSize
+					occupancy[xi][yi][zi] = math.clamp(surfaceBlend, 0, 1)
+					materials[xi][yi][zi] = material
+				end
+			end
+		end
+	end
+
+	local region = Region3.new(
+		Vector3.new(startX, 0, startZ),
+		Vector3.new(startX + size, size, startZ + size)
+	):ExpandToGrid(voxelSize)
+
+	terrain:WriteVoxels(region, voxelSize, materials, occupancy)
+end
+
+local function generateVisualTerrain()
+	print("[Screenshot] Generating visual terrain...")
+	local startTime = tick()
+
+	local terrain = Workspace.Terrain
+	terrain:Clear()
+
+	local worldSize = Config.WORLD_SIZE
+	local halfWorld = worldSize / 2
+	local voxelSize = 4
+	local chunkSize = 64
+
+	-- Count chunks for progress
+	local totalChunks = 0
+	for _ = -halfWorld, halfWorld - chunkSize, chunkSize do
+		for _ = -halfWorld, halfWorld - chunkSize, chunkSize do
+			totalChunks += 1
+		end
+	end
+
+	local generatedChunks = 0
+	for chunkX = -halfWorld, halfWorld - chunkSize, chunkSize do
+		for chunkZ = -halfWorld, halfWorld - chunkSize, chunkSize do
+			generateVisualChunk(terrain, chunkX, chunkZ, chunkSize, voxelSize)
+			generatedChunks += 1
+
+			if generatedChunks % math.ceil(totalChunks / 10) == 0 then
+				local progress = math.floor(generatedChunks / totalChunks * 100)
+				print(string.format("[Screenshot] Visual terrain: %d%%", progress))
+			end
+
+			if generatedChunks % 16 == 0 then
+				task.wait()
+			end
+		end
+	end
+
+	-- Generate ocean water
+	local oceanDepth = 30
+	local oceanRegion = Region3.new(
+		Vector3.new(-halfWorld, Config.OCEAN_LEVEL - oceanDepth, Config.ZONES.OCEAN.zMin),
+		Vector3.new(halfWorld, Config.OCEAN_LEVEL, Config.ZONES.BEACH.zMax)
+	)
+	terrain:FillRegion(oceanRegion, 4, Enum.Material.Water)
+
+	local elapsed = tick() - startTime
+	print(string.format("[Screenshot] Visual terrain complete in %.2f seconds", elapsed))
+end
+
+-- Generate visual terrain (since Main.server doesn't run via run-in-roblox)
+if Heightmap and Heightmap:IsGenerated() then
+	generateVisualTerrain()
+end
+
+-- ==========================================
 -- SCREENSHOT CONFIGURATION
 -- ==========================================
 

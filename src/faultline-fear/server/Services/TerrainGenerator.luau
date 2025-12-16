@@ -136,6 +136,10 @@ function TerrainGenerator:GenerateVisualTerrain()
 	isVisualTerrainReady = true
 	local elapsed = tick() - startTime
 	print(string.format("[TerrainGenerator] Visual terrain complete in %.2f seconds", elapsed))
+
+	-- Signal completion via attribute (for external scripts like screenshot capture)
+	terrain:SetAttribute("VisualTerrainReady", true)
+	terrain:SetAttribute("VisualTerrainGeneratedAt", tick())
 end
 
 --[[
