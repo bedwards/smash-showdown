@@ -18,7 +18,7 @@ ObjectiveUpdateRemote.Parent = ReplicatedStorage
 -- Objective configuration
 local OBJECTIVES = {
 	SURVIVE_NIGHTS = 5, -- Survive this many nights to unlock rescue
-	SIGNAL_PARTS_NEEDED = 3, -- Collect signal parts to call for rescue
+	SIGNAL_PARTS_NEEDED = 6, -- Collect 6 signal parts to call for rescue (one per chapter!)
 	RESCUE_DELAY = 60, -- Seconds after signaling before rescue arrives
 }
 
@@ -34,17 +34,35 @@ local gameState = {
 local signalParts: { BasePart } = {}
 local rescueBeacon: Model? = nil
 
--- Create a signal part (collectible)
-local function createSignalPart(position: Vector3, partNumber: number): BasePart
+-- ROBUST floating height calculation
+-- For Floor 7½ items, use fixed Y. For outdoor items, calculate terrain + offset.
+local FLOAT_HEIGHT = 4 -- How high above terrain/floor to float
+local FLOAT_AMPLITUDE = 0.5 -- How much to bob up and down
+
+-- Create a signal part (collectible) with ROBUST terrain height
+local function createSignalPart(position: Vector3, partNumber: number, isIndoor: boolean?): BasePart
 	local part = Instance.new("Part")
 	part.Name = "SignalPart_" .. partNumber
 	part.Size = Vector3.new(2, 2, 2)
 	part.Shape = Enum.PartType.Ball
 	part.Color = Color3.fromRGB(50, 200, 255)
 	part.Material = Enum.Material.Neon
-	part.Position = position + Vector3.new(0, 2, 0)
 	part.Anchored = true
 	part.CanCollide = false
+
+	-- Calculate proper Y position
+	local finalY: number
+	if isIndoor then
+		-- Indoor items (like Floor 7½) - use the provided Y directly + float offset
+		finalY = position.Y + FLOAT_HEIGHT
+	else
+		-- Outdoor items - calculate terrain height and add float offset
+		local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
+		finalY = terrainHeight + FLOAT_HEIGHT
+		print("[Objectives] Signal part", partNumber, "terrain height:", terrainHeight, "-> floating at Y:", finalY)
+	end
+
+	part.Position = Vector3.new(position.X, finalY, position.Z)
 
 	-- Pulsing effect
 	local highlight = Instance.new("Highlight")
@@ -55,38 +73,50 @@ local function createSignalPart(position: Vector3, partNumber: number): BasePart
 
 	-- Billboard
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.new(0, 120, 0, 40)
+	billboard.Size = UDim2.new(0, 140, 0, 50)
 	billboard.StudsOffset = Vector3.new(0, 3, 0)
 	billboard.Parent = part
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = "SIGNAL PART " .. partNumber .. "/" .. OBJECTIVES.SIGNAL_PARTS_NEEDED
+	label.Text = "★ SIGNAL PART " .. partNumber .. "/" .. OBJECTIVES.SIGNAL_PARTS_NEEDED .. " ★"
 	label.TextColor3 = Color3.fromRGB(50, 200, 255)
 	label.TextStrokeTransparency = 0
 	label.Font = Enum.Font.GothamBold
-	label.TextSize = 14
+	label.TextScaled = true
 	label.Parent = billboard
 
-	-- Point light
+	-- Point light - brighter for visibility
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromRGB(50, 200, 255)
-	light.Brightness = 2
-	light.Range = 20
+	light.Brightness = 4
+	light.Range = 40
 	light.Parent = part
 
-	-- Floating animation
+	-- Particle effect for visibility
+	local particles = Instance.new("ParticleEmitter")
+	particles.Color = ColorSequence.new(Color3.fromRGB(50, 200, 255))
+	particles.Transparency = NumberSequence.new(0, 0.5, 1)
+	particles.Size = NumberSequence.new(0.5, 1, 0)
+	particles.Lifetime = NumberRange.new(1, 2)
+	particles.Rate = 10
+	particles.Speed = NumberRange.new(2, 5)
+	particles.SpreadAngle = Vector2.new(180, 180)
+	particles.LightEmission = 1
+	particles.Parent = part
+
+	-- Floating animation with stored base Y
 	local baseY = part.Position.Y
-	local offset = math.random() * math.pi * 2
+	local animOffset = math.random() * math.pi * 2
 	local connection: RBXScriptConnection?
 	connection = RunService.Heartbeat:Connect(function()
 		if not part or not part.Parent then
 			if connection then connection:Disconnect() end
 			return
 		end
-		local t = tick() + offset
-		part.Position = Vector3.new(part.Position.X, baseY + math.sin(t * 2) * 0.5, part.Position.Z)
+		local t = tick() + animOffset
+		part.Position = Vector3.new(part.Position.X, baseY + math.sin(t * 2) * FLOAT_AMPLITUDE, part.Position.Z)
 		part.Orientation = Vector3.new(0, (t * 50) % 360, 0)
 	end)
 
@@ -212,23 +242,40 @@ local function updateBeaconStatus()
 	end
 end
 
--- Spawn signal parts across the world
+-- Spawn signal parts across the world - ONE PER CHAPTER!
+-- Positions match the chapter sign locations for exploration!
 local function spawnSignalParts()
-	task.wait(5) -- Wait for world
+	task.wait(5) -- Wait for world to generate
 
-	-- Spawn parts at far distances
+	-- 6 Signal Parts - one for each chapter location!
+	-- CHAPTER 1 IS FLOOR 7½ - The origin of the mystery!
+	-- All outdoor parts use terrain height calculation for robust floating
 	local positions = {
-		Vector3.new(400, 0, 300),
-		Vector3.new(-350, 0, 400),
-		Vector3.new(500, 0, -200),
+		-- Chapter 1: FLOOR 7½ - INDOOR! (Y=102 is the floor)
+		{ pos = Vector3.new(150, 102, -100), name = "Chapter 1 - FLOOR 7½ (The Origin)", isIndoor = true },
+		-- Chapter 2: FAR NORTH - Survivor's Camp (outdoor)
+		{ pos = Vector3.new(100, 0, 350), name = "Chapter 2 - North Camp (The Awakening)", isIndoor = false },
+		-- Chapter 3: FAR NORTHWEST - Forest Guardian (outdoor)
+		{ pos = Vector3.new(-400, 0, 700), name = "Chapter 3 - Deep Forest (Whispering Woods)", isIndoor = false },
+		-- Chapter 4: FAR EAST - Frozen Mountain Peak (outdoor)
+		{ pos = Vector3.new(800, 0, -300), name = "Chapter 4 - Mountain Summit (Frozen Peaks)", isIndoor = false },
+		-- Chapter 5: FAR WEST - Pirate Cove (outdoor)
+		{ pos = Vector3.new(-750, 0, 150), name = "Chapter 5 - Coastal Cove (Pirate Territory)", isIndoor = false },
+		-- Chapter 6: FAR SOUTH - Prophecy Stone (outdoor)
+		{ pos = Vector3.new(0, 0, -600), name = "Chapter 6 - Prophecy Stone (The Final Truth)", isIndoor = false },
 	}
 
-	for i, pos in positions do
-		local part = createSignalPart(pos, i)
+	for i, data in positions do
+		local part = createSignalPart(data.pos, i, data.isIndoor)
 		table.insert(signalParts, part)
+		print("[Objectives] Signal part", i, "at:", data.name)
 	end
 
-	print("[Objectives] Spawned", #signalParts, "signal parts across the world")
+	print("[Objectives] Spawned", #signalParts, "signal parts - ONE PER CHAPTER!")
+	print("[Objectives] EXPLORATION MAP:")
+	print("[Objectives]   Ch1: Floor 7½ Building | Ch2: FAR NORTH (350)")
+	print("[Objectives]   Ch3: FAR NORTHWEST (700) | Ch4: FAR EAST (-300)")
+	print("[Objectives]   Ch5: FAR WEST (150) | Ch6: FAR SOUTH (-600)")
 end
 
 -- Check for signal part collection and beacon activation

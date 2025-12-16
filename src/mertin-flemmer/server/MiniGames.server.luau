@@ -653,33 +653,36 @@ local function createCheckersBoard(position: Vector3, npcName: string?, reward: 
 	signPart.Anchored = true
 	signPart.Parent = board
 
-	local signGui = Instance.new("SurfaceGui")
-	signGui.Face = Enum.NormalId.Front
-	signGui.Parent = signPart
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.Parent = signPart
 
-	local container = Instance.new("Frame")
-	container.Size = UDim2.new(1, 0, 1, 0)
-	container.BackgroundColor3 = Color3.fromRGB(60, 40, 25)
-	container.Parent = signGui
+		local container = Instance.new("Frame")
+		container.Size = UDim2.new(1, 0, 1, 0)
+		container.BackgroundColor3 = Color3.fromRGB(60, 40, 25)
+		container.Parent = signGui
 
-	local signText = Instance.new("TextLabel")
-	signText.Size = UDim2.new(1, 0, 0.6, 0)
-	signText.BackgroundTransparency = 1
-	signText.Text = npcName and ("Challenge\n" .. npcName) or "CHECKERS"
-	signText.TextColor3 = Color3.new(1, 1, 1)
-	signText.Font = Enum.Font.GothamBold
-	signText.TextSize = 20
-	signText.Parent = container
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.new(1, 0, 0.6, 0)
+		signText.BackgroundTransparency = 1
+		signText.Text = npcName and ("Challenge\n" .. npcName) or "CHECKERS"
+		signText.TextColor3 = Color3.new(1, 1, 1)
+		signText.Font = Enum.Font.GothamBold
+		signText.TextSize = 20
+		signText.Parent = container
 
-	local rewardText = Instance.new("TextLabel")
-	rewardText.Size = UDim2.new(1, 0, 0.4, 0)
-	rewardText.Position = UDim2.new(0, 0, 0.6, 0)
-	rewardText.BackgroundTransparency = 1
-	rewardText.Text = "Win: " .. finalReward .. " Gold!"
-	rewardText.TextColor3 = Color3.fromRGB(255, 215, 0)
-	rewardText.Font = Enum.Font.GothamMedium
-	rewardText.TextSize = 14
-	rewardText.Parent = container
+		local rewardText = Instance.new("TextLabel")
+		rewardText.Size = UDim2.new(1, 0, 0.4, 0)
+		rewardText.Position = UDim2.new(0, 0, 0.6, 0)
+		rewardText.BackgroundTransparency = 1
+		rewardText.Text = "Win: " .. finalReward .. " Gold!"
+		rewardText.TextColor3 = Color3.fromRGB(255, 215, 0)
+		rewardText.Font = Enum.Font.GothamMedium
+		rewardText.TextSize = 14
+		rewardText.Parent = container
+	end
 
 	-- Proximity prompt
 	local prompt = Instance.new("ProximityPrompt")
@@ -883,33 +886,36 @@ local function createMaze(position: Vector3, name: string, difficulty: string): 
 	entranceSign.Anchored = true
 	entranceSign.Parent = maze
 
-	local signGui = Instance.new("SurfaceGui")
-	signGui.Face = Enum.NormalId.Back
-	signGui.Parent = entranceSign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.Parent = entranceSign
 
-	local signFrame = Instance.new("Frame")
-	signFrame.Size = UDim2.new(1, 0, 1, 0)
-	signFrame.BackgroundColor3 = Color3.fromRGB(50, 35, 20)
-	signFrame.Parent = signGui
+		local signFrame = Instance.new("Frame")
+		signFrame.Size = UDim2.new(1, 0, 1, 0)
+		signFrame.BackgroundColor3 = Color3.fromRGB(50, 35, 20)
+		signFrame.Parent = signGui
 
-	local signText = Instance.new("TextLabel")
-	signText.Size = UDim2.new(1, 0, 0.6, 0)
-	signText.BackgroundTransparency = 1
-	signText.Text = name .. " MAZE"
-	signText.TextColor3 = Color3.new(1, 1, 1)
-	signText.Font = Enum.Font.GothamBold
-	signText.TextSize = 28
-	signText.Parent = signFrame
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.new(1, 0, 0.6, 0)
+		signText.BackgroundTransparency = 1
+		signText.Text = name .. " MAZE"
+		signText.TextColor3 = Color3.new(1, 1, 1)
+		signText.Font = Enum.Font.GothamBold
+		signText.TextSize = 28
+		signText.Parent = signFrame
 
-	local rewardLabel = Instance.new("TextLabel")
-	rewardLabel.Size = UDim2.new(1, 0, 0.4, 0)
-	rewardLabel.Position = UDim2.new(0, 0, 0.6, 0)
-	rewardLabel.BackgroundTransparency = 1
-	rewardLabel.Text = "Reward: " .. layout.reward .. " Gold"
-	rewardLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-	rewardLabel.Font = Enum.Font.GothamMedium
-	rewardLabel.TextSize = 18
-	rewardLabel.Parent = signFrame
+		local rewardLabel = Instance.new("TextLabel")
+		rewardLabel.Size = UDim2.new(1, 0, 0.4, 0)
+		rewardLabel.Position = UDim2.new(0, 0, 0.6, 0)
+		rewardLabel.BackgroundTransparency = 1
+		rewardLabel.Text = "Reward: " .. layout.reward .. " Gold"
+		rewardLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+		rewardLabel.Font = Enum.Font.GothamMedium
+		rewardLabel.TextSize = 18
+		rewardLabel.Parent = signFrame
+	end
 
 	-- Exit marker
 	local exitMarker = Instance.new("Part")

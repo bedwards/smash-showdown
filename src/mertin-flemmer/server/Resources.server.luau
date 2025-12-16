@@ -10,6 +10,24 @@ local Workspace = game:GetService("Workspace")
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 
+-- ==========================================
+-- TERRAIN HEIGHT: Raycast to find actual voxel surface
+-- ==========================================
+local function getActualTerrainHeight(x: number, z: number): number
+	local rayOrigin = Vector3.new(x, 500, z)
+	local rayDirection = Vector3.new(0, -600, 0)
+
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
+
+	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if result then
+		return result.Position.Y
+	end
+	return Shared.getTerrainHeight(x, z)
+end
+
 -- Resource configuration - plenty of loot scattered around!
 local RESOURCE_CONFIG = {
 	FOOD = {
@@ -81,15 +99,15 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 
 	local modelData = config.models[math.random(#config.models)]
 
-	-- Get terrain height at this position
-	local terrainHeight = Shared.getTerrainHeight(position.X, position.Z)
+	-- Get ACTUAL terrain height using raycast
+	local terrainHeight = getActualTerrainHeight(position.X, position.Z)
 
 	local resource = Instance.new("Part")
 	resource.Name = "Resource_" .. resourceType .. "_" .. modelData.name
 	resource.Size = modelData.size
 	resource.Color = modelData.color
 	resource.Material = Enum.Material.SmoothPlastic
-	resource.Position = Vector3.new(position.X, terrainHeight + modelData.size.Y / 2 + 0.3, position.Z)
+	resource.Position = Vector3.new(position.X, terrainHeight + modelData.size.Y / 2 + 1.0, position.Z)
 	resource.Anchored = true
 	resource.CanCollide = false
 
@@ -102,7 +120,7 @@ local function createResource(resourceType: string, position: Vector3): BasePart
 	highlight.Parent = resource
 
 	-- Add floating animation
-	local baseY = terrainHeight + modelData.size.Y / 2 + 0.3
+	local baseY = terrainHeight + modelData.size.Y / 2 + 1.0
 	local floatOffset = math.random() * math.pi * 2
 
 	-- Hover and rotate effect
@@ -341,29 +359,88 @@ for _, player in Players:GetPlayers() do
 	initPlayerInventory(player)
 end
 
+-- ==========================================
+-- FLOOR 7½ SPECIAL LOOT COLLECTION
+-- Handles items created with ResourceType attribute
+-- ==========================================
+
+local floor75LootCollected: { [BasePart]: boolean } = {}
+
+-- Check for Floor 7½ special loot (items with ResourceType attribute)
+local function checkFloor75LootCollection()
+	-- Find all Floor 7½ loot items
+	for _, item in workspace:GetChildren() do
+		if not item:IsA("BasePart") then continue end
+		if not item.Name:match("^Floor75_") then continue end
+		if floor75LootCollected[item] then continue end
+
+		local resourceType = item:GetAttribute("ResourceType")
+		if not resourceType then continue end
+
+		-- Check if any player is near
+		for _, player in Players:GetPlayers() do
+			local character = player.Character
+			if not character then continue end
+
+			local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if not rootPart then continue end
+
+			local distance = (rootPart.Position - item.Position).Magnitude
+			if distance < 5 then
+				-- Collect the item!
+				floor75LootCollected[item] = true
+
+				local inventory = playerInventories[player]
+				if inventory then
+					local lootName = item:GetAttribute("LootName") or resourceType
+
+					if resourceType == "food" then
+						inventory.food += 1
+						CollectResourceRemote:FireClient(player, "FOOD", lootName)
+						print("[Resources]", player.Name, "collected Floor 7½", lootName)
+					elseif resourceType == "batteries" then
+						inventory.batteries += 1
+						CollectResourceRemote:FireClient(player, "BATTERY", lootName)
+						print("[Resources]", player.Name, "collected Floor 7½", lootName)
+					elseif resourceType == "flashlight" then
+						-- Flashlight is a special item - give batteries
+						inventory.batteries += 3
+						CollectResourceRemote:FireClient(player, "FLASHLIGHT", "Flashlight (+3 batteries)")
+						print("[Resources]", player.Name, "collected Floor 7½ FLASHLIGHT!")
+					elseif resourceType == "walkman" then
+						-- Walkman is a special item - notify the music system!
+						CollectResourceRemote:FireClient(player, "WALKMAN", "WALKMAN RADIO")
+						-- Fire the walkman pickup event if it exists
+						local musicEvents = ReplicatedStorage:FindFirstChild("MusicEvents")
+						if musicEvents then
+							local pickupEvent = musicEvents:FindFirstChild("PickupWalkman") :: RemoteEvent?
+							if pickupEvent then
+								pickupEvent:FireClient(player, true)
+							end
+						end
+						print("[Resources]", player.Name, "collected Floor 7½ WALKMAN RADIO!")
+					end
+
+					UpdateInventoryRemote:FireClient(player, inventory)
+				end
+
+				-- Destroy the item (no respawn for Floor 7½ loot)
+				item:Destroy()
+				break
+			end
+		end
+	end
+end
+
 -- Game loop
 RunService.Heartbeat:Connect(function()
 	checkResourceCollection()
+	checkFloor75LootCollection()
 end)
 
 -- ==========================================
--- TERRAIN SYNC: Raycast to find actual terrain surface
+-- TERRAIN SYNC: Reposition resources after spawn
 -- ==========================================
-
-local function getActualTerrainHeight(x: number, z: number): number
-	local rayOrigin = Vector3.new(x, 500, z)
-	local rayDirection = Vector3.new(0, -600, 0)
-
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Include
-	raycastParams.FilterDescendantsInstances = { Workspace.Terrain }
-
-	local result = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-	if result then
-		return result.Position.Y
-	end
-	return Shared.getTerrainHeight(x, z)
-end
 
 local function syncResourcesToTerrain()
 	print("[Resources] Syncing resources to actual terrain...")

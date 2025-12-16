@@ -120,6 +120,19 @@ function Shared.getTerrainHeight(x: number, z: number): number
 		height = math.max(height, 0)
 	end
 
+	-- Flatten Mertin-Flemmer building area - building is at (150, Y, -100)
+	local BUILDING_X, BUILDING_Z = 150, -100
+	local distFromBuilding = math.sqrt((x - BUILDING_X) * (x - BUILDING_X) + (z - BUILDING_Z) * (z - BUILDING_Z))
+	if distFromBuilding < 80 then
+		-- Completely flat under and around the building
+		local flatInfluence = 1 - (distFromBuilding / 80)
+		height = height * (1 - flatInfluence) + 0 * flatInfluence
+		height = math.max(height, 0)
+	elseif distFromBuilding < 120 then
+		-- Gentle slope transition zone
+		height = math.max(height, 0)
+	end
+
 	-- Global floor - never below water level
 	height = math.max(height, WATER_LEVEL)
 
@@ -155,20 +168,20 @@ Shared.Config = {
 	STAMINA_DRAIN = 10, -- per second while sprinting
 	STAMINA_REGEN = 5, -- per second while not sprinting
 
-	-- Hunger (survival pressure - must keep eating!)
-	HUNGER_DRAIN = 8, -- per minute (forces active foraging)
-	HUNGER_DAMAGE = 10, -- damage per tick when starving
-	HUNGER_FOOD_RESTORE = 25, -- restored per food item
+	-- Hunger (survival pressure - BRUTAL! Must constantly forage!)
+	HUNGER_DRAIN = 25, -- per minute (FAST - you will starve if you don't eat!)
+	HUNGER_DAMAGE = 25, -- damage per tick when starving (DEADLY!)
+	HUNGER_FOOD_RESTORE = 20, -- restored per food item
 
 	-- Fear
-	FEAR_GAIN_DARKNESS = 2, -- per second in darkness
-	FEAR_GAIN_CREATURE = 20, -- when creature spotted
+	FEAR_GAIN_DARKNESS = 5, -- per second in darkness (scarier!)
+	FEAR_GAIN_CREATURE = 40, -- when creature spotted (terrifying!)
 	FEAR_DECAY_LIGHT = 5, -- per second near light
 
-	-- Creatures
-	CREATURE_DAMAGE = 15,
+	-- Creatures (DEADLY at night without protection!)
+	CREATURE_DAMAGE = 50, -- MASSIVE damage - wolves will shred you!
 	CREATURE_SPEED_DAY = 8,
-	CREATURE_SPEED_NIGHT = 20,
+	CREATURE_SPEED_NIGHT = 28, -- FAST - can't outrun them!
 
 	-- Resources
 	FLASHLIGHT_BATTERY = 120, -- seconds

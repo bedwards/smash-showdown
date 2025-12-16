@@ -335,18 +335,21 @@ local function buildMountainRange(rangeData: typeof(MOUNTAINS[1]))
 				sign.Anchored = true
 				sign.Parent = workspace
 
-				local gui = Instance.new("SurfaceGui")
-				gui.Face = Enum.NormalId.Front
-				gui.Parent = sign
+				-- Sign text on BOTH sides
+				for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+					local gui = Instance.new("SurfaceGui")
+					gui.Face = face
+					gui.Parent = sign
 
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, 0, 1, 0)
-				label.BackgroundTransparency = 1
-				label.Text = "CAVE\nDANGER!"
-				label.TextColor3 = Color3.fromRGB(255, 100, 100)
-				label.Font = Enum.Font.GothamBold
-				label.TextSize = 24
-				label.Parent = gui
+					local label = Instance.new("TextLabel")
+					label.Size = UDim2.new(1, 0, 1, 0)
+					label.BackgroundTransparency = 1
+					label.Text = "CAVE\nDANGER!"
+					label.TextColor3 = Color3.fromRGB(255, 100, 100)
+					label.Font = Enum.Font.GothamBold
+					label.TextSize = 24
+					label.Parent = gui
+				end
 			end
 		end
 	end
@@ -450,9 +453,10 @@ local function buildAllMountains()
 	end
 
 	-- Add scattered rock formations
+	-- NOTE: Avoid placing rocks near Mertin-Flemmer building (150, 0, -100)!
 	print("[Mountains] Adding rock formations...")
 	local rockLocations = {
-		Vector3.new(150, 0, -150),
+		Vector3.new(150, 0, -300), -- Moved AWAY from building (was -150, too close to elevator!)
 		Vector3.new(-250, 0, 300),
 		Vector3.new(400, 0, -100),
 		Vector3.new(-100, 0, -350),

@@ -277,6 +277,136 @@ When user says "we are in production" or "don't change too much":
 - Don't refactor surrounding code
 - Keep a narrow scope
 
+---
+
+## FAULTLINE FEAR: Current Project
+
+**Start Date**: December 2024
+**Design Document**: `docs/faultline-fear/FAULTLINE_FEAR.md`
+
+### Quick Reference
+
+Faultline Fear is an earthquake-themed survival horror game set in exaggerated California terrain.
+
+**World Layout** (CRITICAL):
+- **North Edge**: Mountain range (peaks CUT OFF by world boundary)
+- **Center**: Fault line running PARALLEL to shore and mountains
+- **South Edge**: Ocean extending to horizon, beach with boardwalk/ferris wheel
+- **The fault line is the central gameplay feature**
+
+**Core Mechanics**:
+1. Earthquake system (tremors → major quakes → "The Big One")
+2. Survival (hunger, day/night danger cycle)
+3. Hero's journey with DEFINITIVE END (badge, credits, victory screen)
+4. Pet companion with personality
+5. Liminal space aesthetic (eerie, abandoned, unsettling)
+
+### File Structure
+
+```
+src/faultline-fear/
+├── shared/          # Config, Types, Utils, Events
+├── server/          # Services (Hunger, Earthquake, DayNight, NPC, etc.)
+└── client/          # Controllers (HUD, Camera, Input, Audio)
+
+docs/faultline-fear/
+└── FAULTLINE_FEAR.md   # Full design document
+
+assets/faultline-fear/
+├── blender/         # Source .blend files
+├── meshes/          # Exported FBX files
+├── textures/        # Images and materials
+└── audio/           # Sound effects and music
+```
+
+### DRY/SOLID/APIE Architecture
+
+**Every system must follow these principles:**
+
+1. **Single Source of Truth**: One Config.luau for all constants
+2. **Service Pattern**: Each game system is one Service module
+3. **Event-Driven**: Services communicate via events, not direct calls
+4. **Terrain Height**: ALWAYS use `TerrainUtils.getTerrainHeight(x, z)` - NEVER hardcode Y
+
+### Ground Level Elevation (CRITICAL)
+
+**THE PROBLEM WE SOLVED**: Items spawning inside terrain or floating.
+
+**THE SOLUTION**:
+```lua
+-- ALWAYS do this when placing ANYTHING on terrain
+local TerrainUtils = require(shared.TerrainUtils)
+local height = TerrainUtils.getTerrainHeight(x, z)
+object.Position = Vector3.new(x, height + offset, z)
+```
+
+### Blender to Roblox Workflow
+
+```
+1. Create in Blender at 0.01 scale
+2. Apply transforms (Ctrl+A > All Transforms)
+3. Export FBX with scale 0.01
+4. Import via Roblox Asset Manager
+5. Use Tarmac for textures
+```
+
+### GitHub Labels for Faultline Fear
+
+All issues MUST have `faultline-fear` label plus category:
+- `world-building`, `gameplay`, `narrative`, `audio`, `visuals`
+- `performance`, `tooling`, `blender`, `bug`, `enhancement`
+
+---
+
+## Tooling Stack
+
+### Currently Installed
+
+| Tool | Version | Purpose | Status |
+|------|---------|---------|--------|
+| Aftman | 0.3.0 | Tool manager | Working |
+| Rojo | 7.7.0-rc.1 | File sync | Working |
+| Wally | 0.3.2 | Package manager | Working |
+| Selene | 0.27.1 | Linter | Working |
+| StyLua | 0.20.0 | Formatter | Working |
+| Blender | 5.0.0 | 3D modeling | Working |
+
+### Need to Install
+
+```toml
+# Add to aftman.toml:
+lune = "lune-org/lune@0.8.0"
+remodel = "rojo-rbx/remodel@0.11.0"
+tarmac = "Roblox/tarmac@0.7.0"
+run-in-roblox = "rojo-rbx/run-in-roblox@0.3.0"
+```
+
+### Tool Purposes
+
+- **Lune**: Standalone Luau runtime for CLI scripts (validation, reports)
+- **Remodel**: Manipulate .rbxl/.rbxlx files without Studio
+- **Tarmac**: Asset pipeline for images/textures
+- **run-in-roblox**: Execute scripts in Studio from command line
+
+### Claude Code Limitations
+
+**CAN DO**:
+- Read/write all code files
+- Run Lune validation scripts
+- Analyze place files with Remodel
+- Create GitHub issues
+- Sync with Rojo
+
+**CANNOT DO**:
+- See the game visually (no screenshots without human)
+- Run Roblox Studio
+- Test gameplay directly
+- Trigger roblox-screenshot (requires Studio running + visible)
+
+**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path.
+
+---
+
 ## Final Reminder
 
 You are capable of more than you assume. Ship things. Impact players. Move fast. Own your work.

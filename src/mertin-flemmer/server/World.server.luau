@@ -345,24 +345,44 @@ local function createBuilding(position: Vector3)
 end
 
 -- Create the 7.5 floor office building (Being John Malkovich style)
--- 20 stories tall, but only floor 7.5 is accessible with very low ceilings
+-- MASSIVE 60 story skyscraper - visible from EVERYWHERE!
 local function createOfficeBuilding75(position: Vector3)
 	local Players = game:GetService("Players")
 	local building = Instance.new("Model")
 	building.Name = "MertinFlemmerBuilding"
 
-	local buildingWidth = 80
-	local buildingDepth = 50
+	local buildingWidth = 100 -- WIDER
+	local buildingDepth = 60 -- DEEPER
 	local floorHeight = 14 -- Normal floor height
-	local totalFloors = 20 -- 20 story building
-	local floor75Height = 4 -- VERY low ceiling - you MUST crouch! (Being John Malkovich)
-	local lobbyHeight = 20 -- Grand lobby
+	local totalFloors = 60 -- MASSIVE 60 story skyscraper!
+	local floor75Height = 8 -- Low ceiling but walkable (Being John Malkovich style)
+	local lobbyHeight = 25 -- Even grander lobby
 
 	-- Calculate positions
 	local floor7Top = 7 * floorHeight
 	local floor75Bottom = floor7Top
 	local floor75Top = floor75Bottom + floor75Height
 	local totalHeight = totalFloors * floorHeight
+
+	-- ★★★ CLEAR TERRAIN AROUND BUILDING ★★★
+	-- This ensures no rocks block the entrance or elevator button!
+	local Terrain = Workspace.Terrain
+	local clearRadius = buildingWidth / 2 + 30 -- Clear area around building
+	local clearHeight = 50 -- Clear up to lobby height
+
+	-- Clear the area around the building entrance and elevator
+	for dx = -clearRadius, clearRadius, 10 do
+		for dz = -clearRadius, clearRadius, 10 do
+			local clearPos = position + Vector3.new(dx, clearHeight / 2, dz)
+			-- Use FillBlock with Air to clear terrain
+			Terrain:FillBlock(
+				CFrame.new(clearPos),
+				Vector3.new(12, clearHeight, 12),
+				Enum.Material.Air
+			)
+		end
+	end
+	print("[World] Cleared terrain around Mertin-Flemmer building for accessibility")
 
 	-- EXTERIOR WALLS (not solid - just walls)
 	local wallThickness = 2
@@ -464,6 +484,48 @@ local function createOfficeBuilding75(position: Vector3)
 	lobbyFloor.Anchored = true
 	lobbyFloor.Parent = building
 
+	-- ENTRANCE RAMP - gentle slope from outside to lobby floor
+	local entranceRamp = Instance.new("Part")
+	entranceRamp.Name = "EntranceRamp"
+	entranceRamp.Size = Vector3.new(14, 1, 10)
+	entranceRamp.CFrame = CFrame.new(position + Vector3.new(0, 0.25, buildingDepth / 2 + 5))
+		* CFrame.Angles(math.rad(-5), 0, 0) -- Slight slope
+	entranceRamp.Color = Color3.fromRGB(160, 150, 140)
+	entranceRamp.Material = Enum.Material.Marble
+	entranceRamp.Anchored = true
+	entranceRamp.Parent = building
+
+	-- Entrance plaza outside the door
+	local entrancePlaza = Instance.new("Part")
+	entrancePlaza.Name = "EntrancePlaza"
+	entrancePlaza.Size = Vector3.new(30, 1, 20)
+	entrancePlaza.Position = position + Vector3.new(0, 0.1, buildingDepth / 2 + 15)
+	entrancePlaza.Color = Color3.fromRGB(140, 135, 130)
+	entrancePlaza.Material = Enum.Material.Concrete
+	entrancePlaza.Anchored = true
+	entrancePlaza.Parent = building
+
+	-- Entrance lights
+	local entranceLight1 = Instance.new("Part")
+	entranceLight1.Name = "EntranceLight1"
+	entranceLight1.Size = Vector3.new(2, 2, 2)
+	entranceLight1.Position = position + Vector3.new(-8, lobbyHeight - 2, buildingDepth / 2 + 1)
+	entranceLight1.Color = Color3.fromRGB(255, 220, 150)
+	entranceLight1.Material = Enum.Material.Neon
+	entranceLight1.Anchored = true
+	entranceLight1.Parent = building
+
+	local light1 = Instance.new("PointLight")
+	light1.Color = Color3.fromRGB(255, 240, 200)
+	light1.Brightness = 2
+	light1.Range = 30
+	light1.Parent = entranceLight1
+
+	local entranceLight2 = entranceLight1:Clone()
+	entranceLight2.Name = "EntranceLight2"
+	entranceLight2.Position = position + Vector3.new(8, lobbyHeight - 2, buildingDepth / 2 + 1)
+	entranceLight2.Parent = building
+
 	local lobbyCeiling = Instance.new("Part")
 	lobbyCeiling.Name = "LobbyCeiling"
 	lobbyCeiling.Size = Vector3.new(buildingWidth - 4, 1, buildingDepth - 4)
@@ -501,18 +563,21 @@ local function createOfficeBuilding75(position: Vector3)
 	lobbySign.Anchored = true
 	lobbySign.Parent = building
 
-	local lobbyGui = Instance.new("SurfaceGui")
-	lobbyGui.Face = Enum.NormalId.Front
-	lobbyGui.Parent = lobbySign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local lobbyGui = Instance.new("SurfaceGui")
+		lobbyGui.Face = face
+		lobbyGui.Parent = lobbySign
 
-	local lobbyText = Instance.new("TextLabel")
-	lobbyText.Size = UDim2.new(1, 0, 1, 0)
-	lobbyText.BackgroundTransparency = 1
-	lobbyText.Text = "MERTIN & FLEMMER LLP"
-	lobbyText.TextColor3 = Color3.fromRGB(220, 200, 160)
-	lobbyText.Font = Enum.Font.Antique
-	lobbyText.TextScaled = true
-	lobbyText.Parent = lobbyGui
+		local lobbyText = Instance.new("TextLabel")
+		lobbyText.Size = UDim2.new(1, 0, 1, 0)
+		lobbyText.BackgroundTransparency = 1
+		lobbyText.Text = "MERTIN & FLEMMER LLP"
+		lobbyText.TextColor3 = Color3.fromRGB(220, 200, 160)
+		lobbyText.Font = Enum.Font.Antique
+		lobbyText.TextScaled = true
+		lobbyText.Parent = lobbyGui
+	end
 
 	-- Reception desk
 	local reception = Instance.new("Part")
@@ -548,7 +613,7 @@ local function createOfficeBuilding75(position: Vector3)
 	elevatorFrame.Anchored = true
 	elevatorFrame.Parent = building
 
-	-- Elevator button panel
+	-- Elevator button panel - text on ALL sides
 	local buttonPanel = Instance.new("Part")
 	buttonPanel.Name = "ElevatorButton"
 	buttonPanel.Size = Vector3.new(1.5, 3, 0.5)
@@ -558,18 +623,21 @@ local function createOfficeBuilding75(position: Vector3)
 	buttonPanel.Anchored = true
 	buttonPanel.Parent = building
 
-	local buttonGui = Instance.new("SurfaceGui")
-	buttonGui.Face = Enum.NormalId.Front
-	buttonGui.Parent = buttonPanel
+	-- Text on ALL faces of the button panel
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right } do
+		local buttonGui = Instance.new("SurfaceGui")
+		buttonGui.Face = face
+		buttonGui.Parent = buttonPanel
 
-	local buttonText = Instance.new("TextLabel")
-	buttonText.Size = UDim2.new(1, 0, 1, 0)
-	buttonText.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-	buttonText.Text = "7½\n[TOUCH]"
-	buttonText.TextColor3 = Color3.fromRGB(255, 200, 100)
-	buttonText.Font = Enum.Font.Code
-	buttonText.TextScaled = true
-	buttonText.Parent = buttonGui
+		local buttonText = Instance.new("TextLabel")
+		buttonText.Size = UDim2.new(1, 0, 1, 0)
+		buttonText.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+		buttonText.Text = "7½\n[TOUCH]"
+		buttonText.TextColor3 = Color3.fromRGB(255, 200, 100)
+		buttonText.Font = Enum.Font.Code
+		buttonText.TextScaled = true
+		buttonText.Parent = buttonGui
+	end
 
 	-- FLOOR 7.5 (the weird floor with low ceilings!)
 	local floor75Floor = Instance.new("Part")
@@ -657,28 +725,311 @@ local function createOfficeBuilding75(position: Vector3)
 		end
 	end
 
-	-- Exit elevator on floor 7.5 (returns to lobby)
+	-- Exit elevator on floor 7.5 (returns to lobby) - VERY VISIBLE!
 	local exitDoor = Instance.new("Part")
 	exitDoor.Name = "ExitElevator"
-	exitDoor.Size = Vector3.new(4, floor75Height - 1.5, 1)
-	exitDoor.Position = position + Vector3.new(-interiorWidth / 2 + 3, floor75Bottom + floor75Height / 2, 0)
-	exitDoor.Color = Color3.fromRGB(180, 175, 165)
-	exitDoor.Material = Enum.Material.Metal
+	exitDoor.Size = Vector3.new(6, floor75Height - 1, 2)
+	exitDoor.Position = position + Vector3.new(-interiorWidth / 2 + 5, floor75Bottom + floor75Height / 2, 0)
+	exitDoor.Color = Color3.fromRGB(255, 50, 50) -- BRIGHT RED!
+	exitDoor.Material = Enum.Material.Neon
 	exitDoor.Anchored = true
 	exitDoor.Parent = building
 
-	local exitGui = Instance.new("SurfaceGui")
-	exitGui.Face = Enum.NormalId.Back
-	exitGui.Parent = exitDoor
+	-- Exit text on BOTH sides of the door
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local exitGui = Instance.new("SurfaceGui")
+		exitGui.Face = face
+		exitGui.Parent = exitDoor
 
-	local exitText = Instance.new("TextLabel")
-	exitText.Size = UDim2.new(1, 0, 1, 0)
-	exitText.BackgroundTransparency = 1
-	exitText.Text = "EXIT\n[TOUCH]"
-	exitText.TextColor3 = Color3.fromRGB(255, 100, 100)
-	exitText.Font = Enum.Font.GothamBold
-	exitText.TextScaled = true
-	exitText.Parent = exitGui
+		local exitText = Instance.new("TextLabel")
+		exitText.Size = UDim2.new(1, 0, 1, 0)
+		exitText.BackgroundTransparency = 1
+		exitText.Text = "EXIT\n[TOUCH ME]"
+		exitText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		exitText.Font = Enum.Font.GothamBold
+		exitText.TextScaled = true
+		exitText.Parent = exitGui
+	end
+
+	-- GLOWING EXIT SIGN above the door
+	local exitSignPart = Instance.new("Part")
+	exitSignPart.Name = "ExitSign"
+	exitSignPart.Size = Vector3.new(8, 2, 0.5)
+	exitSignPart.Position = position + Vector3.new(-interiorWidth / 2 + 5, floor75Top - 1.5, 0)
+	exitSignPart.Color = Color3.fromRGB(255, 0, 0)
+	exitSignPart.Material = Enum.Material.Neon
+	exitSignPart.Anchored = true
+	exitSignPart.Parent = building
+
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.Parent = exitSignPart
+
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.new(1, 0, 1, 0)
+		signText.BackgroundTransparency = 1
+		signText.Text = "◄ EXIT ►"
+		signText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		signText.Font = Enum.Font.GothamBold
+		signText.TextScaled = true
+		signText.Parent = signGui
+	end
+
+	-- Bright light pointing at the exit
+	local exitLight = Instance.new("PointLight")
+	exitLight.Color = Color3.fromRGB(255, 100, 100)
+	exitLight.Brightness = 5
+	exitLight.Range = 30
+	exitLight.Parent = exitDoor
+
+	-- Flashing lights around exit
+	local flashLight1 = Instance.new("Part")
+	flashLight1.Name = "FlashLight1"
+	flashLight1.Size = Vector3.new(1, 1, 1)
+	flashLight1.Position = position + Vector3.new(-interiorWidth / 2 + 1, floor75Top - 2, -2)
+	flashLight1.Color = Color3.fromRGB(255, 255, 0)
+	flashLight1.Material = Enum.Material.Neon
+	flashLight1.Anchored = true
+	flashLight1.Parent = building
+
+	local flashLight2 = flashLight1:Clone()
+	flashLight2.Name = "FlashLight2"
+	flashLight2.Position = position + Vector3.new(-interiorWidth / 2 + 1, floor75Top - 2, 2)
+	flashLight2.Parent = building
+
+	-- Arrow pointing to exit on the floor
+	local exitArrow = Instance.new("Part")
+	exitArrow.Name = "ExitArrow"
+	exitArrow.Size = Vector3.new(10, 0.1, 4)
+	exitArrow.Position = position + Vector3.new(-interiorWidth / 2 + 15, floor75Bottom + 0.6, 0)
+	exitArrow.Color = Color3.fromRGB(255, 100, 100)
+	exitArrow.Material = Enum.Material.Neon
+	exitArrow.Anchored = true
+	exitArrow.Parent = building
+
+	local arrowGui = Instance.new("SurfaceGui")
+	arrowGui.Face = Enum.NormalId.Top
+	arrowGui.Parent = exitArrow
+
+	local arrowText = Instance.new("TextLabel")
+	arrowText.Size = UDim2.new(1, 0, 1, 0)
+	arrowText.BackgroundTransparency = 1
+	arrowText.Text = "◄◄◄ EXIT ◄◄◄"
+	arrowText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	arrowText.Font = Enum.Font.GothamBold
+	arrowText.TextScaled = true
+	arrowText.Rotation = 180
+	arrowText.Parent = arrowGui
+
+	-- ========================================
+	-- FLOOR 7½ COLLECTIBLE LOOT! (FLOATING!)
+	-- These are ACTUAL collectible items!
+	-- ========================================
+	print("[World] Adding FLOATING COLLECTIBLE LOOT to Floor 7½...")
+
+	local FLOAT_HEIGHT = 3 -- Height above floor to float
+	local lootFloatY = floor75Bottom + FLOAT_HEIGHT
+
+	-- Helper function to create floating collectible loot
+	local function createFloor75Loot(pos: Vector3, name: string, labelText: string, color: Color3, resourceType: string)
+		local loot = Instance.new("Part")
+		loot.Name = name
+		loot.Size = Vector3.new(1.5, 1.5, 1.5)
+		loot.Shape = Enum.PartType.Ball
+		loot.Position = pos
+		loot.Color = color
+		loot.Material = Enum.Material.Neon
+		loot.Anchored = true
+		loot.CanCollide = false
+		loot.Parent = workspace -- Parent to workspace for collection!
+
+		-- Highlight
+		local highlight = Instance.new("Highlight")
+		highlight.FillColor = color
+		highlight.FillTransparency = 0.5
+		highlight.OutlineColor = Color3.new(1, 1, 1)
+		highlight.Parent = loot
+
+		-- Billboard
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0, 120, 0, 40)
+		billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+		billboard.Parent = loot
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.Text = labelText
+		label.TextColor3 = color
+		label.TextStrokeTransparency = 0
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.Parent = billboard
+
+		-- Point light
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Brightness = 3
+		light.Range = 20
+		light.Parent = loot
+
+		-- Store resource type as attribute for collection
+		loot:SetAttribute("ResourceType", resourceType)
+		loot:SetAttribute("LootName", labelText)
+
+		-- Floating animation
+		local baseY = pos.Y
+		local animOffset = math.random() * math.pi * 2
+		local conn: RBXScriptConnection?
+		conn = RunService.Heartbeat:Connect(function()
+			if not loot or not loot.Parent then
+				if conn then conn:Disconnect() end
+				return
+			end
+			local t = tick() + animOffset
+			loot.Position = Vector3.new(pos.X, baseY + math.sin(t * 2) * 0.3, pos.Z)
+			loot.Orientation = Vector3.new(0, (t * 40) % 360, 0)
+		end)
+
+		return loot
+	end
+
+	-- FOOD (collectible - gives hunger)
+	createFloor75Loot(
+		position + Vector3.new(-15, lootFloatY, -10),
+		"Floor75_Food1",
+		"★ FOOD ★",
+		Color3.fromRGB(100, 255, 100),
+		"food"
+	)
+	createFloor75Loot(
+		position + Vector3.new(15, lootFloatY, 10),
+		"Floor75_Food2",
+		"★ FOOD ★",
+		Color3.fromRGB(100, 255, 100),
+		"food"
+	)
+
+	-- BATTERIES (collectible)
+	createFloor75Loot(
+		position + Vector3.new(20, lootFloatY, -15),
+		"Floor75_Batteries1",
+		"★ BATTERIES ★",
+		Color3.fromRGB(50, 200, 255),
+		"batteries"
+	)
+	createFloor75Loot(
+		position + Vector3.new(-20, lootFloatY, 15),
+		"Floor75_Batteries2",
+		"★ BATTERIES ★",
+		Color3.fromRGB(50, 200, 255),
+		"batteries"
+	)
+
+	-- FLASHLIGHT (collectible)
+	createFloor75Loot(
+		position + Vector3.new(0, lootFloatY, -20),
+		"Floor75_Flashlight",
+		"★ FLASHLIGHT ★",
+		Color3.fromRGB(255, 255, 100),
+		"flashlight"
+	)
+
+	-- ★★★ WALKMAN RADIO - SPECIAL ITEM! ★★★
+	local walkman = Instance.new("Part")
+	walkman.Name = "Floor75_Walkman"
+	walkman.Size = Vector3.new(2, 2, 2)
+	walkman.Shape = Enum.PartType.Ball
+	walkman.Position = position + Vector3.new(0, lootFloatY + 1, 0) -- Center, slightly higher
+	walkman.Color = Color3.fromRGB(255, 100, 200)
+	walkman.Material = Enum.Material.Neon
+	walkman.Anchored = true
+	walkman.CanCollide = false
+	walkman.Parent = workspace
+
+	local walkmanHighlight = Instance.new("Highlight")
+	walkmanHighlight.FillColor = Color3.fromRGB(255, 100, 200)
+	walkmanHighlight.FillTransparency = 0.3
+	walkmanHighlight.OutlineColor = Color3.new(1, 1, 1)
+	walkmanHighlight.Parent = walkman
+
+	local walkmanBillboard = Instance.new("BillboardGui")
+	walkmanBillboard.Size = UDim2.new(0, 180, 0, 60)
+	walkmanBillboard.StudsOffset = Vector3.new(0, 3, 0)
+	walkmanBillboard.Parent = walkman
+
+	local walkmanLabel = Instance.new("TextLabel")
+	walkmanLabel.Size = UDim2.new(1, 0, 1, 0)
+	walkmanLabel.BackgroundTransparency = 1
+	walkmanLabel.Text = "★★ WALKMAN ★★\nPress 6/7/8 for radio!"
+	walkmanLabel.TextColor3 = Color3.fromRGB(255, 100, 200)
+	walkmanLabel.TextStrokeTransparency = 0
+	walkmanLabel.Font = Enum.Font.GothamBold
+	walkmanLabel.TextScaled = true
+	walkmanLabel.Parent = walkmanBillboard
+
+	local walkmanLight = Instance.new("PointLight")
+	walkmanLight.Color = Color3.fromRGB(255, 100, 200)
+	walkmanLight.Brightness = 5
+	walkmanLight.Range = 30
+	walkmanLight.Parent = walkman
+
+	-- Walkman particles
+	local walkmanParticles = Instance.new("ParticleEmitter")
+	walkmanParticles.Color = ColorSequence.new(Color3.fromRGB(255, 100, 200))
+	walkmanParticles.Transparency = NumberSequence.new(0, 0.5, 1)
+	walkmanParticles.Size = NumberSequence.new(0.5, 1, 0)
+	walkmanParticles.Lifetime = NumberRange.new(1, 2)
+	walkmanParticles.Rate = 15
+	walkmanParticles.Speed = NumberRange.new(3, 8)
+	walkmanParticles.SpreadAngle = Vector2.new(180, 180)
+	walkmanParticles.LightEmission = 1
+	walkmanParticles.Parent = walkman
+
+	walkman:SetAttribute("ResourceType", "walkman")
+	walkman:SetAttribute("LootName", "WALKMAN RADIO")
+
+	-- Walkman floating animation
+	local walkmanBaseY = walkman.Position.Y
+	local walkmanOffset = math.random() * math.pi * 2
+	local walkmanConn: RBXScriptConnection?
+	walkmanConn = RunService.Heartbeat:Connect(function()
+		if not walkman or not walkman.Parent then
+			if walkmanConn then walkmanConn:Disconnect() end
+			return
+		end
+		local t = tick() + walkmanOffset
+		walkman.Position = Vector3.new(walkman.Position.X, walkmanBaseY + math.sin(t * 2) * 0.4, walkman.Position.Z)
+		walkman.Orientation = Vector3.new(0, (t * 60) % 360, 0)
+	end)
+
+	-- SIGNAL PART HINT SIGN (non-collectible, just a sign)
+	local hintSign = Instance.new("Part")
+	hintSign.Name = "SignalPartHint"
+	hintSign.Size = Vector3.new(8, 4, 0.5)
+	hintSign.Position = position + Vector3.new(0, floor75Bottom + 5, 20)
+	hintSign.Color = Color3.fromRGB(50, 200, 255)
+	hintSign.Material = Enum.Material.Neon
+	hintSign.Anchored = true
+	hintSign.Parent = building
+
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local hintGui = Instance.new("SurfaceGui")
+		hintGui.Face = face
+		hintGui.Parent = hintSign
+
+		local hintText = Instance.new("TextLabel")
+		hintText.Size = UDim2.new(1, 0, 1, 0)
+		hintText.BackgroundTransparency = 1
+		hintText.Text = "SIGNAL PART #1\nFLOATING NEARBY!"
+		hintText.TextColor3 = Color3.new(1, 1, 1)
+		hintText.Font = Enum.Font.GothamBold
+		hintText.TextScaled = true
+		hintText.Parent = hintGui
+	end
+
+	print("[World] Floor 7½ loot: 2 Food, 2 Batteries, 1 Flashlight, 1 WALKMAN!")
 
 	-- TELEPORTER LOGIC (touch elevator button to go to 7.5)
 	local floor75SpawnPos = position + Vector3.new(0, floor75Bottom + 2, 0)
@@ -716,18 +1067,21 @@ local function createOfficeBuilding75(position: Vector3)
 	floor75Sign.Anchored = true
 	floor75Sign.Parent = building
 
-	local sign75Gui = Instance.new("SurfaceGui")
-	sign75Gui.Face = Enum.NormalId.Front
-	sign75Gui.Parent = floor75Sign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local sign75Gui = Instance.new("SurfaceGui")
+		sign75Gui.Face = face
+		sign75Gui.Parent = floor75Sign
 
-	local sign75Text = Instance.new("TextLabel")
-	sign75Text.Size = UDim2.new(1, 0, 1, 0)
-	sign75Text.BackgroundTransparency = 1
-	sign75Text.Text = "FLOOR 7½"
-	sign75Text.TextColor3 = Color3.fromRGB(80, 60, 40)
-	sign75Text.Font = Enum.Font.Antique
-	sign75Text.TextScaled = true
-	sign75Text.Parent = sign75Gui
+		local sign75Text = Instance.new("TextLabel")
+		sign75Text.Size = UDim2.new(1, 0, 1, 0)
+		sign75Text.BackgroundTransparency = 1
+		sign75Text.Text = "FLOOR 7½"
+		sign75Text.TextColor3 = Color3.fromRGB(80, 60, 40)
+		sign75Text.Font = Enum.Font.Antique
+		sign75Text.TextScaled = true
+		sign75Text.Parent = sign75Gui
+	end
 
 	building.Parent = Workspace
 	print("[World] The 20-story Mertin-Flemmer building rises... Floor 7½ awaits.")
@@ -1046,18 +1400,21 @@ local function createWaterfall(position: Vector3, height: number, name: string)
 	sign.Anchored = true
 	sign.Parent = waterfall
 
-	local signGui = Instance.new("SurfaceGui")
-	signGui.Face = Enum.NormalId.Front
-	signGui.Parent = sign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.Parent = sign
 
-	local signText = Instance.new("TextLabel")
-	signText.Size = UDim2.new(1, 0, 1, 0)
-	signText.BackgroundTransparency = 1
-	signText.Text = name
-	signText.TextColor3 = Color3.fromRGB(200, 180, 140)
-	signText.Font = Enum.Font.Antique
-	signText.TextScaled = true
-	signText.Parent = signGui
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.new(1, 0, 1, 0)
+		signText.BackgroundTransparency = 1
+		signText.Text = name
+		signText.TextColor3 = Color3.fromRGB(200, 180, 140)
+		signText.Font = Enum.Font.Antique
+		signText.TextScaled = true
+		signText.Parent = signGui
+	end
 
 	waterfall.Parent = Workspace
 	return waterfall
@@ -1218,18 +1575,21 @@ local function createCave(position: Vector3, name: string, hermitName: string?):
 	nameSign.Anchored = true
 	nameSign.Parent = cave
 
-	local nameGui = Instance.new("SurfaceGui")
-	nameGui.Face = Enum.NormalId.Front
-	nameGui.Parent = nameSign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local nameGui = Instance.new("SurfaceGui")
+		nameGui.Face = face
+		nameGui.Parent = nameSign
 
-	local nameText = Instance.new("TextLabel")
-	nameText.Size = UDim2.new(1, 0, 1, 0)
-	nameText.BackgroundTransparency = 1
-	nameText.Text = name
-	nameText.TextColor3 = Color3.fromRGB(180, 160, 120)
-	nameText.Font = Enum.Font.Fantasy
-	nameText.TextScaled = true
-	nameText.Parent = nameGui
+		local nameText = Instance.new("TextLabel")
+		nameText.Size = UDim2.new(1, 0, 1, 0)
+		nameText.BackgroundTransparency = 1
+		nameText.Text = name
+		nameText.TextColor3 = Color3.fromRGB(180, 160, 120)
+		nameText.Font = Enum.Font.Fantasy
+		nameText.TextScaled = true
+		nameText.Parent = nameGui
+	end
 
 	-- Store hermit info as attribute
 	if hermitName then
@@ -1412,18 +1772,18 @@ local function createSpawnHouse(position: Vector3)
 	roof.Anchored = true
 	roof.Parent = house
 
-	-- Spawn location INSIDE the house
+	-- Spawn location INSIDE the house (must be direct child of Workspace, not in a model)
 	local spawnPoint = Instance.new("SpawnLocation")
 	spawnPoint.Name = "MainSpawn"
 	spawnPoint.Size = Vector3.new(6, 1, 6)
-	spawnPoint.Position = position + Vector3.new(0, 1.5, 0)
+	spawnPoint.Position = position + Vector3.new(0, 1.5, -2)  -- Inside house, slightly toward back
 	spawnPoint.Color = Color3.fromRGB(100, 150, 100)
 	spawnPoint.Material = Enum.Material.SmoothPlastic
-	spawnPoint.Transparency = 0.5
+	spawnPoint.Transparency = 1  -- Completely invisible
 	spawnPoint.Anchored = true
 	spawnPoint.CanCollide = false
 	spawnPoint.Neutral = true
-	spawnPoint.Parent = house
+	spawnPoint.Parent = Workspace  -- Must be direct child of Workspace!
 
 	-- Bed
 	local bed = Instance.new("Part")
@@ -1461,18 +1821,21 @@ local function createSpawnHouse(position: Vector3)
 	sign.Anchored = true
 	sign.Parent = house
 
-	local signGui = Instance.new("SurfaceGui")
-	signGui.Face = Enum.NormalId.Front
-	signGui.Parent = sign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.Parent = sign
 
-	local signText = Instance.new("TextLabel")
-	signText.Size = UDim2.new(1, 0, 1, 0)
-	signText.BackgroundTransparency = 1
-	signText.Text = "SURVIVOR'S CABIN"
-	signText.TextColor3 = Color3.fromRGB(200, 180, 140)
-	signText.Font = Enum.Font.Antique
-	signText.TextScaled = true
-	signText.Parent = signGui
+		local signText = Instance.new("TextLabel")
+		signText.Size = UDim2.new(1, 0, 1, 0)
+		signText.BackgroundTransparency = 1
+		signText.Text = "SURVIVOR'S CABIN"
+		signText.TextColor3 = Color3.fromRGB(200, 180, 140)
+		signText.Font = Enum.Font.Antique
+		signText.TextScaled = true
+		signText.Parent = signGui
+	end
 
 	-- Porch/walkway outside door (positioned to not block doorway)
 	local porch = Instance.new("Part")
@@ -1591,37 +1954,229 @@ local function generateWorld()
 		))
 	end
 
-	-- Special locations for each biome
-	-- Frozen Wastes - ice fortress ruins
+	-- ========================================
+	-- MASSIVE LANDMARKS - Visible from EVERYWHERE!
+	-- ========================================
+	print("[World] Creating MASSIVE landmark beacons...")
+
+	-- Frozen Wastes - MASSIVE ice fortress with glowing spires
 	local iceFort = Instance.new("Part")
 	iceFort.Name = "IceFortress"
-	iceFort.Size = Vector3.new(100, 50, 100)
-	iceFort.Position = Vector3.new(2200, 25, 200)
+	iceFort.Size = Vector3.new(150, 200, 150) -- MUCH BIGGER!
+	iceFort.Position = Vector3.new(2200, 100, 200)
 	iceFort.Color = Color3.fromRGB(200, 220, 255)
 	iceFort.Material = Enum.Material.Ice
 	iceFort.Transparency = 0.3
 	iceFort.Anchored = true
 	iceFort.Parent = Workspace
 
-	-- Desert - ancient temple
+	-- Ice fortress beacon spire
+	local iceSpire = Instance.new("Part")
+	iceSpire.Name = "IceSpire"
+	iceSpire.Size = Vector3.new(20, 300, 20)
+	iceSpire.Position = Vector3.new(2200, 350, 200)
+	iceSpire.Color = Color3.fromRGB(180, 220, 255)
+	iceSpire.Material = Enum.Material.Neon
+	iceSpire.Transparency = 0.4
+	iceSpire.Anchored = true
+	iceSpire.Parent = Workspace
+
+	local iceBeacon = Instance.new("PointLight")
+	iceBeacon.Color = Color3.fromRGB(150, 200, 255)
+	iceBeacon.Brightness = 5
+	iceBeacon.Range = 500
+	iceBeacon.Parent = iceSpire
+
+	-- Ice particles
+	local iceMist = Instance.new("ParticleEmitter")
+	iceMist.Color = ColorSequence.new(Color3.fromRGB(200, 230, 255))
+	iceMist.Transparency = NumberSequence.new(0.5, 1)
+	iceMist.Size = NumberSequence.new(5, 20, 0)
+	iceMist.Lifetime = NumberRange.new(3, 5)
+	iceMist.Rate = 20
+	iceMist.Speed = NumberRange.new(10, 30)
+	iceMist.SpreadAngle = Vector2.new(15, 15)
+	iceMist.EmissionDirection = Enum.NormalId.Top
+	iceMist.LightEmission = 1
+	iceMist.Parent = iceSpire
+
+	-- Desert - MASSIVE ancient temple with golden beacon
 	local temple = Instance.new("Part")
 	temple.Name = "AncientTemple"
-	temple.Size = Vector3.new(80, 40, 80)
-	temple.Position = Vector3.new(1800, 20, 2200)
+	temple.Size = Vector3.new(150, 150, 150) -- MUCH BIGGER!
+	temple.Position = Vector3.new(1800, 75, 2200)
 	temple.Color = Color3.fromRGB(220, 200, 160)
 	temple.Material = Enum.Material.Sandstone
 	temple.Anchored = true
 	temple.Parent = Workspace
 
-	-- Volcanic - obsidian tower
+	-- Golden pyramid on top
+	local pyramid = Instance.new("Part")
+	pyramid.Name = "GoldenPyramid"
+	pyramid.Size = Vector3.new(60, 100, 60)
+	pyramid.Position = Vector3.new(1800, 200, 2200)
+	pyramid.Color = Color3.fromRGB(255, 215, 0)
+	pyramid.Material = Enum.Material.Neon
+	pyramid.Transparency = 0.3
+	pyramid.Anchored = true
+	pyramid.Parent = Workspace
+
+	local goldenBeacon = Instance.new("PointLight")
+	goldenBeacon.Color = Color3.fromRGB(255, 200, 100)
+	goldenBeacon.Brightness = 6
+	goldenBeacon.Range = 600
+	goldenBeacon.Parent = pyramid
+
+	-- Volcanic - MASSIVE obsidian tower with fire beacon
 	local obsidianTower = Instance.new("Part")
 	obsidianTower.Name = "ObsidianTower"
-	obsidianTower.Size = Vector3.new(30, 120, 30)
-	obsidianTower.Position = Vector3.new(-2300, 60, 1300)
+	obsidianTower.Size = Vector3.new(50, 400, 50) -- MUCH TALLER!
+	obsidianTower.Position = Vector3.new(-2300, 200, 1300)
 	obsidianTower.Color = Color3.fromRGB(20, 20, 25)
 	obsidianTower.Material = Enum.Material.Rock
 	obsidianTower.Anchored = true
 	obsidianTower.Parent = Workspace
+
+	-- Lava beacon at top
+	local lavaBeacon = Instance.new("Part")
+	lavaBeacon.Name = "LavaBeacon"
+	lavaBeacon.Size = Vector3.new(30, 30, 30)
+	lavaBeacon.Position = Vector3.new(-2300, 415, 1300)
+	lavaBeacon.Color = Color3.fromRGB(255, 100, 0)
+	lavaBeacon.Material = Enum.Material.Neon
+	lavaBeacon.Anchored = true
+	lavaBeacon.Parent = Workspace
+
+	local fireLight = Instance.new("PointLight")
+	fireLight.Color = Color3.fromRGB(255, 100, 20)
+	fireLight.Brightness = 8
+	fireLight.Range = 700
+	fireLight.Parent = lavaBeacon
+
+	-- Fire particles
+	local fireEmitter = Instance.new("ParticleEmitter")
+	fireEmitter.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 50)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 100, 20)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 50, 0)),
+	})
+	fireEmitter.Transparency = NumberSequence.new(0, 0.5, 1)
+	fireEmitter.Size = NumberSequence.new(10, 30, 0)
+	fireEmitter.Lifetime = NumberRange.new(2, 4)
+	fireEmitter.Rate = 40
+	fireEmitter.Speed = NumberRange.new(30, 80)
+	fireEmitter.SpreadAngle = Vector2.new(20, 20)
+	fireEmitter.EmissionDirection = Enum.NormalId.Top
+	fireEmitter.LightEmission = 1
+	fireEmitter.Parent = lavaBeacon
+
+	-- ========================================
+	-- GIANT CRYSTAL SPIRES - Visible from anywhere!
+	-- ========================================
+	print("[World] Creating giant crystal spires...")
+	local crystalSpireLocations = {
+		{ pos = Vector3.new(800, 0, -1500), color = Color3.fromRGB(255, 100, 200), height = 250 }, -- Pink
+		{ pos = Vector3.new(-1200, 0, 800), color = Color3.fromRGB(100, 255, 200), height = 280 }, -- Cyan
+		{ pos = Vector3.new(1500, 0, 1000), color = Color3.fromRGB(200, 100, 255), height = 220 }, -- Purple
+		{ pos = Vector3.new(-800, 0, -1800), color = Color3.fromRGB(255, 255, 100), height = 260 }, -- Yellow
+		{ pos = Vector3.new(2500, 0, -1500), color = Color3.fromRGB(100, 200, 255), height = 300 }, -- Blue
+		{ pos = Vector3.new(-2000, 0, -800), color = Color3.fromRGB(255, 150, 100), height = 240 }, -- Orange
+	}
+
+	for i, spire in crystalSpireLocations do
+		local crystal = Instance.new("Part")
+		crystal.Name = "GiantCrystal_" .. i
+		crystal.Size = Vector3.new(30, spire.height, 30)
+		crystal.Position = spire.pos + Vector3.new(0, spire.height / 2, 0)
+		crystal.Color = spire.color
+		crystal.Material = Enum.Material.Neon
+		crystal.Transparency = 0.3
+		crystal.Anchored = true
+		crystal.Parent = Workspace
+
+		local crystalLight = Instance.new("PointLight")
+		crystalLight.Color = spire.color
+		crystalLight.Brightness = 4
+		crystalLight.Range = 400
+		crystalLight.Parent = crystal
+
+		-- Crystal glow particles
+		local crystalGlow = Instance.new("ParticleEmitter")
+		crystalGlow.Color = ColorSequence.new(spire.color)
+		crystalGlow.Transparency = NumberSequence.new(0.3, 1)
+		crystalGlow.Size = NumberSequence.new(3, 8, 0)
+		crystalGlow.Lifetime = NumberRange.new(2, 4)
+		crystalGlow.Rate = 15
+		crystalGlow.Speed = NumberRange.new(5, 20)
+		crystalGlow.SpreadAngle = Vector2.new(30, 30)
+		crystalGlow.EmissionDirection = Enum.NormalId.Top
+		crystalGlow.LightEmission = 1
+		crystalGlow.Parent = crystal
+	end
+
+	-- ========================================
+	-- SKYSCRAPER ROOFTOP BEACON - Visible from EVERYWHERE!
+	-- ========================================
+	print("[World] Adding beacon to skyscraper rooftop...")
+	-- The skyscraper is at (150, Y, -100) and is 60 floors * 14 = 840 studs tall
+	local skyscraperBeacon = Instance.new("Part")
+	skyscraperBeacon.Name = "SkyscraperBeacon"
+	skyscraperBeacon.Size = Vector3.new(15, 200, 15)
+	skyscraperBeacon.Position = Vector3.new(150, 950, -100) -- On top of 60-story building
+	skyscraperBeacon.Color = Color3.fromRGB(255, 50, 50)
+	skyscraperBeacon.Material = Enum.Material.Neon
+	skyscraperBeacon.Transparency = 0.2
+	skyscraperBeacon.Anchored = true
+	skyscraperBeacon.Parent = Workspace
+
+	local skyscraperLight = Instance.new("PointLight")
+	skyscraperLight.Color = Color3.fromRGB(255, 100, 100)
+	skyscraperLight.Brightness = 10
+	skyscraperLight.Range = 1000 -- Visible from FAR away!
+	skyscraperLight.Parent = skyscraperBeacon
+
+	-- Pulsing red particles (like an aircraft warning beacon)
+	local beaconPulse = Instance.new("ParticleEmitter")
+	beaconPulse.Color = ColorSequence.new(Color3.fromRGB(255, 50, 50))
+	beaconPulse.Transparency = NumberSequence.new(0, 0.5, 1)
+	beaconPulse.Size = NumberSequence.new(5, 15, 0)
+	beaconPulse.Lifetime = NumberRange.new(1, 2)
+	beaconPulse.Rate = 25
+	beaconPulse.Speed = NumberRange.new(20, 50)
+	beaconPulse.SpreadAngle = Vector2.new(180, 180)
+	beaconPulse.LightEmission = 1
+	beaconPulse.Parent = skyscraperBeacon
+
+	-- ========================================
+	-- FLOATING GLOWING RINGS - Mystical markers
+	-- ========================================
+	print("[World] Creating floating rings...")
+	local ringLocations = {
+		{ pos = Vector3.new(600, 80, 400), color = Color3.fromRGB(100, 255, 200) },
+		{ pos = Vector3.new(-400, 60, 600), color = Color3.fromRGB(255, 200, 100) },
+		{ pos = Vector3.new(900, 100, -300), color = Color3.fromRGB(200, 100, 255) },
+		{ pos = Vector3.new(-700, 70, -500), color = Color3.fromRGB(255, 100, 150) },
+	}
+
+	for i, ring in ringLocations do
+		local ringPart = Instance.new("Part")
+		ringPart.Name = "FloatingRing_" .. i
+		ringPart.Shape = Enum.PartType.Cylinder
+		ringPart.Size = Vector3.new(5, 40, 40)
+		ringPart.CFrame = CFrame.new(ring.pos) * CFrame.Angles(0, 0, math.rad(90))
+		ringPart.Color = ring.color
+		ringPart.Material = Enum.Material.Neon
+		ringPart.Transparency = 0.4
+		ringPart.CanCollide = false
+		ringPart.Anchored = true
+		ringPart.Parent = Workspace
+
+		local ringLight = Instance.new("PointLight")
+		ringLight.Color = ring.color
+		ringLight.Brightness = 3
+		ringLight.Range = 100
+		ringLight.Parent = ringPart
+	end
 
 	-- ========================================
 	-- BEACHES around world edges
@@ -1838,18 +2393,21 @@ local function generateWorld()
 		sign.Anchored = true
 		sign.Parent = stall
 
-		local signGui = Instance.new("SurfaceGui")
-		signGui.Face = Enum.NormalId.Front
-		signGui.Parent = sign
+		-- Sign text on BOTH sides
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local signGui = Instance.new("SurfaceGui")
+			signGui.Face = face
+			signGui.Parent = sign
 
-		local signText = Instance.new("TextLabel")
-		signText.Size = UDim2.new(1, 0, 1, 0)
-		signText.BackgroundTransparency = 1
-		signText.Text = merchant.name
-		signText.TextColor3 = Color3.fromRGB(255, 220, 150)
-		signText.Font = Enum.Font.Fantasy
-		signText.TextScaled = true
-		signText.Parent = signGui
+			local signText = Instance.new("TextLabel")
+			signText.Size = UDim2.new(1, 0, 1, 0)
+			signText.BackgroundTransparency = 1
+			signText.Text = merchant.name
+			signText.TextColor3 = Color3.fromRGB(255, 220, 150)
+			signText.Font = Enum.Font.Fantasy
+			signText.TextScaled = true
+			signText.Parent = signGui
+		end
 
 		-- Goods on counter
 		for g = 1, 5 do
@@ -1978,18 +2536,21 @@ local function generateWorld()
 	alchemySign.Anchored = true
 	alchemySign.Parent = alchemyTable
 
-	local alchemySignGui = Instance.new("SurfaceGui")
-	alchemySignGui.Face = Enum.NormalId.Front
-	alchemySignGui.Parent = alchemySign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local alchemySignGui = Instance.new("SurfaceGui")
+		alchemySignGui.Face = face
+		alchemySignGui.Parent = alchemySign
 
-	local alchemySignText = Instance.new("TextLabel")
-	alchemySignText.Size = UDim2.new(1, 0, 1, 0)
-	alchemySignText.BackgroundTransparency = 1
-	alchemySignText.Text = "ALCHEMY"
-	alchemySignText.TextColor3 = Color3.fromRGB(100, 255, 150)
-	alchemySignText.Font = Enum.Font.Fantasy
-	alchemySignText.TextScaled = true
-	alchemySignText.Parent = alchemySignGui
+		local alchemySignText = Instance.new("TextLabel")
+		alchemySignText.Size = UDim2.new(1, 0, 1, 0)
+		alchemySignText.BackgroundTransparency = 1
+		alchemySignText.Text = "ALCHEMY"
+		alchemySignText.TextColor3 = Color3.fromRGB(100, 255, 150)
+		alchemySignText.Font = Enum.Font.Fantasy
+		alchemySignText.TextScaled = true
+		alchemySignText.Parent = alchemySignGui
+	end
 
 	alchemyTable.Parent = Workspace
 
@@ -2332,6 +2893,385 @@ local function generateWorld()
 	print("[World] - Rainbow lasers at Crystal Hollow")
 	print("[World] - Telescope beam at Mountain Observatory")
 	print("[World] - Kaleidoscope at Mystical Portal")
+
+	-- ========================================
+	-- ★★★ REWARD SHACKS WITH BIG SIGNS ★★★
+	-- One at each chapter location + near radio towers!
+	-- ========================================
+	print("[World] Building REWARD SHACKS with BIG SIGNS and treats...")
+
+	local function createRewardShack(position: Vector3, name: string, chapterNum: number?, biomeColor: Color3?, specialDesc: string?)
+		local shack = Instance.new("Model")
+		shack.Name = "RewardShack_" .. name
+
+		local color = biomeColor or Color3.fromRGB(255, 200, 100)
+		local terrainY = getActualTerrainHeight(position.X, position.Z)
+		local basePos = Vector3.new(position.X, terrainY, position.Z)
+
+		-- SHACK STRUCTURE (visible from distance!)
+		local floor = Instance.new("Part")
+		floor.Name = "Floor"
+		floor.Size = Vector3.new(16, 1, 16)
+		floor.Position = basePos + Vector3.new(0, 0.5, 0)
+		floor.Color = Color3.fromRGB(100, 70, 45)
+		floor.Material = Enum.Material.Wood
+		floor.Anchored = true
+		floor.Parent = shack
+
+		-- Walls with gaps for entry
+		local wallHeight = 10
+		local wallColor = Color3.fromRGB(120, 90, 60)
+
+		local backWall = Instance.new("Part")
+		backWall.Name = "BackWall"
+		backWall.Size = Vector3.new(16, wallHeight, 1)
+		backWall.Position = basePos + Vector3.new(0, wallHeight/2 + 1, -7.5)
+		backWall.Color = wallColor
+		backWall.Material = Enum.Material.Wood
+		backWall.Anchored = true
+		backWall.Parent = shack
+
+		local leftWall = Instance.new("Part")
+		leftWall.Name = "LeftWall"
+		leftWall.Size = Vector3.new(1, wallHeight, 16)
+		leftWall.Position = basePos + Vector3.new(-7.5, wallHeight/2 + 1, 0)
+		leftWall.Color = wallColor
+		leftWall.Material = Enum.Material.Wood
+		leftWall.Anchored = true
+		leftWall.Parent = shack
+
+		local rightWall = Instance.new("Part")
+		rightWall.Name = "RightWall"
+		rightWall.Size = Vector3.new(1, wallHeight, 16)
+		rightWall.Position = basePos + Vector3.new(7.5, wallHeight/2 + 1, 0)
+		rightWall.Color = wallColor
+		rightWall.Material = Enum.Material.Wood
+		rightWall.Anchored = true
+		rightWall.Parent = shack
+
+		-- Roof
+		local roof = Instance.new("Part")
+		roof.Name = "Roof"
+		roof.Size = Vector3.new(20, 2, 20)
+		roof.Position = basePos + Vector3.new(0, wallHeight + 2, 0)
+		roof.Color = Color3.fromRGB(80, 55, 35)
+		roof.Material = Enum.Material.Slate
+		roof.Anchored = true
+		roof.Parent = shack
+
+		-- ★★★ MASSIVE GLOWING SIGN - Visible from FAR! ★★★
+		local signPost = Instance.new("Part")
+		signPost.Name = "SignPost"
+		signPost.Size = Vector3.new(4, 30, 4)
+		signPost.Position = basePos + Vector3.new(0, 25, 12)
+		signPost.Color = color
+		signPost.Material = Enum.Material.Neon
+		signPost.Transparency = 0.2
+		signPost.Anchored = true
+		signPost.Parent = shack
+
+		local bigSign = Instance.new("Part")
+		bigSign.Name = "BigSign"
+		bigSign.Size = Vector3.new(24, 12, 2)
+		bigSign.Position = basePos + Vector3.new(0, 45, 12)
+		bigSign.Color = color
+		bigSign.Material = Enum.Material.Neon
+		bigSign.Transparency = 0.1
+		bigSign.Anchored = true
+		bigSign.Parent = shack
+
+		-- Text on BOTH sides of big sign
+		local signText = chapterNum and ("★ CHAPTER " .. chapterNum .. " ★\n" .. string.upper(name)) or ("★ " .. string.upper(name) .. " ★\nREWARD SHACK")
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local signGui = Instance.new("SurfaceGui")
+			signGui.Face = face
+			signGui.Parent = bigSign
+
+			local signLabel = Instance.new("TextLabel")
+			signLabel.Size = UDim2.new(1, 0, 1, 0)
+			signLabel.BackgroundTransparency = 1
+			signLabel.Text = signText
+			signLabel.TextColor3 = Color3.new(1, 1, 1)
+			signLabel.Font = Enum.Font.GothamBold
+			signLabel.TextScaled = true
+			signLabel.TextStrokeTransparency = 0
+			signLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+			signLabel.Parent = signGui
+		end
+
+		-- BEACON LIGHT - Visible from anywhere!
+		local beacon = Instance.new("PointLight")
+		beacon.Color = color
+		beacon.Brightness = 10
+		beacon.Range = 300
+		beacon.Parent = bigSign
+
+		-- Particle effect on sign
+		local signParticles = Instance.new("ParticleEmitter")
+		signParticles.Color = ColorSequence.new(color)
+		signParticles.Transparency = NumberSequence.new(0, 0.5, 1)
+		signParticles.Size = NumberSequence.new(2, 5, 0)
+		signParticles.Lifetime = NumberRange.new(1, 2)
+		signParticles.Rate = 15
+		signParticles.Speed = NumberRange.new(10, 25)
+		signParticles.SpreadAngle = Vector2.new(45, 45)
+		signParticles.LightEmission = 1
+		signParticles.Parent = bigSign
+
+		-- INTERIOR LIGHTING (lots of warm light!)
+		for i = 1, 4 do
+			local lantern = Instance.new("Part")
+			lantern.Name = "Lantern_" .. i
+			lantern.Size = Vector3.new(1, 2, 1)
+			local lx = (i % 2 == 0) and 5 or -5
+			local lz = (i > 2) and 4 or -4
+			lantern.Position = basePos + Vector3.new(lx, wallHeight - 1, lz)
+			lantern.Color = Color3.fromRGB(255, 220, 100)
+			lantern.Material = Enum.Material.Neon
+			lantern.Anchored = true
+			lantern.Parent = shack
+
+			local lanternLight = Instance.new("PointLight")
+			lanternLight.Color = Color3.fromRGB(255, 220, 150)
+			lanternLight.Brightness = 3
+			lanternLight.Range = 25
+			lanternLight.Parent = lantern
+		end
+
+		-- CAMPFIRE inside
+		local firepit = Instance.new("Part")
+		firepit.Name = "Firepit"
+		firepit.Shape = Enum.PartType.Cylinder
+		firepit.Size = Vector3.new(1, 4, 4)
+		firepit.CFrame = CFrame.new(basePos + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		firepit.Color = Color3.fromRGB(50, 40, 35)
+		firepit.Material = Enum.Material.Slate
+		firepit.Anchored = true
+		firepit.Parent = shack
+
+		local fire = Instance.new("Part")
+		fire.Name = "Fire"
+		fire.Shape = Enum.PartType.Ball
+		fire.Size = Vector3.new(2, 2, 2)
+		fire.Position = basePos + Vector3.new(0, 2.5, 0)
+		fire.Color = Color3.fromRGB(255, 150, 50)
+		fire.Material = Enum.Material.Neon
+		fire.Anchored = true
+		fire.CanCollide = false
+		fire.Parent = shack
+
+		local fireLight = Instance.new("PointLight")
+		fireLight.Color = Color3.fromRGB(255, 180, 100)
+		fireLight.Brightness = 3
+		fireLight.Range = 40
+		fireLight.Parent = fire
+
+		-- ★★★ LOOT ITEMS - Food, Flashlight, Batteries, Seeds ★★★
+		-- FOOD CRATE
+		local foodCrate = Instance.new("Part")
+		foodCrate.Name = "FoodCrate"
+		foodCrate.Size = Vector3.new(3, 2, 2)
+		foodCrate.Position = basePos + Vector3.new(-4, 2, -4)
+		foodCrate.Color = Color3.fromRGB(150, 100, 50)
+		foodCrate.Material = Enum.Material.Wood
+		foodCrate.Anchored = true
+		foodCrate.Parent = shack
+
+		local foodHighlight = Instance.new("Highlight")
+		foodHighlight.FillColor = Color3.fromRGB(100, 255, 100)
+		foodHighlight.FillTransparency = 0.7
+		foodHighlight.Parent = foodCrate
+
+		local foodBillboard = Instance.new("BillboardGui")
+		foodBillboard.Size = UDim2.new(0, 80, 0, 25)
+		foodBillboard.StudsOffset = Vector3.new(0, 2, 0)
+		foodBillboard.Parent = foodCrate
+
+		local foodLabel = Instance.new("TextLabel")
+		foodLabel.Size = UDim2.new(1, 0, 1, 0)
+		foodLabel.BackgroundTransparency = 1
+		foodLabel.Text = "FOOD"
+		foodLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+		foodLabel.TextStrokeTransparency = 0
+		foodLabel.Font = Enum.Font.GothamBold
+		foodLabel.TextScaled = true
+		foodLabel.Parent = foodBillboard
+
+		-- FLASHLIGHT
+		local flashlight = Instance.new("Part")
+		flashlight.Name = "Flashlight"
+		flashlight.Size = Vector3.new(0.5, 0.5, 2)
+		flashlight.Position = basePos + Vector3.new(4, 2, -4)
+		flashlight.Color = Color3.fromRGB(255, 255, 100)
+		flashlight.Material = Enum.Material.Neon
+		flashlight.Anchored = true
+		flashlight.Parent = shack
+
+		local flashHighlight = Instance.new("Highlight")
+		flashHighlight.FillColor = Color3.fromRGB(255, 255, 100)
+		flashHighlight.FillTransparency = 0.5
+		flashHighlight.Parent = flashlight
+
+		local flashBillboard = Instance.new("BillboardGui")
+		flashBillboard.Size = UDim2.new(0, 100, 0, 25)
+		flashBillboard.StudsOffset = Vector3.new(0, 1.5, 0)
+		flashBillboard.Parent = flashlight
+
+		local flashLabel = Instance.new("TextLabel")
+		flashLabel.Size = UDim2.new(1, 0, 1, 0)
+		flashLabel.BackgroundTransparency = 1
+		flashLabel.Text = "FLASHLIGHT"
+		flashLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+		flashLabel.TextStrokeTransparency = 0
+		flashLabel.Font = Enum.Font.GothamBold
+		flashLabel.TextScaled = true
+		flashLabel.Parent = flashBillboard
+
+		-- BATTERIES
+		local batteries = Instance.new("Part")
+		batteries.Name = "Batteries"
+		batteries.Size = Vector3.new(1, 0.5, 0.5)
+		batteries.Position = basePos + Vector3.new(4, 2, 3)
+		batteries.Color = Color3.fromRGB(50, 200, 255)
+		batteries.Material = Enum.Material.SmoothPlastic
+		batteries.Anchored = true
+		batteries.Parent = shack
+
+		local battHighlight = Instance.new("Highlight")
+		battHighlight.FillColor = Color3.fromRGB(50, 200, 255)
+		battHighlight.FillTransparency = 0.6
+		battHighlight.Parent = batteries
+
+		local battBillboard = Instance.new("BillboardGui")
+		battBillboard.Size = UDim2.new(0, 90, 0, 25)
+		battBillboard.StudsOffset = Vector3.new(0, 1.5, 0)
+		battBillboard.Parent = batteries
+
+		local battLabel = Instance.new("TextLabel")
+		battLabel.Size = UDim2.new(1, 0, 1, 0)
+		battLabel.BackgroundTransparency = 1
+		battLabel.Text = "BATTERIES"
+		battLabel.TextColor3 = Color3.fromRGB(50, 200, 255)
+		battLabel.TextStrokeTransparency = 0
+		battLabel.Font = Enum.Font.GothamBold
+		battLabel.TextScaled = true
+		battLabel.Parent = battBillboard
+
+		-- SEEDS
+		local seeds = Instance.new("Part")
+		seeds.Name = "Seeds"
+		seeds.Size = Vector3.new(1, 1, 1)
+		seeds.Position = basePos + Vector3.new(-4, 2, 3)
+		seeds.Color = Color3.fromRGB(200, 180, 100)
+		seeds.Material = Enum.Material.SmoothPlastic
+		seeds.Anchored = true
+		seeds.Parent = shack
+
+		local seedHighlight = Instance.new("Highlight")
+		seedHighlight.FillColor = Color3.fromRGB(200, 180, 100)
+		seedHighlight.FillTransparency = 0.6
+		seedHighlight.Parent = seeds
+
+		local seedBillboard = Instance.new("BillboardGui")
+		seedBillboard.Size = UDim2.new(0, 70, 0, 25)
+		seedBillboard.StudsOffset = Vector3.new(0, 1.5, 0)
+		seedBillboard.Parent = seeds
+
+		local seedLabel = Instance.new("TextLabel")
+		seedLabel.Size = UDim2.new(1, 0, 1, 0)
+		seedLabel.BackgroundTransparency = 1
+		seedLabel.Text = "SEEDS"
+		seedLabel.TextColor3 = Color3.fromRGB(200, 180, 100)
+		seedLabel.TextStrokeTransparency = 0
+		seedLabel.Font = Enum.Font.GothamBold
+		seedLabel.TextScaled = true
+		seedLabel.Parent = seedBillboard
+
+		-- Description sign inside
+		if specialDesc then
+			local descSign = Instance.new("Part")
+			descSign.Name = "DescSign"
+			descSign.Size = Vector3.new(10, 5, 0.3)
+			descSign.Position = basePos + Vector3.new(0, 6, -7)
+			descSign.Color = Color3.fromRGB(60, 50, 40)
+			descSign.Material = Enum.Material.Wood
+			descSign.Anchored = true
+			descSign.Parent = shack
+
+			local descGui = Instance.new("SurfaceGui")
+			descGui.Face = Enum.NormalId.Front
+			descGui.Parent = descSign
+
+			local descLabel = Instance.new("TextLabel")
+			descLabel.Size = UDim2.new(1, 0, 1, 0)
+			descLabel.BackgroundTransparency = 1
+			descLabel.Text = specialDesc
+			descLabel.TextColor3 = Color3.new(1, 1, 1)
+			descLabel.Font = Enum.Font.Gotham
+			descLabel.TextScaled = true
+			descLabel.TextWrapped = true
+			descLabel.Parent = descGui
+		end
+
+		shack.Parent = Workspace
+		print("[World] Created reward shack:", name, "at", basePos)
+		return shack
+	end
+
+	-- CHAPTER REWARD SHACKS (one per chapter!)
+	local chapterShacks = {
+		-- Chapter 1: Floor 7½ has goodies INSIDE the building already
+		-- Chapter 2: Survivor's Camp (near spawn)
+		{ pos = Vector3.new(35, 0, 5), name = "Survivor's Camp", chapter = 2, color = Color3.fromRGB(100, 255, 100), desc = "Welcome survivor!\nGrab supplies and\nstay alive!" },
+		-- Chapter 3: Forest Guardian
+		{ pos = Vector3.new(80, 8, 320), name = "Forest Guardian", chapter = 3, color = Color3.fromRGB(50, 200, 100), desc = "The forest provides.\nTake what you need." },
+		-- Chapter 4: Frozen Peaks
+		{ pos = Vector3.new(420, 40, -30), name = "Mountain Summit", chapter = 4, color = Color3.fromRGB(150, 200, 255), desc = "Warm yourself here.\nThe cold is deadly." },
+		-- Chapter 5: Pirate Cove
+		{ pos = Vector3.new(-430, 0, 100), name = "Pet Sanctuary", chapter = 5, color = Color3.fromRGB(255, 150, 50), desc = "Elder Martha's cache.\nSave the pets!" },
+		-- Chapter 6: Prophecy Stone
+		{ pos = Vector3.new(25, 0, -120), name = "Prophecy Shrine", chapter = 6, color = Color3.fromRGB(200, 100, 255), desc = "The final truth.\nYou are ready." },
+	}
+
+	for _, shackData in chapterShacks do
+		createRewardShack(shackData.pos, shackData.name, shackData.chapter, shackData.color, shackData.desc)
+	end
+
+	-- RADIO TOWER SHACKS (near every radio tower!)
+	local radioTowerShacks = {
+		{ pos = Vector3.new(220, 0, 120), name = "Radio Station Alpha" },
+		{ pos = Vector3.new(-80, 0, 320), name = "Broadcast Hub" },
+		{ pos = Vector3.new(1820, 0, 120), name = "Frozen Radio" },
+		{ pos = Vector3.new(2520, 0, -280), name = "Arctic Signal" },
+		{ pos = Vector3.new(1520, 0, 1820), name = "Desert Relay" },
+		{ pos = Vector3.new(2220, 0, 2020), name = "Oasis Station" },
+		{ pos = Vector3.new(-1980, 0, 1520), name = "Volcanic Radio" },
+		{ pos = Vector3.new(-2480, 0, 1020), name = "Ember Broadcast" },
+		{ pos = Vector3.new(-1480, 0, -1180), name = "Swamp Signal" },
+		{ pos = Vector3.new(-1780, 0, -780), name = "Murky Tower" },
+		{ pos = Vector3.new(20, 0, -1980), name = "Crystal Radio" },
+		{ pos = Vector3.new(420, 0, -180), name = "Shadow Station" },
+	}
+
+	for _, shackData in radioTowerShacks do
+		createRewardShack(shackData.pos, shackData.name, nil, Color3.fromRGB(255, 200, 100), "Radio supplies!\nListen for music.")
+	end
+
+	-- MOUNTAIN TOP SHACKS (at high elevations!)
+	local mountainShacks = {
+		{ pos = Vector3.new(350, 200, 370), name = "Peak Refuge" },  -- Near observatory
+		{ pos = Vector3.new(2200, 150, 200), name = "Ice Peak Cabin" },  -- Ice fortress area
+		{ pos = Vector3.new(-2300, 100, 1300), name = "Volcanic Overlook" },  -- Obsidian tower
+		{ pos = Vector3.new(800, 80, -1500), name = "Crystal Heights" },  -- Near crystal spire
+	}
+
+	for _, shackData in mountainShacks do
+		createRewardShack(shackData.pos, shackData.name, nil, Color3.fromRGB(200, 220, 255), "Mountain refuge!\nRest and resupply.")
+	end
+
+	print("[World] Created", #chapterShacks, "chapter shacks")
+	print("[World] Created", #radioTowerShacks, "radio tower shacks")
+	print("[World] Created", #mountainShacks, "mountain top shacks")
 
 	print("[World] ========================================")
 	print("[World] EPIC WORLD GENERATED!")

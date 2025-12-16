@@ -26,17 +26,17 @@ local PERSONALITIES = {
 		trait = "Mischievous",
 		color = Color3.fromRGB(200, 170, 120),
 		helpfulness = 0.6,
-		chaosChance = 0.3,
+		chaosChance = 0.6, -- Pickles runs away and hides A LOT!
 		dialogues = {
-			greeting = { "Mrrrph!", "Pickles is HERE!", "*spits excitedly*" },
-			following = { "*trots along*", "Where we going?", "Pickles follows!" },
-			mischief = { "*runs away cackling*", "CATCH ME IF YOU CAN!", "Pickles needs adventure!" },
-			hiding = { "*giggles from behind rock*", "You can't see Pickles!", "*sticks head out*" },
-			found_item = { "LOOK LOOK LOOK!", "Pickles found treasure!", "*stomps excitedly*" },
-			combat = { "Pickles will SPIT on them!", "*angry camel noises*", "BAD CREATURE!" },
-			returning = { "Pickles is back!", "Miss me?", "*proud trot*" },
-			hungry = { "*sad camel eyes*", "Pickles is STARVING...", "Feed Pickles??" },
-			scared = { "*hides behind player*", "Pickles doesn't like this...", "*nervous humming*" },
+			greeting = { "Mrrrph!", "Pickles is HERE!", "*spits excitedly*", "Did someone say ADVENTURE?!", "*does a little dance*" },
+			following = { "*trots along*", "Where we going?", "Pickles follows!", "Left foot, right foot, left foot...", "Are we there yet?", "*humming badly off-key*", "I spy with my little eye... DANGER!", "This is the BEST day of my LIFE! Again!" },
+			mischief = { "*runs away cackling*", "CATCH ME IF YOU CAN!", "Pickles needs adventure!", "BYE BYE SEE YOU NEVER!", "*gallops into the sunset*", "Pickles saw a BUTTERFLY!", "Ooh what's THAT over there?!", "FREEDOM!", "*runs in circles for no reason*", "Pickles must INVESTIGATE!" },
+			hiding = { "*giggles from behind rock*", "You can't see Pickles!", "*sticks head out*", "*visible behind tiny bush*", "Pickles is INVISIBLE!", "*hiding but tail sticking out*", "Shhhh Pickles is a ROCK now.", "*giggling loudly while hiding*", "Marco? ...oh wait wrong game", "Pickles? Never heard of her." },
+			found_item = { "LOOK LOOK LOOK!", "Pickles found treasure!", "*stomps excitedly*", "SHINY!", "*proud camel noises*", "Pickles is BEST finder!" },
+			combat = { "Pickles will SPIT on them!", "*angry camel noises*", "BAD CREATURE!", "*hides behind you menacingly*", "Pickles will SUPERVISE the fighting!", "*moral support noises*" },
+			returning = { "Pickles is back!", "Miss me?", "*proud trot*", "Did you miss Pickles?! SAY YES!", "*acts like nothing happened*", "Pickles was here the WHOLE TIME.", "What? Pickles never left!", "*suspicious whistling*" },
+			hungry = { "*sad camel eyes*", "Pickles is STARVING...", "Feed Pickles??", "*dramatic collapse*", "Pickles sees a light... is this the end?!", "*stares at your food*" },
+			scared = { "*hides behind player*", "Pickles doesn't like this...", "*nervous humming*", "WHAT WAS THAT?!", "*screams internally*", "*screams externally*", "Pickles is NOT scared! Pickles is... cautiously terrified.", "*vibrating with fear*" },
 		},
 	},
 	{
@@ -157,9 +157,6 @@ local companions: { [Player]: {
 -- CREATE COMPANION MODEL
 -- ==========================================
 
--- Track riding state
-local ridingPlayers: { [Player]: Model } = {}
-
 local function createCamelModel(personality: typeof(PERSONALITIES[1]), position: Vector3): Model
 	local camel = Instance.new("Model")
 	camel.Name = "Companion_" .. personality.name
@@ -268,86 +265,6 @@ local function createCamelModel(personality: typeof(PERSONALITIES[1]), position:
 	tail.Anchored = false
 	tail.CanCollide = false
 	tail.Parent = camel
-
-	-- VEHICLE SEAT for riding! Player can control with WASD/arrows
-	local seat = Instance.new("VehicleSeat")
-	seat.Name = "CamelSeat"
-	seat.Size = Vector3.new(2, 0.5, 2) * SCALE
-	seat.Position = body.Position + Vector3.new(0, 1.8 * SCALE, 0)
-	seat.Color = Color3.fromRGB(139, 90, 43) -- Saddle brown
-	seat.Material = Enum.Material.Leather
-	seat.Anchored = false
-	seat.CanCollide = true -- Player can sit on it!
-	seat.Transparency = 0
-	seat.MaxSpeed = 50  -- Fast camel!
-	seat.Torque = 20
-	seat.TurnSpeed = 2
-	seat.Parent = camel
-
-	-- Movement handler - reads VehicleSeat throttle/steer to move the camel
-	local function updateCamelMovement()
-		local throttle = seat.Throttle  -- -1 (back) to 1 (forward)
-		local steer = seat.Steer        -- -1 (left) to 1 (right)
-
-		if seat.Occupant then
-			-- Get the camel's humanoid
-			local camelHumanoid = camel:FindFirstChildOfClass("Humanoid")
-			if camelHumanoid and body then
-				if math.abs(throttle) > 0.1 or math.abs(steer) > 0.1 then
-					-- Apply steering by rotating (flip the sign for correct direction)
-					if math.abs(steer) > 0.1 then
-						body.CFrame = body.CFrame * CFrame.Angles(0, steer * 0.08, 0)
-					end
-
-					-- Move forward/backward using velocity
-					if math.abs(throttle) > 0.1 then
-						local speed = 25 * throttle
-						local moveDir = body.CFrame.LookVector * speed
-						body.AssemblyLinearVelocity = Vector3.new(moveDir.X, body.AssemblyLinearVelocity.Y, moveDir.Z)
-					end
-				else
-					-- Slow down when no input (keep Y velocity for gravity)
-					local vel = body.AssemblyLinearVelocity
-					body.AssemblyLinearVelocity = Vector3.new(vel.X * 0.9, vel.Y, vel.Z * 0.9)
-				end
-			end
-		end
-	end
-
-	-- Connect to heartbeat for smooth movement
-	local moveConnection = RunService.Heartbeat:Connect(updateCamelMovement)
-
-	-- Saddle blanket underneath
-	local blanket = Instance.new("Part")
-	blanket.Name = "SaddleBlanket"
-	blanket.Size = Vector3.new(2.5, 0.2, 3) * SCALE
-	blanket.Position = body.Position + Vector3.new(0, 1.5 * SCALE, 0)
-	blanket.Color = Color3.fromRGB(150, 50, 50) -- Red blanket
-	blanket.Material = Enum.Material.Fabric
-	blanket.Anchored = false
-	blanket.CanCollide = false
-	blanket.Parent = camel
-
-	-- ProximityPrompt to make mounting easy!
-	local ridePrompt = Instance.new("ProximityPrompt")
-	ridePrompt.ObjectText = personality.name
-	ridePrompt.ActionText = "Ride Camel"
-	ridePrompt.KeyboardKeyCode = Enum.KeyCode.E
-	ridePrompt.HoldDuration = 0.3
-	ridePrompt.MaxActivationDistance = 10
-	ridePrompt.Parent = body
-
-	-- When prompted, seat the player
-	ridePrompt.Triggered:Connect(function(player: Player)
-		local character = player.Character
-		if not character then return end
-
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if humanoid and humanoid.SeatPart == nil then
-			seat:Sit(humanoid)
-			print("[Companion]", player.Name, "is now riding", personality.name, "!")
-		end
-	end)
 
 	-- Name tag (adjusted for smaller camel)
 	local billboard = Instance.new("BillboardGui")
@@ -606,8 +523,8 @@ local function updateCompanion(player: Player, dt: number)
 			companion.behavior = BEHAVIORS.IDLE
 		end
 
-		-- Random chance to do something chaotic
-		if math.random() < 0.001 * dt * 60 then -- ~0.1% per second
+		-- Random chance to do something chaotic - Pickles is VERY mischievous!
+		if math.random() < 0.005 * dt * 60 then -- ~0.5% per second - Pickles loves running away!
 			triggerRandomBehavior(player)
 		end
 
@@ -819,6 +736,7 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 print("[Companion] Companion system initialized!")
-print("[Companion] - Every player gets a camel companion")
-print("[Companion] - Companions have unique personalities")
-print("[Companion] - They help... but also cause mischief!")
+print("[Companion] - Every player gets Pickles the camel companion")
+print("[Companion] - Pickles follows you... mostly")
+print("[Companion] - Pickles runs away and hides A LOT!")
+print("[Companion] - Pickles always has something funny to say")

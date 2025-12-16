@@ -58,97 +58,94 @@ And something is watching you right now.
 -- ==========================================
 
 local STORY_SIGNS = {
-	-- CHAPTER 1: THE AWAKENING (Near Spawn)
+	-- ==========================================
+	-- NEAR SPAWN - Only essential starter signs!
+	-- ==========================================
+
+	-- Warning sign near spawn
 	{
-		chapter = 1,
-		title = "The Awakening",
-		position = Vector3.new(20, 0, -10),
-		content = [[SURVIVOR'S NOTICE
-
-You've awakened in the quarantine zone.
-The Mertin-Flemmer Corporation's experiments
-have unleashed something upon this land.
-
-IMMEDIATE DANGERS:
-- The Stalker hunts at night
-- Shadows emerge after dark
-- Starvation claims the idle
-- The cold takes the unprepared
-
-OBJECTIVES:
-1. Find food immediately
-2. Locate shelter before nightfall
-3. Seek the three Signal Parts
-4. Rescue the captured pets
-
-DO NOT REMAIN STILL.
-Movement is survival.
-
-- Emergency Broadcast System]],
-	},
-	{
-		chapter = 1,
+		chapter = 0,
 		title = "Warning: Inactivity Kills",
 		position = Vector3.new(-30, 0, 10),
 		content = [[MEDICAL NOTICE
 
-Extended inactivity leads to:
-- Accelerated hunger (metabolism spike)
-- Fear accumulation (paranoia)
-- Creature attraction (scent)
-- Doom manifestation (???)
-
 The creatures can SMELL despair.
-If you stop moving, THEY WILL FIND YOU.
+If you stop moving, THEY FIND YOU.
 
-Those who sit idle have been found
-as nothing but bones within hours.
+Extended inactivity leads to:
+- Accelerated hunger
+- Creature attraction
+- Doom manifestation
 
 KEEP MOVING. STAY ALIVE.
 
-- Dr. Helena Voss, Last Medical Officer]],
+- Dr. Helena Voss]],
 	},
 
-	-- FLOOR 7½ DIRECTIONS (Near spawn, pointing northeast)
+	-- Pointer to the building
 	{
-		chapter = 1,
-		title = "FLOOR 7½ - THIS WAY",
+		chapter = 0,
+		title = "FLOOR 7½ THIS WAY →→→",
 		position = Vector3.new(50, 0, -30),
-		content = [[THE MERTIN-FLEMMER BUILDING
+		content = [[→→→ FLOOR 7½ THIS WAY →→→
 
-LOCATION: Northeast from here
-COORDINATES: (150, 0, -100)
+MERTIN-FLEMMER BUILDING
+Location: Northeast (150, -100)
+The 20-story glass tower!
 
-Look for the 20-story glass tower
-The tallest building on the horizon
+HOW TO ACCESS:
+1. Enter grand lobby
+2. Elevator on LEFT wall
+3. Press glowing "7½" button
+4. Ceiling is LOW - crouch!
 
-HOW TO ACCESS FLOOR 7½:
-1. Enter through the grand lobby
-2. Find elevator on LEFT wall
-3. Press the glowing "7½" button
-4. CROUCH - the ceiling is LOW
-
-WARNING: Floor 7½ is where
-the portal BLEEDS into reality.
-Something important waits there.
-
-The truth about the Incident
-lies within those cramped halls.
+Floor 7½ contains:
+- SIGNAL PART #1
+- WALKMAN RADIO (Press 6/7/8)
+- Food, Batteries, Flashlight
+- The origin mystery...
 
 →→→ HEAD NORTHEAST →→→]],
 	},
-	-- FLOOR 7½ ENTRANCE SIGN (At the building)
+
+	-- Chapter 1 sign OUTSIDE the building
 	{
 		chapter = 1,
-		title = "Mertin-Flemmer HQ",
-		position = Vector3.new(150, 0, -70),
+		title = "★ CHAPTER 1: THE ORIGIN ★",
+		position = Vector3.new(120, 0, -65), -- Near building, offset left
+		content = [[╔═══════════════════════════════╗
+║    CHAPTER 1: THE ORIGIN      ║
+║      FLOOR 7½ AWAITS!         ║
+╚═══════════════════════════════╝
+
+★★ SIGNAL PART #1 ON FLOOR 7½! ★★
+
+The Mertin-Flemmer Corporation
+opened a portal here. Something
+came through. This is GROUND ZERO.
+
+ENTER THE BUILDING! FIND FLOOR 7½!
+Collect: Signal Part, Walkman,
+Food, Batteries, Flashlight!
+
+Press 6/7/8 to change radio stations
+on your Walkman once you find it!
+
+The truth starts here.]],
+	},
+
+	-- Company name sign (slightly toward entrance)
+	{
+		chapter = 0,
+		title = "Mertin-Flemmer Corp",
+		position = Vector3.new(150, 0, -65), -- Slightly toward entrance from building
 		content = [[MERTIN-FLEMMER CORPORATION
 "Opening Doors to New Dimensions"
 
 FLOOR DIRECTORY:
 1-6: Administrative (ABANDONED)
 7: Research Labs (SEALED)
-7½: [REDACTED] (ACCESS RESTRICTED)
+7½: [REDACTED] - ENTER HERE!
 8-15: Executive Offices (EMPTY)
 16-19: Server Rooms (OFFLINE)
 20: Penthouse (???)
@@ -156,246 +153,207 @@ FLOOR DIRECTORY:
 NOTICE TO ALL PERSONNEL:
 Floor 7½ does not exist.
 Do not speak of Floor 7½.
-If you see Floor 7½, report to
-your supervisor immediately.
 
 - Management]],
 	},
-	-- CHAPTER 2: THE NORTHERN PATH (Forest Route)
+
+	-- ==========================================
+	-- CHAPTER 2: FAR NORTH - Survivor's Camp (300+ studs away)
+	-- ==========================================
 	{
 		chapter = 2,
-		title = "The Whispering Woods",
-		position = Vector3.new(30, 5, 150),
-		content = [[RANGER STATION LOG - Day 47
+		title = "★ CHAPTER 2: THE AWAKENING ★",
+		position = Vector3.new(100, 0, 350), -- FAR NORTH!
+		content = [[╔═══════════════════════════════╗
+║   CHAPTER 2: THE AWAKENING    ║
+║      SURVIVOR'S CAMP          ║
+╚═══════════════════════════════╝
 
-The forest has changed. Trees move when
-you're not looking. The whispers aren't
-wind - they're warnings.
+★★ SIGNAL PART #2 NEARBY! ★★
+Look for the glowing blue orb!
 
-The Fairy Folk emerged after the portal
-opened. Some say they're trying to help.
-Others say they're leading us deeper in.
+After escaping Floor 7½, survivors
+established this camp. But danger
+still lurks everywhere...
 
-Lost Children Report:
-- Tommy Vance, age 8, last seen Day 12
-- Sarah Mills, age 6, last seen Day 23
-- Marcus Chen, age 10, last seen Day 31
+REWARD SHACK NEARBY! Look for lights!
+Contains: Food, flashlight, batteries!
 
-Their mother still searches.
-We've seen small footprints near the
-fairy circles. Whether hope or tragedy
-awaits, we cannot say.
+5 MORE SIGNAL PARTS TO FIND!
+
+- Emergency Broadcast System]],
+	},
+
+	-- ==========================================
+	-- CHAPTER 3: FAR NORTH-WEST - Forest (500+ studs)
+	-- ==========================================
+	{
+		chapter = 3,
+		title = "★ CHAPTER 3: WHISPERING WOODS ★",
+		position = Vector3.new(-300, 5, 500), -- FAR NORTHWEST!
+		content = [[╔═══════════════════════════════╗
+║  CHAPTER 3: WHISPERING WOODS  ║
+║     THE FOREST GUARDIAN       ║
+╚═══════════════════════════════╝
+
+★★ SIGNAL PART #3 AT GUARDIAN! ★★
+Continue deeper into the forest!
+
+The forest has changed. Trees move.
+The whispers aren't wind - warnings.
+
+REWARD CABIN AT THE GUARDIAN!
+Flashlight, batteries, food, seeds!
+
+Follow the glow deeper!
 
 - Ranger Elias Thorne]],
 	},
 	{
-		chapter = 2,
+		chapter = 3,
 		title = "The Forest Guardian",
-		position = Vector3.new(60, 8, 300),
-		content = [[ANCIENT MARKER
+		position = Vector3.new(-400, 8, 700), -- DEEP in forest
+		content = [[╔═══════════════════════════════╗
+║   THE FOREST GUARDIAN AWAITS  ║
+╚═══════════════════════════════╝
 
-Here stands the domain of the
-Forest Guardian - an entity that
-predates the corporation's arrival.
+★★ SIGNAL PART #3 HERE! ★★
+Look for the glowing blue orb!
 
-The Guardian protected these woods
-for centuries. Now it fights the
-creatures alongside us.
+HERMIT'S REWARD CABIN NEARBY!
+Food, seeds, flashlight, batteries!
 
-OFFERING RITUAL:
-Place wood at its roots.
-Speak your need.
-If worthy, aid comes.
-
-Those who harm the forest
-receive no protection.
+3 MORE SIGNAL PARTS TO FIND!
 
 - Hermit Anise, Keeper of Old Ways]],
 	},
 
-	-- CHAPTER 3: THE EASTERN PATH (Frozen Peaks)
+	-- ==========================================
+	-- CHAPTER 4: FAR EAST - Frozen Peaks (600+ studs)
+	-- ==========================================
 	{
-		chapter = 3,
-		title = "The Frozen Ascent",
-		position = Vector3.new(200, 20, -30),
-		content = [[EXPEDITION LOG - Final Entry
+		chapter = 4,
+		title = "★ CHAPTER 4: FROZEN PEAKS ★",
+		position = Vector3.new(600, 30, -200), -- FAR EAST
+		content = [[╔═══════════════════════════════╗
+║   CHAPTER 4: FROZEN PEAKS     ║
+║     THE MOUNTAIN SUMMIT       ║
+╚═══════════════════════════════╝
 
-The cold isn't natural. It's spreading
-from the second portal site - a crack
-in reality near the peak.
+★★ SIGNAL PART #4 AT SUMMIT! ★★
+Head up the frozen mountain!
 
-Signal Part #2 is confirmed at the
-summit. Previous team reached it.
-None returned.
+The cold isn't natural. A portal
+site bleeds near the peak.
 
-The ice wolves appeared on Day 19.
-Unlike natural wolves, they hunt
-for sport, not food.
+WARM CABIN AT THE SUMMIT!
+Fire pit, food, batteries, flashlight!
 
-SURVIVAL NOTES:
-- Fire is life
-- Never travel alone
-- The blizzards hide things
-- Trust no caves you haven't checked
-
-May the Divines guide you where
-we have fallen.
+Head UP! Follow the beacon!
 
 - Expedition Leader Bjorn Ironside]],
 	},
 	{
-		chapter = 3,
-		title = "The Frozen Dead",
-		position = Vector3.new(400, 40, -50),
-		content = [[MEMORIAL
+		chapter = 4,
+		title = "The Frozen Dead Memorial",
+		position = Vector3.new(800, 60, -300), -- HIGH on mountain
+		content = [[╔═══════════════════════════════╗
+║   MEMORIAL & REWARD CABIN!    ║
+╚═══════════════════════════════╝
+
+★★ SIGNAL PART #4 HERE! ★★
+Look for the glowing blue orb!
 
 HERE LIE THE BRAVE
+They left SUPPLIES for survivors!
 
-24 souls attempted this ascent.
-3 reached the summit.
-1 claimed the Signal Part.
-0 made it back.
-
-Their sacrifice revealed:
-The peak guardian - a Frost Wraith -
-protects the Signal Part with
-eternal vigilance.
-
-Perhaps you will succeed
-where we failed.
-
-Or perhaps you'll join us.
-
-The mountain doesn't care either way.]],
+2 MORE SIGNAL PARTS TO FIND!]],
 	},
 
-	-- CHAPTER 4: THE WESTERN PATH (Pirate Cove)
+	-- ==========================================
+	-- CHAPTER 5: FAR WEST - Pirate Cove (700+ studs)
+	-- ==========================================
 	{
-		chapter = 4,
-		title = "Smuggler's Warning",
-		position = Vector3.new(-200, 0, 40),
-		content = [[BOUNTY NOTICE
+		chapter = 5,
+		title = "★ CHAPTER 5: PIRATE COVE ★",
+		position = Vector3.new(-500, 0, 100), -- FAR WEST
+		content = [[╔═══════════════════════════════╗
+║   CHAPTER 5: PIRATE COVE      ║
+║    THE PET KEEPER'S PLEA      ║
+╚═══════════════════════════════╝
+
+★★ SIGNAL PART #5 AT PET KEEPER! ★★
+Continue west toward the coast!
 
 WANTED: Captain Blackwood Vex
 Crime: Kidnapping, Pet Trafficking
-Reward: Signal Part Location
 
-The Black Mist pirates saw the chaos
-as opportunity. While we fought to
-survive, they captured our companions.
-
-Dogs. Cats. Even the children's ponies.
-
-They sell them to... something.
-Ships come in the fog. Gold changes
-hands. The pets are never seen again.
-
-Signal Part #3 is aboard the Black Mist.
-The Captain keeps it as "insurance."
-
-Stop the pirates. Save the pets.
-Claim the Signal Part.
+REWARD SHACK at Pet Keeper's cabin!
 
 - Resistance Leader Mira Dawncrest]],
 	},
 	{
-		chapter = 4,
+		chapter = 5,
 		title = "The Pet Keeper's Plea",
-		position = Vector3.new(-450, 0, 80),
-		content = [[DESPERATE MESSAGE
+		position = Vector3.new(-750, 0, 150), -- DEEP WEST
+		content = [[╔═══════════════════════════════╗
+║   PET SANCTUARY - REWARD!     ║
+╚═══════════════════════════════╝
 
-To whoever finds this:
+★★ SIGNAL PART #5 HERE! ★★
+Look for the glowing blue orb!
 
-They took Fluffy. They took Shadow.
-They took little Whiskers too.
+Supplies in the CABIN nearby!
+1 MORE SIGNAL PART TO FIND!
 
-The pirates laughed as they put them
-in cages. Said something about
-"dimensional buyers" paying premium.
-
-I can see the ship from here but
-the pirates... they're not right anymore.
-Their eyes glow at night.
-
-I think whatever they're selling to
-has started changing THEM.
-
-Please. Save our friends.
-They don't understand what's happening.
-They're just scared and alone.
-
-- Elder Martha, Pet Sanctuary Founder]],
+- Elder Martha]],
 	},
 
-	-- CHAPTER 5: THE DOOM APPROACHES
+	-- ==========================================
+	-- CHAPTER 6: FAR SOUTH - Prophecy Stone (800+ studs)
+	-- ==========================================
 	{
-		chapter = 5,
-		title = "The Coming Storm",
-		position = Vector3.new(0, 0, -100),
-		content = [[PROPHECY STONE
+		chapter = 6,
+		title = "★ CHAPTER 6: THE FINAL TRUTH ★",
+		position = Vector3.new(0, 0, -600), -- FAR SOUTH!
+		content = [[╔═══════════════════════════════╗
+║  CHAPTER 6: THE FINAL TRUTH   ║
+║     THE PROPHECY STONE        ║
+╚═══════════════════════════════╝
 
-When idle survivors number more than active,
-When hunger claims more than creatures,
-When darkness grows past its boundary,
-When hope becomes memory—
+★★ FINAL SIGNAL PART #6 HERE! ★★
+Look for the glowing blue orb!
 
-THE DOOM MANIFESTS.
+When all six parts are gathered,
+THE PORTAL CAN BE CLOSED FOREVER.
 
-Already we see the signs:
-- The nights grow longer
-- The creatures grow bolder
-- The portal pulses brighter
-- Reality itself weakens
+REWARD CABIN nearby with supplies!
 
-This is not metaphor.
-This is measurement.
-
-The portal at Floor 7½ is EXPANDING.
-Each inactive survivor, each death by
-despair, each moment of surrender
-FEEDS IT.
-
-Act. Move. Fight. Hope.
-Or become part of the darkness.
+REASSEMBLE ALL 6 PARTS at beacon!
+Close the portal. Save the world.
 
 - The Watchers]],
 	},
-
-	-- FINAL CHAPTER: THE MERTIN-FLEMMER BUILDING
 	{
 		chapter = 6,
-		title = "Ground Zero",
-		position = Vector3.new(400, 0, 400),
-		content = [[CLASSIFIED - EYES ONLY
+		title = "The Prophecy",
+		position = Vector3.new(50, 0, -700), -- DEEP SOUTH
+		content = [[THE ANCIENT PROPHECY
 
-MERTIN-FLEMMER INCIDENT REPORT
+"Six lights scattered in the dark,
+Six beacons to restore the mark,
+From Origin to Final Stone,
+The brave shall not walk alone."
 
-What we opened: Unknown dimension
-What came through: Multiple entities
-Current status: UNCONTAINED
+Chapter 1: Floor 7½ (Start!)
+Chapter 2: North - Survivor's Camp
+Chapter 3: Northwest - Forest
+Chapter 4: East - Frozen Peaks
+Chapter 5: West - Pirate Cove
+Chapter 6: South - Prophecy Stone
 
-Floor 7½ Details:
-- Exists between floors 7 and 8
-- Accessible only during specific times
-- Portal to source dimension confirmed
-- SIGNAL PART ORIGIN LOCATION
-
-The Signal Parts weren't communication
-devices. They were CONTAINMENT ANCHORS.
-
-When the entity emerged, it shattered
-the containment field. The three parts
-scattered across the land.
-
-REASSEMBLING them at the beacon
-won't call for rescue.
-
-It will CLOSE THE PORTAL.
-
-This was never about escaping.
-It's about STOPPING THIS.
-
-- Dr. James Mertin, Final Recording]],
+YOU FOUND THEM ALL!
+Go to the RESCUE BEACON!]],
 	},
 }
 
@@ -666,66 +624,68 @@ local function createStorySign(signData: typeof(STORY_SIGNS[1]))
 	chapterBadge.Anchored = true
 	chapterBadge.Parent = sign
 
-	-- Sign content
-	local signGui = Instance.new("SurfaceGui")
-	signGui.Face = Enum.NormalId.Front
-	signGui.PixelsPerStud = 50  -- Higher resolution for crisp text
-	signGui.Parent = board
+	-- Sign content on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local signGui = Instance.new("SurfaceGui")
+		signGui.Face = face
+		signGui.PixelsPerStud = 50  -- Higher resolution for crisp text
+		signGui.Parent = board
 
-	local container = Instance.new("Frame")
-	container.Size = UDim2.new(1, 0, 1, 0)
-	container.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
-	container.BackgroundTransparency = 0.1
-	container.Parent = signGui
+		local container = Instance.new("Frame")
+		container.Size = UDim2.new(1, 0, 1, 0)
+		container.BackgroundColor3 = Color3.fromRGB(50, 40, 30)
+		container.BackgroundTransparency = 0.1
+		container.Parent = signGui
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 15)
-	corner.Parent = container
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 15)
+		corner.Parent = container
 
-	-- Title - MASSIVE, BOLD, handwritten style
-	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Size = UDim2.new(1, -20, 0, 80)
-	titleLabel.Position = UDim2.new(0, 10, 0, 10)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = "~ " .. signData.title .. " ~"
-	titleLabel.TextColor3 = Color3.fromRGB(255, 230, 180)
-	titleLabel.Font = Enum.Font.Fondamento  -- Handwritten/script style
-	titleLabel.TextSize = 72  -- BIG BOLD!
-	titleLabel.TextStrokeTransparency = 0.3  -- More visible stroke
-	titleLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-	titleLabel.Parent = container
+		-- Title - MASSIVE, BOLD, handwritten style
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.Size = UDim2.new(1, -20, 0, 80)
+		titleLabel.Position = UDim2.new(0, 10, 0, 10)
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Text = "~ " .. signData.title .. " ~"
+		titleLabel.TextColor3 = Color3.fromRGB(255, 230, 180)
+		titleLabel.Font = Enum.Font.Fondamento  -- Handwritten/script style
+		titleLabel.TextSize = 72  -- BIG BOLD!
+		titleLabel.TextStrokeTransparency = 0.3  -- More visible stroke
+		titleLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
+		titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+		titleLabel.Parent = container
 
-	-- Chapter subtitle (bigger)
-	local chapterLabel = Instance.new("TextLabel")
-	chapterLabel.Size = UDim2.new(1, -20, 0, 40)
-	chapterLabel.Position = UDim2.new(0, 10, 0, 85)
-	chapterLabel.BackgroundTransparency = 1
-	chapterLabel.Text = "Chapter " .. signData.chapter
-	chapterLabel.TextColor3 = Color3.fromRGB(180, 160, 120)
-	chapterLabel.Font = Enum.Font.Merriweather
-	chapterLabel.TextSize = 32  -- Bigger
-	chapterLabel.TextStrokeTransparency = 0.5
-	chapterLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
-	chapterLabel.TextXAlignment = Enum.TextXAlignment.Center
-	chapterLabel.Parent = container
+		-- Chapter subtitle (bigger)
+		local chapterLabel = Instance.new("TextLabel")
+		chapterLabel.Size = UDim2.new(1, -20, 0, 40)
+		chapterLabel.Position = UDim2.new(0, 10, 0, 85)
+		chapterLabel.BackgroundTransparency = 1
+		chapterLabel.Text = "Chapter " .. signData.chapter
+		chapterLabel.TextColor3 = Color3.fromRGB(180, 160, 120)
+		chapterLabel.Font = Enum.Font.Merriweather
+		chapterLabel.TextSize = 32  -- Bigger
+		chapterLabel.TextStrokeTransparency = 0.5
+		chapterLabel.TextStrokeColor3 = Color3.fromRGB(40, 30, 20)
+		chapterLabel.TextXAlignment = Enum.TextXAlignment.Center
+		chapterLabel.Parent = container
 
-	-- Content - BIG, BOLD, readable handwritten
-	local contentLabel = Instance.new("TextLabel")
-	contentLabel.Size = UDim2.new(1, -30, 1, -140)
-	contentLabel.Position = UDim2.new(0, 15, 0, 130)
-	contentLabel.BackgroundTransparency = 1
-	contentLabel.Text = signData.content
-	contentLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
-	contentLabel.Font = Enum.Font.Fondamento  -- Handwritten style
-	contentLabel.TextSize = 40  -- MUCH BIGGER!
-	contentLabel.TextStrokeTransparency = 0.4  -- More visible
-	contentLabel.TextStrokeColor3 = Color3.fromRGB(30, 25, 20)
-	contentLabel.TextWrapped = true
-	contentLabel.TextXAlignment = Enum.TextXAlignment.Left
-	contentLabel.TextYAlignment = Enum.TextYAlignment.Top
-	contentLabel.LineHeight = 1.2
-	contentLabel.Parent = container
+		-- Content - BIG, BOLD, readable handwritten
+		local contentLabel = Instance.new("TextLabel")
+		contentLabel.Size = UDim2.new(1, -30, 1, -140)
+		contentLabel.Position = UDim2.new(0, 15, 0, 130)
+		contentLabel.BackgroundTransparency = 1
+		contentLabel.Text = signData.content
+		contentLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
+		contentLabel.Font = Enum.Font.Fondamento  -- Handwritten style
+		contentLabel.TextSize = 40  -- MUCH BIGGER!
+		contentLabel.TextStrokeTransparency = 0.4  -- More visible
+		contentLabel.TextStrokeColor3 = Color3.fromRGB(30, 25, 20)
+		contentLabel.TextWrapped = true
+		contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+		contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+		contentLabel.LineHeight = 1.2
+		contentLabel.Parent = container
+	end
 
 	-- Weathering effects (moss/decay)
 	for _ = 1, math.random(3, 6) do

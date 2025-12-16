@@ -1291,19 +1291,22 @@ local function spawnWaterBodies()
 		sign.Anchored = true
 		sign.Parent = riverModel
 
-		local signGui = Instance.new("SurfaceGui")
-		signGui.Face = Enum.NormalId.Front
-		signGui.Parent = sign
+		-- Sign text on BOTH sides
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local signGui = Instance.new("SurfaceGui")
+			signGui.Face = face
+			signGui.Parent = sign
 
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = riverData.name
-		label.TextColor3 = Color3.new(1, 1, 1)
-		label.TextStrokeTransparency = 0
-		label.Font = Enum.Font.Antique
-		label.TextSize = 18
-		label.Parent = signGui
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(1, 0, 1, 0)
+			label.BackgroundTransparency = 1
+			label.Text = riverData.name
+			label.TextColor3 = Color3.new(1, 1, 1)
+			label.TextStrokeTransparency = 0
+			label.Font = Enum.Font.Antique
+			label.TextSize = 18
+			label.Parent = signGui
+		end
 
 		riverModel.Parent = workspace
 		print("[Survival] Created river:", riverData.name, "with", #riverData.waypoints, "waypoints")

@@ -228,31 +228,33 @@ local function createSpawnSigns()
 		signBoard.Anchored = true
 		signBoard.Parent = signModel
 
-		-- Sign text (front)
-		local signGui = Instance.new("SurfaceGui")
-		signGui.Face = Enum.NormalId.Front
-		signGui.Parent = signBoard
+		-- Sign text on BOTH sides so it's always readable
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local signGui = Instance.new("SurfaceGui")
+			signGui.Face = face
+			signGui.Parent = signBoard
 
-		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Size = UDim2.new(1, 0, 0.4, 0)
-		titleLabel.BackgroundTransparency = 1
-		titleLabel.Text = pathData.name
-		titleLabel.TextColor3 = Color3.new(1, 1, 1)
-		titleLabel.Font = Enum.Font.Antique
-		titleLabel.TextScaled = true  -- Auto-scale to fill space
-		titleLabel.Parent = signGui
+			local titleLabel = Instance.new("TextLabel")
+			titleLabel.Size = UDim2.new(1, 0, 0.4, 0)
+			titleLabel.BackgroundTransparency = 1
+			titleLabel.Text = pathData.name
+			titleLabel.TextColor3 = Color3.new(1, 1, 1)
+			titleLabel.Font = Enum.Font.Antique
+			titleLabel.TextScaled = true
+			titleLabel.Parent = signGui
 
-		local descLabel = Instance.new("TextLabel")
-		descLabel.Size = UDim2.new(1, -10, 0.6, 0)
-		descLabel.Position = UDim2.new(0, 5, 0.4, 0)
-		descLabel.BackgroundTransparency = 1
-		descLabel.Text = pathData.description
-		descLabel.TextColor3 = Color3.fromRGB(220, 220, 200)
-		descLabel.Font = Enum.Font.Gotham
-		descLabel.TextScaled = true  -- Auto-scale to fill space
-		descLabel.TextWrapped = true
-		descLabel.TextYAlignment = Enum.TextYAlignment.Top
-		descLabel.Parent = signGui
+			local descLabel = Instance.new("TextLabel")
+			descLabel.Size = UDim2.new(1, -10, 0.6, 0)
+			descLabel.Position = UDim2.new(0, 5, 0.4, 0)
+			descLabel.BackgroundTransparency = 1
+			descLabel.Text = pathData.description
+			descLabel.TextColor3 = Color3.fromRGB(220, 220, 200)
+			descLabel.Font = Enum.Font.Gotham
+			descLabel.TextScaled = true
+			descLabel.TextWrapped = true
+			descLabel.TextYAlignment = Enum.TextYAlignment.Top
+			descLabel.Parent = signGui
+		end
 
 		-- Arrow pointing direction
 		local arrow = Instance.new("Part")
@@ -275,20 +277,23 @@ local function createSpawnSigns()
 	welcomeSign.Anchored = true
 	welcomeSign.Parent = signModel
 
-	local welcomeGui = Instance.new("SurfaceGui")
-	welcomeGui.Face = Enum.NormalId.Back
-	welcomeGui.Parent = welcomeSign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local welcomeGui = Instance.new("SurfaceGui")
+		welcomeGui.Face = face
+		welcomeGui.Parent = welcomeSign
 
-	local welcomeText = Instance.new("TextLabel")
-	welcomeText.Size = UDim2.new(1, 0, 1, 0)
-	welcomeText.BackgroundColor3 = Color3.fromRGB(40, 30, 20)
-	welcomeText.BackgroundTransparency = 0.3
-	welcomeText.Text = "WELCOME, SURVIVOR\n\nChoose your path wisely.\nCollect Signal Parts to call for rescue.\nSave the lost pets.\nSurvive the night.\n\n- The Watchers"
-	welcomeText.TextColor3 = Color3.new(1, 1, 1)
-	welcomeText.Font = Enum.Font.Antique
-	welcomeText.TextSize = 20
-	welcomeText.TextWrapped = true
-	welcomeText.Parent = welcomeGui
+		local welcomeText = Instance.new("TextLabel")
+		welcomeText.Size = UDim2.new(1, 0, 1, 0)
+		welcomeText.BackgroundColor3 = Color3.fromRGB(40, 30, 20)
+		welcomeText.BackgroundTransparency = 0.3
+		welcomeText.Text = "WELCOME, SURVIVOR\n\nChoose your path wisely.\nCollect Signal Parts to call for rescue.\nSave the lost pets.\nSurvive the night.\n\n- The Watchers"
+		welcomeText.TextColor3 = Color3.new(1, 1, 1)
+		welcomeText.Font = Enum.Font.Antique
+		welcomeText.TextSize = 20
+		welcomeText.TextWrapped = true
+		welcomeText.Parent = welcomeGui
+	end
 
 	signModel.Parent = workspace
 	return signModel
@@ -519,17 +524,20 @@ local function createPirateShip(position: Vector3)
 	flag.Anchored = true
 	flag.Parent = ship
 
-	local flagGui = Instance.new("SurfaceGui")
-	flagGui.Face = Enum.NormalId.Front
-	flagGui.Parent = flag
+	-- Flag text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local flagGui = Instance.new("SurfaceGui")
+		flagGui.Face = face
+		flagGui.Parent = flag
 
-	local skullLabel = Instance.new("TextLabel")
-	skullLabel.Size = UDim2.new(1, 0, 1, 0)
-	skullLabel.BackgroundTransparency = 1
-	skullLabel.Text = "💀"
-	skullLabel.TextColor3 = Color3.new(1, 1, 1)
-	skullLabel.TextSize = 50
-	skullLabel.Parent = flagGui
+		local skullLabel = Instance.new("TextLabel")
+		skullLabel.Size = UDim2.new(1, 0, 1, 0)
+		skullLabel.BackgroundTransparency = 1
+		skullLabel.Text = "💀"
+		skullLabel.TextColor3 = Color3.new(1, 1, 1)
+		skullLabel.TextSize = 50
+		skullLabel.Parent = flagGui
+	end
 
 	-- Cannon
 	for i, xOffset in { -8, 8 } do
@@ -614,18 +622,21 @@ local function createPirateShip(position: Vector3)
 	shipSign.Anchored = true
 	shipSign.Parent = ship
 
-	local nameGui = Instance.new("SurfaceGui")
-	nameGui.Face = Enum.NormalId.Front
-	nameGui.Parent = shipSign
+	-- Sign text on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local nameGui = Instance.new("SurfaceGui")
+		nameGui.Face = face
+		nameGui.Parent = shipSign
 
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, 0, 1, 0)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Text = "THE BLACK MIST"
-	nameLabel.TextColor3 = Color3.fromRGB(200, 180, 140)
-	nameLabel.Font = Enum.Font.Antique
-	nameLabel.TextSize = 32
-	nameLabel.Parent = nameGui
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, 0, 1, 0)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = "THE BLACK MIST"
+		nameLabel.TextColor3 = Color3.fromRGB(200, 180, 140)
+		nameLabel.Font = Enum.Font.Antique
+		nameLabel.TextSize = 32
+		nameLabel.Parent = nameGui
+	end
 
 	-- Water around ship
 	local water = Instance.new("Part")

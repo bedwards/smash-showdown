@@ -374,23 +374,23 @@ CREATURE_TYPES.SHADOW = {
 -- ==========================================
 -- WOLF
 -- ==========================================
--- Pack hunters, weaker alone but dangerous in groups
+-- DEADLY pack hunters - will SHRED you at night without protection!
 CREATURE_TYPES.WOLF = {
 	name = "Wolf",
-	health = 80,
-	damage = 12,
+	health = 120,
+	damage = 35, -- BRUTAL damage!
 	speedDay = 16,
-	speedNight = 24,
-	attackRange = 4,
-	attackCooldown = 0.8,
+	speedNight = 32, -- TERRIFYINGLY FAST at night!
+	attackRange = 5,
+	attackCooldown = 0.3, -- RAPID attacks - death in seconds!
 	invulnerable = false,
 	fleeFromLight = true,
 	fleeFromFlashlight = true,
 	packAnimal = true,
 	canFly = false,
-	fearFactor = 15,
-	biomes = { "FOREST", "SNOW" },
-	spawnWeight = 25,
+	fearFactor = 30, -- More terrifying!
+	biomes = { "FOREST", "SNOW", "ALL" }, -- EVERYWHERE!
+	spawnWeight = 40, -- More common!
 	nightOnly = false,
 	bloodNightOnly = false,
 	buildCreature = function(id: number): Model
@@ -1209,14 +1209,14 @@ local WORLD_SIZE = 3000  -- Must stay within terrain bounds (3500)
 local SAFE_ZONE_RADIUS = 20 -- Safe zone around campfires
 local FLASHLIGHT_RANGE = 40 -- How far flashlight reaches
 
--- Creature counts per type
+-- Creature counts per type - LOTS of deadly creatures!
 local CREATURE_COUNTS = {
-	SHADOW = 12,    -- Spooky shadows lurking
-	WOLF = 10,      -- Wolf packs roaming
-	BEAR = 4,       -- Bears in the mountains
-	OWL = 8,        -- Owls watching from trees
-	RAM = 6,        -- Mountain rams
-	DEER_MONSTER = 3, -- Terrifying deer monsters
+	SHADOW = 25,    -- Shadows EVERYWHERE
+	WOLF = 40,      -- MASSIVE wolf packs - they WILL find you!
+	BEAR = 8,       -- More bears
+	OWL = 15,       -- Owls watching from trees
+	RAM = 10,       -- Mountain rams
+	DEER_MONSTER = 8, -- MORE terrifying deer monsters!
 	WENDIGO = 0,    -- Spawned during blood nights
 }
 

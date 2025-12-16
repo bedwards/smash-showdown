@@ -1,9 +1,17 @@
-# Aftman tool configuration for Smash Showdown
+# Aftman tool configuration for Smash Showdown & Faultline Fear
 # https://github.com/LPGhatguy/aftman
 
 [tools]
+# Core build tools
 rojo = "rojo-rbx/rojo@7.7.0-rc.1"
 wally = "UpliftGames/wally@0.3.2"
+
+# Code quality
 selene = "Kampfkarren/selene@0.27.1"
 stylua = "JohnnyMorganz/StyLua@0.20.0"
 wally-package-types = "JohnnyMorganz/wally-package-types@1.3.2"
+
+# Advanced tooling (run: aftman install)
+lune = "lune-org/lune@0.8.9"
+remodel = "rojo-rbx/remodel@0.11.0"
+tarmac = "Roblox/tarmac@0.7.6"

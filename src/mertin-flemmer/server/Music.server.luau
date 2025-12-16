@@ -57,23 +57,7 @@ type RadioStation = {
 }
 
 local RADIO_STATIONS: { RadioStation } = {
-	{
-		name = "Doom FM",
-		genre = "Dark Ambient",
-		description = "The sound of approaching inevitability",
-		frequency = "66.6 FM",
-		mood = "Ominous",
-		color = Color3.fromRGB(80, 0, 0),
-		position = Vector3.new(-300, 0, -350), -- Near Frozen Peaks
-		range = 800,
-		tracks = {
-			"rbxassetid://9043887091", -- Dark ambient
-			"rbxassetid://9043887091",
-			"rbxassetid://9043887091",
-		},
-		announcer = "The Harbinger",
-		towerHeight = 80,
-	},
+	-- ===== CENTRAL / SPAWN AREA =====
 	{
 		name = "Survivor Radio",
 		genre = "Acoustic Folk",
@@ -82,7 +66,7 @@ local RADIO_STATIONS: { RadioStation } = {
 		mood = "Hopeful",
 		color = Color3.fromRGB(200, 180, 100),
 		position = Vector3.new(200, 0, 100), -- Near spawn
-		range = 600,
+		range = 1000, -- LARGER RANGE!
 		tracks = {
 			"rbxassetid://1837849285", -- Folk
 			"rbxassetid://1837849285",
@@ -92,6 +76,181 @@ local RADIO_STATIONS: { RadioStation } = {
 		towerHeight = 60,
 	},
 	{
+		name = "Camel Country",
+		genre = "Desert Blues",
+		description = "Toe-tappin' tunes for the trail",
+		frequency = "103.5 FM",
+		mood = "Upbeat",
+		color = Color3.fromRGB(200, 150, 80),
+		position = Vector3.new(-100, 0, 300), -- Southern area near spawn
+		range = 900,
+		tracks = {
+			"rbxassetid://1836367922", -- Blues
+			"rbxassetid://1836367922",
+			"rbxassetid://1836367922",
+		},
+		announcer = "Dusty Dan",
+		towerHeight = 55,
+	},
+
+	-- ===== FROZEN WASTES (Snow Biome - East) =====
+	{
+		name = "Frost Wave",
+		genre = "Synth Chill",
+		description = "Cold beats for cold nights",
+		frequency = "94.5 FM",
+		mood = "Serene",
+		color = Color3.fromRGB(150, 200, 255),
+		position = Vector3.new(1800, 0, 100), -- Deep in snow biome
+		range = 1200,
+		tracks = {
+			"rbxassetid://1839841276", -- Atmospheric
+			"rbxassetid://1839841276",
+			"rbxassetid://1839841276",
+		},
+		announcer = "Ice Queen Vera",
+		towerHeight = 100,
+	},
+	{
+		name = "Arctic Dawn",
+		genre = "Ambient",
+		description = "The sound of frozen silence",
+		frequency = "89.3 FM",
+		mood = "Peaceful",
+		color = Color3.fromRGB(200, 230, 255),
+		position = Vector3.new(2500, 0, -300), -- Far frozen wastes
+		range = 1000,
+		tracks = {
+			"rbxassetid://9043887091", -- Ambient
+			"rbxassetid://9043887091",
+		},
+		announcer = "The Frost Whisperer",
+		towerHeight = 120,
+	},
+
+	-- ===== SCORCHED SANDS (Desert Biome - East/South) =====
+	{
+		name = "Sandstorm Radio",
+		genre = "Arabic Electronic",
+		description = "Desert rhythms for weary travelers",
+		frequency = "101.1 FM",
+		mood = "Exotic",
+		color = Color3.fromRGB(255, 200, 100),
+		position = Vector3.new(1500, 0, 1800), -- Desert biome
+		range = 1100,
+		tracks = {
+			"rbxassetid://1836367922", -- World music
+			"rbxassetid://1836367922",
+		},
+		announcer = "Sultan of Sound",
+		towerHeight = 80,
+	},
+	{
+		name = "Mirage FM",
+		genre = "Psychedelic",
+		description = "Is this real? Does it matter?",
+		frequency = "105.7 FM",
+		mood = "Trippy",
+		color = Color3.fromRGB(255, 150, 200),
+		position = Vector3.new(2200, 0, 2000), -- Deep desert
+		range = 900,
+		tracks = {
+			"rbxassetid://1837973836", -- Psychedelic
+			"rbxassetid://1837973836",
+		},
+		announcer = "The Dreamer",
+		towerHeight = 70,
+	},
+
+	-- ===== ASHEN PEAKS (Volcanic Biome - West/South) =====
+	{
+		name = "Doom FM",
+		genre = "Dark Ambient",
+		description = "The sound of approaching inevitability",
+		frequency = "66.6 FM",
+		mood = "Ominous",
+		color = Color3.fromRGB(255, 80, 0),
+		position = Vector3.new(-2000, 0, 1500), -- Volcanic biome
+		range = 1200,
+		tracks = {
+			"rbxassetid://9043887091", -- Dark ambient
+			"rbxassetid://9043887091",
+			"rbxassetid://9043887091",
+		},
+		announcer = "The Harbinger",
+		towerHeight = 100,
+	},
+	{
+		name = "Inferno Beats",
+		genre = "Industrial Metal",
+		description = "FORGED IN FIRE!",
+		frequency = "98.9 FM",
+		mood = "Intense",
+		color = Color3.fromRGB(255, 50, 0),
+		position = Vector3.new(-2500, 0, 1000), -- Deep volcanic
+		range = 1000,
+		tracks = {
+			"rbxassetid://9043887091", -- Heavy
+			"rbxassetid://9043887091",
+		},
+		announcer = "Forge Master Rex",
+		towerHeight = 90,
+	},
+
+	-- ===== MURKY DEPTHS (Swamp Biome - West/North) =====
+	{
+		name = "Bayou Blues",
+		genre = "Swamp Blues",
+		description = "Music from the murky depths",
+		frequency = "92.3 FM",
+		mood = "Eerie",
+		color = Color3.fromRGB(100, 150, 80),
+		position = Vector3.new(-1500, 0, -1200), -- Swamp biome
+		range = 1000,
+		tracks = {
+			"rbxassetid://1836367922", -- Blues
+			"rbxassetid://1836367922",
+		},
+		announcer = "Swamp Thing Sam",
+		towerHeight = 60,
+	},
+	{
+		name = "Fog Frequency",
+		genre = "Gothic Ambient",
+		description = "Lost in the mist...",
+		frequency = "77.7 FM",
+		mood = "Mysterious",
+		color = Color3.fromRGB(80, 100, 80),
+		position = Vector3.new(-1800, 0, -800), -- Deep swamp
+		range = 800,
+		tracks = {
+			"rbxassetid://9043887091", -- Gothic
+			"rbxassetid://9043887091",
+		},
+		announcer = "The Fog",
+		towerHeight = 50,
+	},
+
+	-- ===== SHIMMERING CAVERNS (Crystal Biome - South) =====
+	{
+		name = "Crystal Clear",
+		genre = "New Age",
+		description = "Healing frequencies from the crystals",
+		frequency = "111.1 FM",
+		mood = "Magical",
+		color = Color3.fromRGB(200, 100, 255),
+		position = Vector3.new(0, 0, -2000), -- Crystal biome
+		range = 1100,
+		tracks = {
+			"rbxassetid://1837973836", -- New age
+			"rbxassetid://1837973836",
+		},
+		announcer = "Crystal Sage Lumina",
+		towerHeight = 110,
+	},
+
+	-- ===== MOUNTAIN AREAS =====
+	{
 		name = "The Wasteland",
 		genre = "Post-Rock",
 		description = "Music for the end of everything",
@@ -99,7 +258,7 @@ local RADIO_STATIONS: { RadioStation } = {
 		mood = "Melancholic",
 		color = Color3.fromRGB(100, 100, 120),
 		position = Vector3.new(400, 0, -200), -- Shadow Mountains area
-		range = 700,
+		range = 1000,
 		tracks = {
 			"rbxassetid://1839841276", -- Atmospheric
 			"rbxassetid://1839841276",
@@ -109,22 +268,40 @@ local RADIO_STATIONS: { RadioStation } = {
 		towerHeight = 70,
 	},
 	{
-		name = "Camel Country",
-		genre = "Desert Blues",
-		description = "Toe-tappin' tunes for the trail",
-		frequency = "103.5 FM",
-		mood = "Upbeat",
-		color = Color3.fromRGB(200, 150, 80),
-		position = Vector3.new(-100, 0, 300), -- Southern area
-		range = 650,
+		name = "Mountain Echo",
+		genre = "Orchestral",
+		description = "Classical pieces for contemplation",
+		frequency = "107.9 FM",
+		mood = "Grand",
+		color = Color3.fromRGB(150, 150, 200),
+		position = Vector3.new(350, 0, 350), -- Near The Giants
+		range = 1000,
 		tracks = {
-			"rbxassetid://1836367922", -- Blues
-			"rbxassetid://1836367922",
-			"rbxassetid://1836367922",
+			"rbxassetid://1837973836", -- Orchestral
+			"rbxassetid://1837973836",
+			"rbxassetid://1837973836",
 		},
-		announcer = "Dusty Dan",
-		towerHeight = 55,
+		announcer = "Professor Harmon",
+		towerHeight = 90,
 	},
+	{
+		name = "Peak Performance",
+		genre = "Epic Cinematic",
+		description = "For those who climb highest",
+		frequency = "99.9 FM",
+		mood = "Triumphant",
+		color = Color3.fromRGB(255, 215, 0),
+		position = Vector3.new(300, 0, -500), -- Near mountain peaks
+		range = 1200,
+		tracks = {
+			"rbxassetid://1837973836", -- Epic
+			"rbxassetid://1837973836",
+		},
+		announcer = "Summit Steve",
+		towerHeight = 150,
+	},
+
+	-- ===== MYSTERIOUS / SPECIAL =====
 	{
 		name = "Static",
 		genre = "Experimental Noise",
@@ -132,8 +309,8 @@ local RADIO_STATIONS: { RadioStation } = {
 		frequency = "?.? FM",
 		mood = "Unsettling",
 		color = Color3.fromRGB(50, 50, 50),
-		position = Vector3.new(0, 0, -500), -- Far north, near danger
-		range = 400,
+		position = Vector3.new(0, 0, -500), -- Mysterious location
+		range = 600,
 		tracks = {
 			"rbxassetid://9043887091", -- Noise/static
 			"rbxassetid://9043887091",
@@ -142,21 +319,20 @@ local RADIO_STATIONS: { RadioStation } = {
 		towerHeight = 100,
 	},
 	{
-		name = "Mountain Echo",
-		genre = "Orchestral",
-		description = "Classical pieces for contemplation",
-		frequency = "107.9 FM",
-		mood = "Grand",
-		color = Color3.fromRGB(150, 150, 200),
-		position = Vector3.new(350, 0, 350), -- Near The Giants
-		range = 750,
+		name = "Skyscraper FM",
+		genre = "Elevator Jazz",
+		description = "Smooth sounds from Floor 7½",
+		frequency = "75.0 FM",
+		mood = "Jazzy",
+		color = Color3.fromRGB(255, 200, 150),
+		position = Vector3.new(150, 0, -100), -- At the Mertin-Flemmer building
+		range = 500,
 		tracks = {
-			"rbxassetid://1837973836", -- Orchestral
-			"rbxassetid://1837973836",
+			"rbxassetid://1837973836", -- Jazz
 			"rbxassetid://1837973836",
 		},
-		announcer = "Professor Harmon",
-		towerHeight = 90,
+		announcer = "Mertin & Flemmer",
+		towerHeight = 40, -- Short - it's ON the skyscraper
 	},
 }
 
@@ -344,49 +520,51 @@ local function createRadioTower(station: RadioStation, index: number)
 	signPart.CastShadow = false
 	signPart.Parent = tower
 
-	-- GUI on the BACK face (facing outward, away from tower)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "StationSign"
-	gui.Face = Enum.NormalId.Back  -- Back face = faces away from tower center
-	gui.Parent = signPart
+	-- GUI on BOTH sides
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "StationSign"
+		gui.Face = face
+		gui.Parent = signPart
 
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromScale(1, 1)
-	frame.BackgroundTransparency = 1
-	frame.Parent = gui
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.fromScale(1, 1)
+		frame.BackgroundTransparency = 1
+		frame.Parent = gui
 
-	local frequency = Instance.new("TextLabel")
-	frequency.Name = "Frequency"
-	frequency.Size = UDim2.fromScale(1, 0.4)
-	frequency.Position = UDim2.fromScale(0, 0)
-	frequency.BackgroundTransparency = 1
-	frequency.Text = station.frequency
-	frequency.TextColor3 = station.color
-	frequency.TextScaled = true
-	frequency.Font = Enum.Font.SourceSansBold
-	frequency.Parent = frame
+		local frequency = Instance.new("TextLabel")
+		frequency.Name = "Frequency"
+		frequency.Size = UDim2.fromScale(1, 0.4)
+		frequency.Position = UDim2.fromScale(0, 0)
+		frequency.BackgroundTransparency = 1
+		frequency.Text = station.frequency
+		frequency.TextColor3 = station.color
+		frequency.TextScaled = true
+		frequency.Font = Enum.Font.SourceSansBold
+		frequency.Parent = frame
 
-	local stationNameLabel = Instance.new("TextLabel")
-	stationNameLabel.Name = "StationName"
-	stationNameLabel.Size = UDim2.fromScale(1, 0.35)
-	stationNameLabel.Position = UDim2.fromScale(0, 0.4)
-	stationNameLabel.BackgroundTransparency = 1
-	stationNameLabel.Text = station.name
-	stationNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	stationNameLabel.TextScaled = true
-	stationNameLabel.Font = Enum.Font.SourceSansBold
-	stationNameLabel.Parent = frame
+		local stationNameLabel = Instance.new("TextLabel")
+		stationNameLabel.Name = "StationName"
+		stationNameLabel.Size = UDim2.fromScale(1, 0.35)
+		stationNameLabel.Position = UDim2.fromScale(0, 0.4)
+		stationNameLabel.BackgroundTransparency = 1
+		stationNameLabel.Text = station.name
+		stationNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		stationNameLabel.TextScaled = true
+		stationNameLabel.Font = Enum.Font.SourceSansBold
+		stationNameLabel.Parent = frame
 
-	local genreLabel = Instance.new("TextLabel")
-	genreLabel.Name = "Genre"
-	genreLabel.Size = UDim2.fromScale(1, 0.25)
-	genreLabel.Position = UDim2.fromScale(0, 0.75)
-	genreLabel.BackgroundTransparency = 1
-	genreLabel.Text = station.genre
-	genreLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-	genreLabel.TextScaled = true
-	genreLabel.Font = Enum.Font.SourceSans
-	genreLabel.Parent = frame
+		local genreLabel = Instance.new("TextLabel")
+		genreLabel.Name = "Genre"
+		genreLabel.Size = UDim2.fromScale(1, 0.25)
+		genreLabel.Position = UDim2.fromScale(0, 0.75)
+		genreLabel.BackgroundTransparency = 1
+		genreLabel.Text = station.genre
+		genreLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+		genreLabel.TextScaled = true
+		genreLabel.Font = Enum.Font.SourceSans
+		genreLabel.Parent = frame
+	end
 
 	-- Store station index for reference
 	tower:SetAttribute("StationIndex", index)
@@ -603,8 +781,26 @@ tuneStationEvent.OnServerEvent:Connect(function(player: Player, stationIndex: nu
 end)
 
 -- ==========================================
+-- DEFAULT AMBIENT MUSIC
+-- Always plays when not near any radio station
+-- ==========================================
+
+local DEFAULT_AMBIENT = {
+	name = "Wilderness Ambient",
+	genre = "Nature Sounds",
+	description = "The sounds of the wild...",
+	frequency = "---.- FM",
+	mood = "Atmospheric",
+	tracks = {
+		"rbxassetid://9043887091", -- Ambient nature
+		"rbxassetid://1839841276", -- Atmospheric
+	},
+}
+
+-- ==========================================
 -- PROXIMITY DETECTION
 -- Updates clients about nearby radio towers
+-- MUSIC NEVER STOPS - defaults to ambient when no stations nearby
 -- ==========================================
 
 local function updateProximity()
@@ -636,6 +832,19 @@ local function updateProximity()
 		table.sort(nearbyStations, function(a, b)
 			return a.strength > b.strength
 		end)
+
+		-- MUSIC NEVER STOPS! If no stations nearby, add default ambient
+		if #nearbyStations == 0 then
+			table.insert(nearbyStations, {
+				index = 0, -- Special index for default ambient
+				name = DEFAULT_AMBIENT.name,
+				frequency = DEFAULT_AMBIENT.frequency,
+				strength = 0.5, -- Medium strength
+				distance = 0,
+				isDefault = true,
+				tracks = DEFAULT_AMBIENT.tracks,
+			})
+		end
 
 		radioProximityEvent:FireClient(player, nearbyStations)
 	end
@@ -771,6 +980,7 @@ local function initialize()
 	task.spawn(attachRadioToCamels)
 
 	print("[Music] Radio system online! " .. #RADIO_STATIONS .. " stations broadcasting")
+	print("[Music] MUSIC NEVER STOPS - default ambient plays when no stations nearby")
 	print("[Music] Radios will be attached to buildings and camels shortly...")
 end
 

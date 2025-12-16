@@ -868,6 +868,15 @@ local currentStamina = Config.MAX_STAMINA
 local currentHunger = Config.MAX_HUNGER
 local inventory = { food = 0, batteries = 0, wood = 0 }
 
+-- Reset hunger and stamina when player respawns (CharacterAdded)
+LocalPlayer.CharacterAdded:Connect(function(character)
+	-- Reset hunger to full on respawn
+	currentHunger = Config.MAX_HUNGER
+	-- Reset stamina to full on respawn
+	currentStamina = Config.MAX_STAMINA
+	print("[UI] Player respawned - hunger and stamina reset to full!")
+end)
+
 -- Show collection notification
 local function showCollectNotification(resourceType: string, itemName: string)
 	collectNotification.Text = "+ " .. itemName

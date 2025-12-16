@@ -499,10 +499,28 @@ end)
 UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
 	if gameProcessed then return end
 
-	-- M key toggles walkman
+	-- M key toggles walkman UI
 	if input.KeyCode == Enum.KeyCode.M then
 		if hasWalkman and walkmanGui then
 			toggleWalkman(walkmanGui)
+		end
+	end
+
+	-- ★★★ WALKMAN RADIO QUICK KEYS (6, 7, 8) ★★★
+	-- Only work if player has a walkman!
+	if hasWalkman then
+		-- Key 6 = Station 1 (Survivor Radio)
+		if input.KeyCode == Enum.KeyCode.Six then
+			tuneStationEvent:FireServer(1)
+			print("[Music] Quick tune: Station 1 - Survivor Radio (88.1 FM)")
+		-- Key 7 = Station 2 (Camel Country)
+		elseif input.KeyCode == Enum.KeyCode.Seven then
+			tuneStationEvent:FireServer(2)
+			print("[Music] Quick tune: Station 2 - Camel Country (103.5 FM)")
+		-- Key 8 = World Radio (ambient/off - returns to auto-ambient)
+		elseif input.KeyCode == Enum.KeyCode.Eight then
+			tuneStationEvent:FireServer(nil)
+			print("[Music] Quick tune: World Radio (ambient mode)")
 		end
 	end
 end)
@@ -531,6 +549,12 @@ local function createAmbientSound(): Sound
 	return sound
 end
 
+-- Default ambient tracks (used when no radio towers nearby)
+local DEFAULT_AMBIENT_TRACKS = {
+	"rbxassetid://9043887091", -- Ambient nature
+	"rbxassetid://1839841276", -- Atmospheric
+}
+
 local function playNearestStation()
 	local character = player.Character
 	if not character then return end
@@ -538,7 +562,7 @@ local function playNearestStation()
 	local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not rootPart then return end
 
-	-- Find nearest station from the nearby list
+	-- MUSIC NEVER STOPS! Always play something
 	if #nearbyStations > 0 then
 		local nearest = nearbyStations[1] -- Already sorted by strength
 
@@ -546,36 +570,53 @@ local function playNearestStation()
 		if nearest.index ~= currentAmbientStation then
 			currentAmbientStation = nearest.index
 
-			-- Find full station data
-			for _, station in ipairs(stations) do
-				if station.index == nearest.index then
-					if ambientSound then
-						-- Pick random track from station
-						local trackId = station.tracks[math.random(1, #station.tracks)]
-						ambientSound.SoundId = trackId
-						if not ambientSound.IsPlaying then
-							ambientSound:Play()
-						end
-						print("[Music] Now playing:", station.name, "-", station.frequency)
+			-- Check if this is the default ambient (index 0)
+			if nearest.index == 0 and nearest.tracks then
+				-- Default ambient from server
+				if ambientSound then
+					local trackId = nearest.tracks[math.random(1, #nearest.tracks)]
+					ambientSound.SoundId = trackId
+					if not ambientSound.IsPlaying then
+						ambientSound:Play()
 					end
-					break
+					print("[Music] Now playing: Wilderness Ambient")
+				end
+			else
+				-- Find full station data from stations list
+				for _, station in ipairs(stations) do
+					if station.index == nearest.index then
+						if ambientSound then
+							-- Pick random track from station
+							local trackId = station.tracks[math.random(1, #station.tracks)]
+							ambientSound.SoundId = trackId
+							if not ambientSound.IsPlaying then
+								ambientSound:Play()
+							end
+							print("[Music] Now playing:", station.name, "-", station.frequency)
+						end
+						break
+					end
 				end
 			end
 		end
-	elseif #stations > 0 then
-		-- No nearby stations, play first station as default
-		if currentAmbientStation ~= 1 then
-			currentAmbientStation = 1
-			local station = stations[1]
-			if ambientSound and station then
-				local trackId = station.tracks[math.random(1, #station.tracks)]
+	else
+		-- Fallback: No nearby stations at all, play default ambient
+		if currentAmbientStation ~= -1 then
+			currentAmbientStation = -1
+			if ambientSound then
+				local trackId = DEFAULT_AMBIENT_TRACKS[math.random(1, #DEFAULT_AMBIENT_TRACKS)]
 				ambientSound.SoundId = trackId
 				if not ambientSound.IsPlaying then
 					ambientSound:Play()
 				end
-				print("[Music] Default station:", station.name)
+				print("[Music] Playing fallback ambient music")
 			end
 		end
+	end
+
+	-- Extra safety: If sound isn't playing for some reason, start it
+	if ambientSound and not ambientSound.IsPlaying and ambientSound.SoundId ~= "" then
+		ambientSound:Play()
 	end
 end
 
@@ -598,7 +639,17 @@ RunService.Heartbeat:Connect(updateAmbientMusic)
 
 local function initialize()
 	-- Create ambient sound (ALWAYS PLAYING)
-	createAmbientSound()
+	local sound = createAmbientSound()
+
+	-- START PLAYING IMMEDIATELY with default ambient!
+	-- Don't wait for server - start music right away
+	if sound then
+		local trackId = DEFAULT_AMBIENT_TRACKS[math.random(1, #DEFAULT_AMBIENT_TRACKS)]
+		sound.SoundId = trackId
+		sound:Play()
+		currentAmbientStation = -1 -- Mark as playing default
+		print("[Music Client] Started ambient music immediately!")
+	end
 
 	-- Create UI
 	walkmanGui = createWalkmanUI()
@@ -639,7 +690,7 @@ local function initialize()
 	-- Create sound instance for walkman
 	createWalkmanSound()
 
-	print("[Music Client] Ambient radio active! Music always playing from nearest tower.")
+	print("[Music Client] MUSIC NEVER STOPS! Ambient radio always playing.")
 end
 
 initialize()
