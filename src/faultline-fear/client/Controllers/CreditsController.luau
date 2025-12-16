@@ -154,17 +154,17 @@ function CreditsController:CreateCreditsUI()
 	timeStat.Text = "Completion Time: 00:00"
 	timeStat.Parent = statsFrame
 
-	-- Signal parts stat
-	local signalStat = Instance.new("TextLabel")
-	signalStat.Name = "SignalStat"
-	signalStat.Size = UDim2.new(1, 0, 0, 30)
-	signalStat.Position = UDim2.new(0, 0, 0, 90)
-	signalStat.BackgroundTransparency = 1
-	signalStat.TextColor3 = Color3.fromRGB(255, 255, 255)
-	signalStat.TextSize = 20
-	signalStat.Font = Enum.Font.GothamMedium
-	signalStat.Text = "Signal Parts: 6/6"
-	signalStat.Parent = statsFrame
+	-- Generator parts stat
+	local generatorStat = Instance.new("TextLabel")
+	generatorStat.Name = "GeneratorStat"
+	generatorStat.Size = UDim2.new(1, 0, 0, 30)
+	generatorStat.Position = UDim2.new(0, 0, 0, 90)
+	generatorStat.BackgroundTransparency = 1
+	generatorStat.TextColor3 = Color3.fromRGB(255, 255, 255)
+	generatorStat.TextSize = 20
+	generatorStat.Font = Enum.Font.GothamMedium
+	generatorStat.Text = "Generator Parts: 6/6"
+	generatorStat.Parent = statsFrame
 
 	-- Credits scroll container
 	local creditsContainer = Instance.new("Frame")
@@ -222,7 +222,7 @@ function CreditsController:Show(endingData: {
 	creditsSuffix: string,
 	playTime: number,
 	survivorsRescued: number,
-	signalPartsCollected: number,
+	generatorPartsCollected: number,
 })
 	if isShowing then
 		return
@@ -237,7 +237,7 @@ function CreditsController:Show(endingData: {
 	local statsFrame = background:FindFirstChild("StatsFrame") :: Frame
 	local survivorsStat = statsFrame:FindFirstChild("SurvivorsStat") :: TextLabel
 	local timeStat = statsFrame:FindFirstChild("TimeStat") :: TextLabel
-	local signalStat = statsFrame:FindFirstChild("SignalStat") :: TextLabel
+	local generatorStat = statsFrame:FindFirstChild("GeneratorStat") :: TextLabel
 	local creditsContainer = background:FindFirstChild("CreditsContainer") :: Frame
 	local creditsText = creditsContainer:FindFirstChild("CreditsText") :: TextLabel
 	local continueButton = background:FindFirstChild("ContinueButton") :: TextButton
@@ -273,7 +273,7 @@ function CreditsController:Show(endingData: {
 	-- Set stats
 	survivorsStat.Text = string.format("Survivors Rescued: %d/%d", endingData.survivorsRescued, Shared.Config.OBJECTIVES.SURVIVORS_TOTAL)
 	timeStat.Text = string.format("Completion Time: %s", timeString)
-	signalStat.Text = string.format("Signal Parts: %d/%d", endingData.signalPartsCollected, Shared.Config.OBJECTIVES.SIGNAL_PARTS_TOTAL)
+	generatorStat.Text = string.format("Generator Parts: %d/%d", endingData.generatorPartsCollected, Shared.Config.OBJECTIVES.GENERATOR_PARTS_TOTAL)
 
 	-- Add ending suffix to credits
 	local fullCredits = table.concat(CreditsText, "\n") .. "\n\n\n" .. endingData.creditsSuffix
@@ -299,12 +299,12 @@ function CreditsController:Show(endingData: {
 	statsFrame.BackgroundTransparency = 1
 	survivorsStat.TextTransparency = 1
 	timeStat.TextTransparency = 1
-	signalStat.TextTransparency = 1
+	generatorStat.TextTransparency = 1
 	task.delay(4, function()
 		TweenService:Create(statsFrame, TweenInfo.new(1), { BackgroundTransparency = 0.5 }):Play()
 		TweenService:Create(survivorsStat, TweenInfo.new(1), { TextTransparency = 0 }):Play()
 		TweenService:Create(timeStat, TweenInfo.new(1), { TextTransparency = 0 }):Play()
-		TweenService:Create(signalStat, TweenInfo.new(1), { TextTransparency = 0 }):Play()
+		TweenService:Create(generatorStat, TweenInfo.new(1), { TextTransparency = 0 }):Play()
 	end)
 
 	-- Start credits scroll after delay
@@ -370,7 +370,7 @@ function CreditsController:Initialize()
 					creditsSuffix = event.ending.creditsSuffix,
 					playTime = event.playTime,
 					survivorsRescued = event.survivorsRescued,
-					signalPartsCollected = event.signalPartsCollected,
+					generatorPartsCollected = event.generatorPartsCollected,
 				})
 			end
 		end)

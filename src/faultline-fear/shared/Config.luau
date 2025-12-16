@@ -122,7 +122,7 @@ local Config = {
 	-- OBJECTIVES / PROGRESSION
 	-- ==========================================
 	OBJECTIVES = {
-		SIGNAL_PARTS_TOTAL = 6,
+		GENERATOR_PARTS_TOTAL = 6,
 		SURVIVORS_TOTAL = 10,
 
 		-- Endings

@@ -92,7 +92,7 @@ StoryData.Acts = {
 	ACT_2_TRIALS = {
 		id = "ACT_2_TRIALS",
 		name = "Trials",
-		description = "Cross the fault line. Rescue survivors. Build the signal.",
+		description = "Cross the fault line. Rescue survivors. Fix the generator.",
 		objectives = {
 			{
 				id = "cross_fault",
@@ -107,9 +107,9 @@ StoryData.Acts = {
 				requiredCount = 10,
 			},
 			{
-				id = "collect_signal_parts",
-				title = "Collect Signal Equipment",
-				description = "Gather parts for the emergency radio",
+				id = "collect_generator_parts",
+				title = "Collect Generator Parts",
+				description = "Find parts to repair the radio tower's generator",
 				requiredCount = 6,
 			},
 			{
@@ -121,7 +121,7 @@ StoryData.Acts = {
 			},
 		},
 		triggerCondition = "Act 1 complete",
-		completionCondition = "6 signal parts collected OR The Big One triggers",
+		completionCondition = "6 generator parts collected OR The Big One triggers",
 	},
 
 	ACT_3_ORDEAL = {
@@ -170,14 +170,14 @@ StoryData.Acts = {
 				requiredCount = 1,
 			},
 			{
-				id = "activate_signal",
-				title = "Activate the Signal",
-				description = "Use the signal equipment to call for rescue",
+				id = "activate_radio",
+				title = "Power the Radio",
+				description = "Start the generator and broadcast a distress signal",
 				requiredCount = 1,
 			},
 		},
 		triggerCondition = "Act 3 complete",
-		completionCondition = "Signal activated at radio tower",
+		completionCondition = "Generator powered and radio signal sent",
 	},
 
 	ACT_5_RESOLUTION = {
@@ -198,7 +198,7 @@ StoryData.Acts = {
 				requiredCount = 1,
 			},
 		},
-		triggerCondition = "Signal activated",
+		triggerCondition = "Radio signal broadcast",
 		completionCondition = "Player boards helicopter - GAME COMPLETE",
 	},
 }
@@ -265,9 +265,22 @@ StoryData.Dialogue = {
 			"I thought I was the only one who made it...",
 			"The whole town is destroyed. We need to get to higher ground.",
 			"I heard there's a radio tower up in the mountains. If we can get there...",
+			"The generator's busted though. We'll need parts - spark plug, carburetor, fuel line...",
 			"But first, we need to find the others. I know there are more survivors out there.",
 		},
 		triggers = "First survivor rescued in Act 1",
+	},
+
+	generator_part_found = {
+		id = "generator_part_found",
+		name = "Marcus",
+		portrait = nil,
+		lines = {
+			"That's a generator part! We need six total to get that radio tower running.",
+			"Spark plug, carburetor, pull cord, fuel line, air filter, and ignition coil.",
+			"Keep your eyes open. They could be anywhere.",
+		},
+		triggers = "First generator part collected",
 	},
 
 	fault_line_warning = {
@@ -316,7 +329,7 @@ StoryData.Dialogue = {
 			"Hold your position. ETA fifteen minutes.",
 			"You did it, survivor. Help is on the way.",
 		},
-		triggers = "Signal activated in Act 4",
+		triggers = "Radio broadcast in Act 4",
 	},
 }
 
@@ -337,10 +350,10 @@ StoryData.Events = {
 		description = "The massive earthquake that changes the world",
 		triggersAct = "ACT_3_ORDEAL",
 	},
-	SIGNAL_ACTIVATED = {
-		id = "SIGNAL_ACTIVATED",
-		name = "Signal Activated",
-		description = "The rescue signal has been sent",
+	RADIO_BROADCAST = {
+		id = "RADIO_BROADCAST",
+		name = "Radio Broadcast",
+		description = "The generator is running and the rescue signal has been sent",
 		triggersAct = "ACT_5_RESOLUTION",
 	},
 	RESCUE_ARRIVAL = {
@@ -348,6 +361,289 @@ StoryData.Events = {
 		name = "Rescue Arrives",
 		description = "The helicopter has arrived",
 		triggersEnding = true,
+	},
+}
+
+-- ==========================================
+-- STORY BEATS (Data-Driven Triggers)
+-- ==========================================
+
+export type TriggerType = "zone_enter" | "object_collect" | "npc_interact" | "time_elapsed" | "event"
+
+export type StoryBeat = {
+	id: string,
+	actRequired: ActId?,
+	triggerType: TriggerType,
+	triggerData: {
+		zoneId: string?,
+		objectTag: string?,
+		npcId: string?,
+		eventId: string?,
+		delaySeconds: number?,
+	},
+	conditions: {
+		objectivesComplete: { string }?,
+		survivorsRescued: number?,
+		generatorParts: number?,
+		timeOfDay: string?,
+	}?,
+	effects: {
+		completeObjective: string?,
+		playDialogue: string?,
+		triggerEvent: string?,
+		advanceAct: boolean?,
+	},
+	repeatable: boolean,
+	globalTrigger: boolean?,
+}
+
+StoryData.Beats = {
+	-- ==========================================
+	-- ACT 1: THE CALL
+	-- ==========================================
+
+	wake_up = {
+		id = "wake_up",
+		actRequired = "ACT_1_CALL",
+		triggerType = "event",
+		triggerData = { eventId = "GAME_START" },
+		effects = {
+			completeObjective = "wake_up",
+		},
+		repeatable = false,
+	},
+
+	first_food_found = {
+		id = "first_food_found",
+		actRequired = "ACT_1_CALL",
+		triggerType = "object_collect",
+		triggerData = { objectTag = "Food" },
+		conditions = {
+			objectivesComplete = { "wake_up" },
+		},
+		effects = {
+			completeObjective = "find_food",
+		},
+		repeatable = false,
+	},
+
+	first_survivor_found = {
+		id = "first_survivor_found",
+		actRequired = "ACT_1_CALL",
+		triggerType = "npc_interact",
+		triggerData = { objectTag = "Rescuable" },
+		effects = {
+			completeObjective = "meet_survivor",
+			playDialogue = "first_survivor",
+		},
+		repeatable = false,
+	},
+
+	reach_coastal_town = {
+		id = "reach_coastal_town",
+		actRequired = "ACT_1_CALL",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "CoastalTown" },
+		conditions = {
+			objectivesComplete = { "meet_survivor" },
+		},
+		effects = {
+			completeObjective = "reach_town",
+			triggerEvent = "ACT_1_COMPLETE",
+			advanceAct = true,
+		},
+		repeatable = false,
+	},
+
+	-- ==========================================
+	-- ACT 2: TRIALS
+	-- ==========================================
+
+	cross_fault_line = {
+		id = "cross_fault_line",
+		actRequired = "ACT_2_TRIALS",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "FaultLineNorth" },
+		effects = {
+			completeObjective = "cross_fault",
+			playDialogue = "fault_line_warning",
+		},
+		repeatable = false,
+	},
+
+	generator_part_collected = {
+		id = "generator_part_collected",
+		actRequired = "ACT_2_TRIALS",
+		triggerType = "object_collect",
+		triggerData = { objectTag = "GeneratorPart" },
+		effects = {
+			completeObjective = "collect_generator_parts",
+		},
+		repeatable = true, -- Can collect multiple
+	},
+
+	first_generator_part = {
+		id = "first_generator_part",
+		actRequired = "ACT_2_TRIALS",
+		triggerType = "object_collect",
+		triggerData = { objectTag = "GeneratorPart" },
+		effects = {
+			playDialogue = "generator_part_found",
+		},
+		repeatable = false,
+	},
+
+	survivor_rescued = {
+		id = "survivor_rescued",
+		triggerType = "npc_interact",
+		triggerData = { objectTag = "Rescuable" },
+		effects = {
+			completeObjective = "rescue_survivors",
+		},
+		repeatable = true, -- Can rescue multiple
+	},
+
+	first_night_survived = {
+		id = "first_night_survived",
+		actRequired = "ACT_2_TRIALS",
+		triggerType = "event",
+		triggerData = { eventId = "DAWN_AFTER_FIRST_NIGHT" },
+		effects = {
+			completeObjective = "survive_night",
+		},
+		repeatable = false,
+	},
+
+	-- ==========================================
+	-- ACT 3: THE ORDEAL
+	-- ==========================================
+
+	big_one_starts = {
+		id = "big_one_starts",
+		triggerType = "event",
+		triggerData = { eventId = "BIG_ONE" },
+		effects = {
+			triggerEvent = "ACT_2_COMPLETE",
+			advanceAct = true,
+		},
+		repeatable = false,
+		globalTrigger = true,
+	},
+
+	big_one_survived = {
+		id = "big_one_survived",
+		actRequired = "ACT_3_ORDEAL",
+		triggerType = "event",
+		triggerData = { eventId = "BIG_ONE_ENDED" },
+		effects = {
+			completeObjective = "survive_big_one",
+			playDialogue = "big_one_aftermath",
+		},
+		repeatable = false,
+	},
+
+	check_survivors_aftermath = {
+		id = "check_survivors_aftermath",
+		actRequired = "ACT_3_ORDEAL",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "SurvivorCamp" },
+		conditions = {
+			objectivesComplete = { "survive_big_one" },
+		},
+		effects = {
+			completeObjective = "find_survivors_aftermath",
+		},
+		repeatable = false,
+	},
+
+	reach_mountain_base = {
+		id = "reach_mountain_base",
+		actRequired = "ACT_3_ORDEAL",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "MountainBase" },
+		effects = {
+			completeObjective = "adapt_new_terrain",
+			triggerEvent = "ACT_3_COMPLETE",
+			advanceAct = true,
+		},
+		repeatable = false,
+	},
+
+	-- ==========================================
+	-- ACT 4: THE RETURN
+	-- ==========================================
+
+	reach_radio_tower = {
+		id = "reach_radio_tower",
+		actRequired = "ACT_4_RETURN",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "RadioTower" },
+		effects = {
+			completeObjective = "ascend_mountain",
+			playDialogue = "final_ascent",
+		},
+		repeatable = false,
+	},
+
+	group_gathered = {
+		id = "group_gathered",
+		actRequired = "ACT_4_RETURN",
+		triggerType = "event",
+		triggerData = { eventId = "SURVIVORS_AT_TOWER" },
+		effects = {
+			completeObjective = "gather_group",
+		},
+		repeatable = false,
+	},
+
+	activate_radio = {
+		id = "activate_radio",
+		actRequired = "ACT_4_RETURN",
+		triggerType = "npc_interact",
+		triggerData = { objectTag = "RadioTower" },
+		conditions = {
+			objectivesComplete = { "ascend_mountain" },
+			generatorParts = 6,
+		},
+		effects = {
+			completeObjective = "activate_radio",
+			triggerEvent = "RADIO_BROADCAST",
+			playDialogue = "rescue_arrives",
+			advanceAct = true,
+		},
+		repeatable = false,
+	},
+
+	-- ==========================================
+	-- ACT 5: RESOLUTION
+	-- ==========================================
+
+	helicopter_arrives = {
+		id = "helicopter_arrives",
+		actRequired = "ACT_5_RESOLUTION",
+		triggerType = "time_elapsed",
+		triggerData = { delaySeconds = 60, afterEvent = "RADIO_BROADCAST" },
+		effects = {
+			completeObjective = "await_rescue",
+			triggerEvent = "HELICOPTER_ARRIVED",
+		},
+		repeatable = false,
+		globalTrigger = true,
+	},
+
+	board_helicopter = {
+		id = "board_helicopter",
+		actRequired = "ACT_5_RESOLUTION",
+		triggerType = "zone_enter",
+		triggerData = { zoneId = "HelicopterZone" },
+		conditions = {
+			objectivesComplete = { "await_rescue" },
+		},
+		effects = {
+			completeObjective = "board_helicopter",
+			triggerEvent = "GAME_COMPLETE",
+		},
+		repeatable = false,
 	},
 }
 

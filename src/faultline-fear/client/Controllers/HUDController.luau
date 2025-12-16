@@ -32,7 +32,7 @@ local TOUCH_MOVE_THRESHOLD = 20 -- pixels - cancel long-press if moved
 local _currentHunger = { current = 100, max = 100 }
 local _currentTime = { clockTime = 8, period = "Day" :: string, isDangerous = false }
 local _currentObjective = { text = "Explore the area", step = 1, total = 1 }
-local currentProgress = { signalParts = 0, survivors = 0 }
+local currentProgress = { generatorParts = 0, survivors = 0 }
 
 -- ==========================================
 -- UI CREATION HELPERS
@@ -221,15 +221,15 @@ function HUDController:CreateHUD()
 	bottomRight.BackgroundTransparency = 1
 	bottomRight.Parent = container
 
-	elements.signalProgress = createTextLabel(
+	elements.generatorProgress = createTextLabel(
 		bottomRight,
-		"SignalProgress",
+		"GeneratorProgress",
 		UDim2.new(0, 0, 0, 0),
 		UDim2.new(1, 0, 0, 24),
 		Enum.TextXAlignment.Right
 	)
-	elements.signalProgress.TextSize = 14
-	elements.signalProgress.Text = "📡 Signal Parts: 0/6"
+	elements.generatorProgress.TextSize = 14
+	elements.generatorProgress.Text = "⚙️ Generator Parts: 0/6"
 
 	elements.survivorProgress = createTextLabel(
 		bottomRight,
@@ -362,8 +362,8 @@ function HUDController:CreateHUD()
 		UDim2.new(1, -40, 0, 24),
 		Enum.TextXAlignment.Left
 	)
-	expandedSignal.Text = "📡 Signal Parts: 0/6"
-	elements.expandedSignal = expandedSignal
+	expandedSignal.Text = "⚙️ Generator Parts: 0/6"
+	elements.expandedGenerator = expandedSignal
 
 	local expandedSurvivors = createTextLabel(
 		expandedPanel,
@@ -494,17 +494,17 @@ function HUDController:UpdateObjective(objectiveData: { text: string, step: numb
 	objectiveStep.Text = string.format("Step %d of %d", objectiveData.step, objectiveData.total)
 end
 
-function HUDController:UpdateProgress(progressData: { signalParts: number?, survivors: number? })
-	if progressData.signalParts then
-		currentProgress.signalParts = progressData.signalParts
+function HUDController:UpdateProgress(progressData: { generatorParts: number?, survivors: number? })
+	if progressData.generatorParts then
+		currentProgress.generatorParts = progressData.generatorParts
 	end
 	if progressData.survivors then
 		currentProgress.survivors = progressData.survivors
 	end
 
-	local signalProgress = elements.signalProgress :: TextLabel
-	signalProgress.Text =
-		string.format("📡 Signal Parts: %d/%d", currentProgress.signalParts, Config.OBJECTIVES.SIGNAL_PARTS_TOTAL)
+	local generatorProgress = elements.generatorProgress :: TextLabel
+	generatorProgress.Text =
+		string.format("⚙️ Generator Parts: %d/%d", currentProgress.generatorParts, Config.OBJECTIVES.GENERATOR_PARTS_TOTAL)
 
 	local survivorProgress = elements.survivorProgress :: TextLabel
 	survivorProgress.Text =
@@ -650,12 +650,12 @@ end
 
 function HUDController:UpdateExpandedPanel()
 	-- Update expanded panel with current data
-	local expandedSignal = elements.expandedSignal :: TextLabel
+	local expandedGenerator = elements.expandedGenerator :: TextLabel
 	local expandedSurvivors = elements.expandedSurvivors :: TextLabel
 	local expandedTime = elements.expandedTime :: TextLabel
 	local expandedZone = elements.expandedZone :: TextLabel
 
-	expandedSignal.Text = string.format("📡 Signal Parts: %d/%d", currentProgress.signalParts, Config.OBJECTIVES.SIGNAL_PARTS_TOTAL)
+	expandedGenerator.Text = string.format("⚙️ Generator Parts: %d/%d", currentProgress.generatorParts, Config.OBJECTIVES.GENERATOR_PARTS_TOTAL)
 	expandedSurvivors.Text = string.format("👤 Survivors: %d/%d", currentProgress.survivors, Config.OBJECTIVES.SURVIVORS_TOTAL)
 	expandedTime.Text = string.format("🕐 %s", (elements.timeDisplay :: TextLabel).Text)
 	expandedZone.Text = string.format("📍 %s", (elements.zoneName :: TextLabel).Text)
@@ -803,7 +803,7 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 			Position = UDim2.new(1, -165, 1, -65),
 		}):Play()
 
-		(elements.signalProgress :: TextLabel).TextSize = 12
+		(elements.generatorProgress :: TextLabel).TextSize = 12
 		(elements.survivorProgress :: TextLabel).TextSize = 12
 
 		-- Hide expand button
@@ -876,7 +876,7 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 			Position = UDim2.new(1, -220, 1, -80),
 		}):Play()
 
-		(elements.signalProgress :: TextLabel).TextSize = 14
+		(elements.generatorProgress :: TextLabel).TextSize = 14
 		(elements.survivorProgress :: TextLabel).TextSize = 14
 
 		-- Hide expand button

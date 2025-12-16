@@ -356,6 +356,46 @@ All issues MUST have `faultline-fear` label plus category:
 - `world-building`, `gameplay`, `narrative`, `audio`, `visuals`
 - `performance`, `tooling`, `blender`, `bug`, `enhancement`
 
+### Narrative Architecture (CRITICAL)
+
+**Full doc**: `docs/faultline-fear/NARRATIVE_IMPLEMENTATION.md`
+
+The story uses the **StoryBeat pattern** - data-driven story moments with shared processing:
+
+```lua
+-- StoryBeat: Every story moment is DATA, not hardcoded logic
+type StoryBeat = {
+    id: string,
+    actRequired: ActId?,                    -- Only in this act
+    triggerType: "zone_enter" | "object_collect" | "npc_interact" | "time_elapsed" | "event",
+    triggerData: { zoneId?, objectTag?, npcId?, eventId?, delaySeconds? },
+    conditions: { objectivesComplete?, survivorsRescued?, timeOfDay? }?,
+    effects: { completeObjective?, playDialogue?, triggerEvent?, spawnObject?, modifyWorld?, ... },
+    repeatable: boolean,
+    globalTrigger: boolean,
+}
+```
+
+**Key files**:
+- `shared/StoryData.luau` - Acts, objectives, endings, dialogue (DATA)
+- `server/Services/NarrativeService.luau` - Progress tracking, act advancement
+- `server/Services/StoryBeatProcessor.luau` - Runtime trigger engine (TO BE CREATED)
+- `client/Controllers/CreditsController.luau` - Ending sequence
+
+**Roblox systems for narrative**:
+- `Touched` + zone parts → spatial triggers
+- `Attributes` → object state/story gating
+- `CollectionService` tags → bulk operations
+- `BindableEvents` → internal service communication
+- `Terrain:WriteVoxels` → permanent world changes (The Big One)
+
+**Multi-player decisions**:
+- Generator parts: Per-player (each needs 6)
+- Survivors: Shared (once rescued, rescued for all)
+- World events: Global (The Big One happens for everyone)
+
+**The mantra**: Story IS gameplay. Every beat has a GAMEPLAY component, not just text.
+
 ---
 
 ## Tooling Stack
@@ -404,6 +444,69 @@ run-in-roblox = "rojo-rbx/run-in-roblox@0.3.0"
 - Trigger roblox-screenshot (requires Studio running + visible)
 
 **For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path.
+
+---
+
+## Context Loading Protocol
+
+**Problem**: Claude instances have finite context. Loading everything wastes tokens. Loading too little causes mistakes.
+
+**Solution**: Load context based on the task at hand.
+
+### Task-Based Context Loading
+
+| Task Type | Read These Files First |
+|-----------|------------------------|
+| **Narrative work** | `docs/faultline-fear/NARRATIVE_IMPLEMENTATION.md`, `src/faultline-fear/shared/StoryData.luau` |
+| **Terrain/world** | `src/faultline-fear/shared/Config.luau`, `src/faultline-fear/shared/Heightmap.luau` |
+| **UI/HUD** | `src/faultline-fear/client/Controllers/HUDController.luau` |
+| **Earthquakes** | `src/faultline-fear/server/Services/EarthquakeService.luau` |
+| **Mobile/touch** | `src/faultline-fear/client/Controllers/TouchController.luau` |
+| **Audio** | `src/faultline-fear/client/Controllers/AudioController.luau` |
+| **New feature** | `docs/faultline-fear/FAULTLINE_FEAR.md` (design doc) |
+
+### Documentation Hierarchy
+
+```
+CLAUDE.md                           ← Always read (this file)
+    │
+    ├── docs/faultline-fear/
+    │   ├── FAULTLINE_FEAR.md       ← Design document (what to build)
+    │   └── NARRATIVE_IMPLEMENTATION.md ← Narrative architecture (how to build story)
+    │
+    └── src/faultline-fear/
+        ├── shared/Config.luau      ← All constants
+        ├── shared/StoryData.luau   ← Story data (single source of truth)
+        └── ... other modules
+```
+
+### Compact Pattern References
+
+When you need to remember a pattern quickly, these are the key abstractions:
+
+**Terrain**: `Heightmap:GetHeight(x, z)` → O(1) lookup, single source of truth
+**Story**: `StoryBeat` → data-driven trigger/condition/effect
+**Pooling**: `ObjectPool:Get()`/`:Release()` → reuse expensive objects
+**Events**: `BindableEvent` (server) / `RemoteEvent` (client-server)
+
+### Self-Documenting Code
+
+All modules should have header comments that explain:
+1. What the module does (one sentence)
+2. Key exports
+3. Dependencies
+
+Example:
+```lua
+--[[
+    NarrativeService: Tracks player story progression server-side.
+
+    Exports: Initialize(), CompleteObjective(), GetProgress(), AdvanceAct()
+    Depends: StoryData, Remotes
+]]
+```
+
+This way, future Claude instances can read JUST the header to decide if they need the full file.
 
 ---
 

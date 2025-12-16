@@ -63,8 +63,8 @@
 - **Doom** - Stay idle too long and... something comes
 
 ### The Goal
-1. Find the **three Signal Parts** scattered across the world
-2. Reach the **signal tower**
+1. Find the **three Generator Parts** scattered across the world
+2. Reach the **radio tower**
 3. Call for **rescue**
 4. Escape before the portal consumes everything
 
@@ -91,7 +91,7 @@
 **What's on Floor 7.5:**
 - The portal wound - where reality bleeds
 - Clues about the Mertin-Flemmer Incident
-- One of the Signal Parts may be hidden here
+- One of the Generator Parts may be hidden here
 - Strange whispers and distorted space
 
 **To Leave:** Find the emergency exit door on the west wall
@@ -245,7 +245,7 @@ The corporation's 20-story headquarters became ground zero.
 **Floor 7.5 appeared overnight** - a wound in reality where the portal
 still bleeds.
 
-Now you must find the three Signal Parts, reach the tower, and call
+Now you must find the three Generator Parts, reach the tower, and call
 for rescue. Before the darkness consumes everything.
 
 ---

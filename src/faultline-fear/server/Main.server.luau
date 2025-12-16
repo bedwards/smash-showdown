@@ -51,6 +51,16 @@ local function createRemotes()
 	objectiveUpdate.Name = "ObjectiveUpdate"
 	objectiveUpdate.Parent = remotes
 
+	-- Story events (for dialogue, credits, etc.)
+	local storyEvent = Instance.new("RemoteEvent")
+	storyEvent.Name = "StoryEvent"
+	storyEvent.Parent = remotes
+
+	-- Dialogue
+	local dialogueEvent = Instance.new("RemoteEvent")
+	dialogueEvent.Name = "DialogueEvent"
+	dialogueEvent.Parent = remotes
+
 	-- Interact
 	local interactRequest = Instance.new("RemoteFunction")
 	interactRequest.Name = "InteractRequest"
@@ -96,25 +106,43 @@ print("[FaultlineFear] Loading services...")
 local TerrainGenerator = require(script.Services.TerrainGenerator)
 local HungerService = require(script.Services.HungerService)
 local DayNightService = require(script.Services.DayNightService)
+local PlayerDataService = require(script.Services.PlayerDataService)
 
 -- Phase 2: Core Gameplay services
 local EarthquakeService = require(script.Services.EarthquakeService)
 local MusicService = require(script.Services.MusicService)
 local NarrativeService = require(script.Services.NarrativeService)
--- TODO: Add as implemented
--- local NPCService = require(script.Services.NPCService)
+local StoryBeatProcessor = require(script.Services.StoryBeatProcessor)
+local StoryZoneManager = require(script.Services.StoryZoneManager)
+local CollectibleSpawner = require(script.Services.CollectibleSpawner)
+local NPCService = require(script.Services.NPCService)
 
 -- Initialize all services
 TerrainGenerator:Initialize()
 HungerService:Initialize()
 DayNightService:Initialize()
+NarrativeService:Initialize()
+PlayerDataService:Initialize() -- After NarrativeService (needs to sync)
 EarthquakeService:Initialize()
 MusicService:Initialize()
-NarrativeService:Initialize()
 
 -- Connect services that need cross-references
 EarthquakeService:SetMusicService(MusicService)
 NarrativeService:SetEarthquakeService(EarthquakeService)
+PlayerDataService:SetNarrativeService(NarrativeService)
+
+-- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
+StoryZoneManager:Initialize()
+
+-- Spawn collectibles BEFORE StoryBeatProcessor (it listens for collectible tags)
+CollectibleSpawner:Initialize()
+
+-- Spawn survivor NPCs BEFORE StoryBeatProcessor (it listens for Rescuable tags)
+NPCService:Initialize()
+
+-- Initialize story system (after NarrativeService, zones, collectibles, and NPCs)
+StoryBeatProcessor:SetNarrativeService(NarrativeService)
+StoryBeatProcessor:Initialize()
 
 print("[FaultlineFear] Services initialized")
 
@@ -144,6 +172,13 @@ local function onPlayerAdded(player: Player)
 	if Heightmap:IsGenerated() then
 		HeightmapReady:FireClient(player)
 	end
+
+	-- Fire GAME_START event for story system (after character loads)
+	player.CharacterAdded:Once(function()
+		task.delay(2, function() -- Give a moment for UI to load
+			StoryBeatProcessor:FireEvent("GAME_START", player)
+		end)
+	end)
 end
 
 local function onPlayerRemoving(player: Player)

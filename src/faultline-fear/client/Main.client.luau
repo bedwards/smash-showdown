@@ -59,6 +59,8 @@ local AudioController = require(script.Controllers.AudioController)
 local TouchController = require(script.Controllers.TouchController)
 local PerformanceController = require(script.Controllers.PerformanceController)
 local CreditsController = require(script.Controllers.CreditsController)
+local DialogueController = require(script.Controllers.DialogueController)
+local BeaconController = require(script.Controllers.BeaconController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 
@@ -68,6 +70,8 @@ AudioController:Initialize()
 TouchController:Initialize() -- Only activates on touch devices
 PerformanceController:Initialize() -- FPS monitoring, battery saver
 CreditsController:Initialize() -- Ending sequence
+DialogueController:Initialize() -- NPC dialogue UI
+BeaconController:Initialize() -- Objective beacons
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS

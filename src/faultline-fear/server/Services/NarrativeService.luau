@@ -23,7 +23,7 @@ export type PlayerProgress = {
 	currentAct: StoryData.ActId,
 	completedObjectives: { [string]: number }, -- objectiveId -> count
 	survivorsRescued: number,
-	signalPartsCollected: number,
+	generatorPartsCollected: number,
 	startTime: number, -- tick() when they started
 	completionTime: number?, -- tick() when they finished
 	ending: StoryData.EndingId?,
@@ -52,7 +52,7 @@ local function createDefaultProgress(): PlayerProgress
 		currentAct = "ACT_1_CALL",
 		completedObjectives = {},
 		survivorsRescued = 0,
-		signalPartsCollected = 0,
+		generatorPartsCollected = 0,
 		startTime = tick(),
 		completionTime = nil,
 		ending = nil,
@@ -122,21 +122,21 @@ function NarrativeService:RescueSurvivor(player: Player)
 	print(string.format("[NarrativeService] %s rescued survivor #%d", player.Name, progress.survivorsRescued))
 end
 
-function NarrativeService:CollectSignalPart(player: Player)
+function NarrativeService:CollectGeneratorPart(player: Player)
 	local progress = self:GetPlayerProgress(player)
-	progress.signalPartsCollected += 1
+	progress.generatorPartsCollected += 1
 
-	self:CompleteObjective(player, "collect_signal_parts", 1)
+	self:CompleteObjective(player, "collect_generator_parts", 1)
 
-	print(string.format("[NarrativeService] %s collected signal part #%d", player.Name, progress.signalPartsCollected))
+	print(string.format("[NarrativeService] %s collected generator part #%d", player.Name, progress.generatorPartsCollected))
 end
 
 function NarrativeService:GetSurvivorsRescued(player: Player): number
 	return self:GetPlayerProgress(player).survivorsRescued
 end
 
-function NarrativeService:GetSignalPartsCollected(player: Player): number
-	return self:GetPlayerProgress(player).signalPartsCollected
+function NarrativeService:GetGeneratorPartsCollected(player: Player): number
+	return self:GetPlayerProgress(player).generatorPartsCollected
 end
 
 -- ==========================================
@@ -335,7 +335,7 @@ function NarrativeService:CompleteGame(player: Player)
 			ending = ending,
 			playTime = playTime,
 			survivorsRescued = progress.survivorsRescued,
-			signalPartsCollected = progress.signalPartsCollected,
+			generatorPartsCollected = progress.generatorPartsCollected,
 		})
 	end
 end
@@ -363,7 +363,7 @@ function NarrativeService:NotifyProgressUpdate(player: Player)
 			objectives = act.objectives,
 			completedObjectives = progress.completedObjectives,
 			survivorsRescued = progress.survivorsRescued,
-			signalPartsCollected = progress.signalPartsCollected,
+			generatorPartsCollected = progress.generatorPartsCollected,
 		})
 	end
 end

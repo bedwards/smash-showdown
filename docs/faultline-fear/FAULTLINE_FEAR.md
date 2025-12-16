@@ -118,7 +118,7 @@ The earthquake isn't just aesthetic - it's a core gameplay system:
 - Cross the fault line for the first time
 - Face day/night cycle dangers
 - Rescue survivors (builds toward ending)
-- Collect signal equipment pieces (6 parts across zones)
+- Collect generator parts pieces (6 parts across zones)
 - Each zone has a mini-boss or challenge (collapsed building escape, predator encounter, etc.)
 
 ### Act 3: The Ordeal (Major Quake Event)
@@ -257,7 +257,7 @@ Each major location has a unique beacon visible from distance:
 |                                                  |
 |                                                  |
 |  [Current Objective Text]                        |
-|  [Signal Parts: 3/6]  [Survivors: 5/10]         |
+|  [Generator Parts: 3/6]  [Survivors: 5/10]         |
 +--------------------------------------------------+
 ```
 
