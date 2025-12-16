@@ -521,60 +521,78 @@ All tools already installed:
 - Screenshots: Claude can SEE what players see (multimodal)
 - TestEZ: Industry-standard testing for complex systems
 
-### Pre-Publish Verification Workflow
+### Automated Testing (Claude Can Run These)
 
-**Before publishing**, Claude should run these checks:
+**1. Lune Tests** (pure Luau, no Studio needed):
+```bash
+lune run tests/run.luau
+```
+- Tests heightmap algorithms, config validation
+- 32 tests, runs in seconds
+- Add new tests in `tests/faultline-fear/`
+
+**2. run-in-roblox Verification** (runs IN actual Studio):
+```bash
+rojo build faultline-fear.project.json -o faultline-fear.rbxl
+run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
+```
+- **THIS WORKS** - Claude can run this autonomously
+- Verifies: module loading, config, structure, workspace setup
+- 35 checks, executes in Studio and returns stdout
+- Script: `tools/verify-game.luau`
+
+**3. Lint & Format**:
+```bash
+selene src/faultline-fear/      # Lint
+stylua --check src/faultline-fear/  # Format check
+```
+
+### GitHub Actions CI
+
+CI runs automatically on PRs and pushes to main:
+- **Lint**: selene on faultline-fear
+- **Test**: Lune tests
+- **Format**: stylua check
+- **Build**: Rojo build verification
+
+Workflow file: `.github/workflows/ci.yml`
+
+### Pre-Publish Checklist
 
 ```bash
-# 1. Lint entire codebase
+# Run all checks before publishing:
 selene src/faultline-fear/
-
-# 2. Verify Rojo project parses
-rojo serve faultline-fear.project.json  # Should start without errors
-
-# 3. Check all shared modules exist
-# Look at shared/init.luau exports vs what services import
+stylua --check src/faultline-fear/
+lune run tests/run.luau
+rojo build faultline-fear.project.json -o faultline-fear.rbxl
+run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
 ```
 
-**In-Game Verification** (human provides screenshots):
-1. Start Rojo server and connect Studio
-2. Play the game, check server Output for ValidationService report
-3. Press F3 to show debug overlay
-4. Walk around, verify terrain heights, zone detection
-5. Screenshot any errors or issues
+All should pass with 0 errors before publishing.
 
-**ValidationService Output Example** (good):
-```
-╔════════════════════════════════════════════════╗
-║       FAULTLINE FEAR VALIDATION REPORT         ║
-╚════════════════════════════════════════════════╝
-[✓] [INFO] SharedModules - All 5 shared modules loaded
-[✓] [INFO] Config - Config values valid
-[✓] [INFO] Heightmap - Heightmap generated and returning valid heights
-[✓] [INFO] Remotes - 8 remote events registered
-[✓] [INFO] Workspace - 6/6 workspace folders created
-[✓] [INFO] Spawn - SpawnLocation configured
-Summary: 6 passed, 0 warnings, 0 errors, 0 critical
-✅ All validation checks passed!
-```
+### In-Game Debug Tools
 
-### Claude Code Limitations
+- **F3**: Toggle debug overlay (FPS, memory, position, zone, errors)
+- **F4**: Dump detailed metrics to console
+- **ValidationService**: Auto-runs on game load, prints report to server Output
+
+### Claude Code Capabilities
 
 **CAN DO**:
 - Read/write all code files
-- Run Lune validation scripts
+- Run Lune tests autonomously
+- Run run-in-roblox verification autonomously (Studio installed)
+- Build .rbxl files with Rojo
 - Analyze place files with Remodel
 - Create GitHub issues
-- Sync with Rojo
 - Read screenshots (multimodal - human provides path)
 
 **CANNOT DO**:
 - See the game visually without human screenshot
-- Run Roblox Studio directly
-- Test gameplay without human
-- Trigger roblox-screenshot (requires Studio running + visible)
+- Play the game interactively
+- Take screenshots autonomously
 
-**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path. Claude can read the image file.
+**For visual verification**: Ask human to take screenshot (Cmd+Shift+4 on Mac) and provide path.
 
 ---
 
