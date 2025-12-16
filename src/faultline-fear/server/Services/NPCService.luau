@@ -408,11 +408,15 @@ local function updateSurvivorFollowing()
 		end
 
 		local character = player.Character
-		if not character then continue end
+		if not character then
+			continue
+		end
 
 		local playerRoot = character:FindFirstChild("HumanoidRootPart")
 		local survivorRoot = model.PrimaryPart
-		if not playerRoot or not survivorRoot then continue end
+		if not playerRoot or not survivorRoot then
+			continue
+		end
 
 		local playerPos = playerRoot.Position
 		local survivorPos = survivorRoot.Position
@@ -434,7 +438,8 @@ local function updateSurvivorFollowing()
 			local newCFrame = CFrame.new(targetPos.X, terrainY + 2, targetPos.Z)
 
 			-- Face the player
-			local lookCFrame = CFrame.lookAt(newCFrame.Position, Vector3.new(playerPos.X, newCFrame.Position.Y, playerPos.Z))
+			local lookCFrame =
+				CFrame.lookAt(newCFrame.Position, Vector3.new(playerPos.X, newCFrame.Position.Y, playerPos.Z))
 			model:PivotTo(lookCFrame)
 		end
 	end
@@ -456,7 +461,9 @@ end
 function NPCService:SpawnAllSurvivors()
 	for _, survivorDef in ipairs(SURVIVOR_DATA) do
 		local zoneCenter = getZoneCenter(survivorDef.zone)
-		if not zoneCenter then continue end
+		if not zoneCenter then
+			continue
+		end
 
 		-- Calculate position
 		local x = zoneCenter.X + survivorDef.offset.X
@@ -472,12 +479,14 @@ function NPCService:SpawnAllSurvivors()
 
 		survivors[survivorDef.id] = model
 
-		print(string.format(
-			"[NPCService] Spawned survivor '%s' at %s (zone: %s)",
-			survivorDef.name,
-			tostring(position),
-			survivorDef.zone
-		))
+		print(
+			string.format(
+				"[NPCService] Spawned survivor '%s' at %s (zone: %s)",
+				survivorDef.name,
+				tostring(position),
+				survivorDef.zone
+			)
+		)
 	end
 
 	print(string.format("[NPCService] Spawned %d survivors", #SURVIVOR_DATA))

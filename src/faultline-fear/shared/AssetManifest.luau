@@ -425,11 +425,13 @@ function AssetManifest:GetAsset(assetName: string): Model?
 
 	local asset = categoryFolder:FindFirstChild(entry.name)
 	if not asset then
-		warn(string.format(
-			"[AssetManifest] Asset '%s' not found. Run: %s",
-			entry.name,
-			entry.blenderScript or "unknown script"
-		))
+		warn(
+			string.format(
+				"[AssetManifest] Asset '%s' not found. Run: %s",
+				entry.name,
+				entry.blenderScript or "unknown script"
+			)
+		)
 		return nil
 	end
 
@@ -535,12 +537,7 @@ function AssetManifest:PrintStatus()
 
 	for category, counts in pairs(categories) do
 		local status = counts.missing == 0 and "OK" or "MISSING " .. counts.missing
-		print(string.format("  %s: %d/%d [%s]",
-			category,
-			counts.present,
-			counts.present + counts.missing,
-			status
-		))
+		print(string.format("  %s: %d/%d [%s]", category, counts.present, counts.present + counts.missing, status))
 	end
 
 	local missing = self:GetMissingAssets()

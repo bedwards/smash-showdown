@@ -193,11 +193,7 @@ local function createPlaceholderZone(def: LiminalZoneDef): Model
 		local light = Instance.new("Part")
 		light.Name = "FluorescentLight" .. i
 		light.Size = Vector3.new(4, 0.2, 1)
-		light.Position = Vector3.new(
-			-def.size.X / 2 + (i / (numLights + 1)) * def.size.X,
-			wallHeight - 0.3,
-			0
-		)
+		light.Position = Vector3.new(-def.size.X / 2 + (i / (numLights + 1)) * def.size.X, wallHeight - 0.3, 0)
 		light.Anchored = true
 		light.CanCollide = false
 		light.Material = Enum.Material.Neon
@@ -253,11 +249,7 @@ local function addMallDetails(model: Model, def: LiminalZoneDef)
 		local display = Instance.new("Part")
 		display.Name = "StoreDisplay" .. i
 		display.Size = Vector3.new(8, 6, 2)
-		display.Position = Vector3.new(
-			-def.size.X / 2 + (i / (numStores + 1)) * def.size.X,
-			3,
-			-def.size.Z / 2 + 3
-		)
+		display.Position = Vector3.new(-def.size.X / 2 + (i / (numStores + 1)) * def.size.X, 3, -def.size.Z / 2 + 3)
 		display.Anchored = true
 		display.Transparency = 0.7
 		display.Material = Enum.Material.Glass
@@ -311,19 +303,11 @@ local function addHotelDetails(model: Model, _def: LiminalZoneDef)
 		local luggage = Instance.new("Part")
 		luggage.Name = "Luggage" .. i
 		luggage.Size = Vector3.new(1.5, 2, 1)
-		luggage.Position = Vector3.new(
-			-5 + i * 3 + math.random() * 2,
-			1,
-			10 + math.random() * 3
-		)
+		luggage.Position = Vector3.new(-5 + i * 3 + math.random() * 2, 1, 10 + math.random() * 3)
 		luggage.Rotation = Vector3.new(0, math.random() * 30, 0)
 		luggage.Anchored = true
 		luggage.Material = Enum.Material.Fabric
-		luggage.Color = Color3.fromRGB(
-			math.random(60, 120),
-			math.random(40, 80),
-			math.random(40, 80)
-		)
+		luggage.Color = Color3.fromRGB(math.random(60, 120), math.random(40, 80), math.random(40, 80))
 		luggage.Parent = model
 	end
 end
@@ -337,11 +321,7 @@ local function addSchoolDetails(model: Model, def: LiminalZoneDef)
 			local desk = Instance.new("Part")
 			desk.Name = "Desk_" .. r .. "_" .. c
 			desk.Size = Vector3.new(2, 2.5, 1.5)
-			desk.Position = Vector3.new(
-				-def.size.X / 2 + 10 + (c - 1) * 6,
-				1.25,
-				-def.size.Z / 2 + 8 + (r - 1) * 5
-			)
+			desk.Position = Vector3.new(-def.size.X / 2 + 10 + (c - 1) * 6, 1.25, -def.size.Z / 2 + 8 + (r - 1) * 5)
 			desk.Anchored = true
 			desk.Material = Enum.Material.Wood
 			desk.Color = Color3.fromRGB(180, 150, 100)
@@ -431,11 +411,7 @@ local function addUnderpassDetails(model: Model, def: LiminalZoneDef)
 	graffiti.Position = Vector3.new(-def.size.X / 2 + 0.5, 3, 0)
 	graffiti.Anchored = true
 	graffiti.Material = Enum.Material.SmoothPlastic
-	graffiti.Color = Color3.fromRGB(
-		math.random(100, 255),
-		math.random(50, 200),
-		math.random(50, 200)
-	)
+	graffiti.Color = Color3.fromRGB(math.random(100, 255), math.random(50, 200), math.random(50, 200))
 	graffiti.Parent = model
 
 	-- Abandoned camp (tent-like shape)
@@ -466,8 +442,7 @@ local function spawnLiminalZone(def: LiminalZoneDef): Model
 	local y = Heightmap:GetHeight(def.position.X, def.position.Z)
 
 	-- Position and rotate
-	local cframe = CFrame.new(def.position.X, y, def.position.Z)
-		* CFrame.Angles(0, math.rad(def.rotation), 0)
+	local cframe = CFrame.new(def.position.X, y, def.position.Z) * CFrame.Angles(0, math.rad(def.rotation), 0)
 
 	if model.PrimaryPart then
 		model:PivotTo(cframe)
@@ -633,12 +608,7 @@ function LiminalZoneService:Initialize()
 
 	for _, def in ipairs(LIMINAL_DEFINITIONS) do
 		local zone = spawnLiminalZone(def)
-		print(string.format("  - %s (%s) at (%.0f, %.0f)",
-			def.name,
-			def.zoneType,
-			def.position.X,
-			def.position.Z
-		))
+		print(string.format("  - %s (%s) at (%.0f, %.0f)", def.name, def.zoneType, def.position.X, def.position.Z))
 
 		-- Collect flicker lights
 		for _, desc in zone:GetDescendants() do

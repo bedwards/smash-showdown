@@ -471,11 +471,18 @@ function TouchController:CreateUI()
 	elements.leftActions = leftActions
 
 	-- Food button
-	elements.foodButton = createActionButton(leftActions, "FoodButton", "🍎", UDim2.new(0, 30, 0.5, 0), nil, onEatFood)
+	elements.foodButton =
+		createActionButton(leftActions, "FoodButton", "🍎", UDim2.new(0, 30, 0.5, 0), nil, onEatFood)
 
 	-- Item/Backpack button
-	elements.itemButton =
-		createActionButton(leftActions, "ItemButton", "🎒", UDim2.new(0, 30 + BUTTON_SIZE + BUTTON_SPACING, 0.5, 0), nil, onUseItem)
+	elements.itemButton = createActionButton(
+		leftActions,
+		"ItemButton",
+		"🎒",
+		UDim2.new(0, 30 + BUTTON_SIZE + BUTTON_SPACING, 0.5, 0),
+		nil,
+		onUseItem
+	)
 
 	-- Flashlight button
 	elements.flashlightButton = createActionButton(
@@ -497,8 +504,14 @@ function TouchController:CreateUI()
 	elements.rightActions = rightActions
 
 	-- Jump button (large, top)
-	elements.jumpButton =
-		createActionButton(rightActions, "JumpButton", "⬆️", UDim2.new(0.5, 0, 0, BUTTON_SIZE_LARGE / 2), BUTTON_SIZE_LARGE, onJump)
+	elements.jumpButton = createActionButton(
+		rightActions,
+		"JumpButton",
+		"⬆️",
+		UDim2.new(0.5, 0, 0, BUTTON_SIZE_LARGE / 2),
+		BUTTON_SIZE_LARGE,
+		onJump
+	)
 
 	-- Interact button (contextual, middle) - initially hidden
 	elements.interactButton = createActionButton(
@@ -627,7 +640,6 @@ function TouchController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 		TweenService:Create(rightActions, tweenInfo, {
 			Position = UDim2.new(1, -100, 1, -200),
 		}):Play()
-
 	elseif screenSize == "Medium" then
 		-- Tablet/landscape phone
 		TweenService:Create(joystick, tweenInfo, {
@@ -642,7 +654,6 @@ function TouchController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 		TweenService:Create(rightActions, tweenInfo, {
 			Position = UDim2.new(1, -120, 1, -220),
 		}):Play()
-
 	else
 		-- Large screen - shouldn't show touch controls but handle just in case
 		TweenService:Create(joystick, tweenInfo, {

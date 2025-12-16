@@ -103,17 +103,19 @@ local function createBeacon(id: string, position: Vector3, beaconType: string): 
 	-- Animate the base ring (pulse effect)
 	task.spawn(function()
 		while model.Parent do
-			local tween = TweenService:Create(baseRing, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-				Size = Vector3.new(1, 25, 25),
-				Transparency = 0.7,
-			})
+			local tween =
+				TweenService:Create(baseRing, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = Vector3.new(1, 25, 25),
+					Transparency = 0.7,
+				})
 			tween:Play()
 			tween.Completed:Wait()
 
-			tween = TweenService:Create(baseRing, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-				Size = Vector3.new(1, 20, 20),
-				Transparency = 0.5,
-			})
+			tween =
+				TweenService:Create(baseRing, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					Size = Vector3.new(1, 20, 20),
+					Transparency = 0.5,
+				})
 			tween:Play()
 			tween.Completed:Wait()
 		end
@@ -207,7 +209,11 @@ local function updateCompass()
 	local targetPos = currentTarget
 
 	-- Calculate distance
-	local distance = (Vector3.new(targetPos.X, playerPos.Y, targetPos.Z) - Vector3.new(playerPos.X, playerPos.Y, playerPos.Z)).Magnitude
+	local distance = (Vector3.new(targetPos.X, playerPos.Y, targetPos.Z) - Vector3.new(
+		playerPos.X,
+		playerPos.Y,
+		playerPos.Z
+	)).Magnitude
 	distanceLabel.Text = string.format("%.0fm", distance)
 
 	-- Calculate direction angle
@@ -288,7 +294,9 @@ function BeaconController:UpdateFromObjective(objectiveData: any)
 	local workspace = game:GetService("Workspace")
 	local storyZones = workspace:FindFirstChild("StoryZones")
 
-	if not storyZones then return end
+	if not storyZones then
+		return
+	end
 
 	-- Map objectives to zones
 	local objectiveZoneMap: { [string]: string } = {

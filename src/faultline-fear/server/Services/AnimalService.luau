@@ -248,7 +248,9 @@ end
 
 local function getRandomPositionInZone(zoneName: string): Vector3?
 	local zone = Config.ZONES[zoneName]
-	if not zone then return nil end
+	if not zone then
+		return nil
+	end
 
 	local worldHalfSize = Config.WORLD_SIZE / 2
 	local x = math.random(-worldHalfSize * 0.9, worldHalfSize * 0.9)
@@ -261,12 +263,16 @@ end
 
 local function spawnAnimal(animalType: string): Model?
 	local config = ANIMAL_CONFIGS[animalType]
-	if not config then return nil end
+	if not config then
+		return nil
+	end
 
 	-- Pick random zone
 	local zone = config.zones[math.random(1, #config.zones)]
 	local position = getRandomPositionInZone(zone)
-	if not position then return nil end
+	if not position then
+		return nil
+	end
 
 	local model = createAnimalModel(animalType)
 	model:PivotTo(CFrame.new(position))
@@ -322,12 +328,15 @@ function AnimalService:SpawnDayAnimals()
 		spawnAnimal("Fish")
 	end
 
-	print(string.format("[AnimalService] Spawned day animals: %d deer, %d birds, %d rabbits, %d fish",
-		animalConfig.DEER_COUNT,
-		animalConfig.BIRD_COUNT,
-		animalConfig.RABBIT_COUNT,
-		animalConfig.FISH_COUNT
-	))
+	print(
+		string.format(
+			"[AnimalService] Spawned day animals: %d deer, %d birds, %d rabbits, %d fish",
+			animalConfig.DEER_COUNT,
+			animalConfig.BIRD_COUNT,
+			animalConfig.RABBIT_COUNT,
+			animalConfig.FISH_COUNT
+		)
+	)
 end
 
 function AnimalService:SpawnNightPredators()
@@ -342,11 +351,7 @@ function AnimalService:SpawnNightPredators()
 		local packCenter = getRandomPositionInZone(zone)
 		if packCenter then
 			for _ = 1, animalConfig.WOLF_PACK_SIZE do
-				local offset = Vector3.new(
-					(math.random() - 0.5) * 10,
-					0,
-					(math.random() - 0.5) * 10
-				)
+				local offset = Vector3.new((math.random() - 0.5) * 10, 0, (math.random() - 0.5) * 10)
 				local model = createAnimalModel("Wolf")
 				local y = Heightmap:GetHeight(packCenter.X + offset.X, packCenter.Z + offset.Z)
 				model:PivotTo(CFrame.new(packCenter.X + offset.X, y + 1, packCenter.Z + offset.Z))
@@ -372,11 +377,14 @@ function AnimalService:SpawnNightPredators()
 		spawnAnimal("Coyote")
 	end
 
-	print(string.format("[AnimalService] Spawned night predators: %d wolf packs (%d wolves), %d coyotes",
-		animalConfig.WOLF_PACK_COUNT,
-		animalConfig.WOLF_PACK_COUNT * animalConfig.WOLF_PACK_SIZE,
-		animalConfig.COYOTE_COUNT
-	))
+	print(
+		string.format(
+			"[AnimalService] Spawned night predators: %d wolf packs (%d wolves), %d coyotes",
+			animalConfig.WOLF_PACK_COUNT,
+			animalConfig.WOLF_PACK_COUNT * animalConfig.WOLF_PACK_SIZE,
+			animalConfig.COYOTE_COUNT
+		)
+	)
 end
 
 function AnimalService:SpawnMountainLions()
@@ -438,10 +446,14 @@ local function getNearestPlayer(position: Vector3, maxRange: number): Player?
 
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
-		if not character then continue end
+		if not character then
+			continue
+		end
 
 		local root = character:FindFirstChild("HumanoidRootPart")
-		if not root then continue end
+		if not root then
+			continue
+		end
 
 		local dist = (root.Position - position).Magnitude
 		if dist < nearestDist then
@@ -455,12 +467,18 @@ end
 
 local function updateAnimalAI(model: Model, dt: number)
 	local state = animalStates[model]
-	if not state then return end
-	if not model.PrimaryPart then return end
+	if not state then
+		return
+	end
+	if not model.PrimaryPart then
+		return
+	end
 
 	local animalType = model:GetAttribute("AnimalType")
 	local config = ANIMAL_CONFIGS[animalType]
-	if not config then return end
+	if not config then
+		return
+	end
 
 	local position = model.PrimaryPart.Position
 	local now = tick()
@@ -480,14 +498,9 @@ local function updateAnimalAI(model: Model, dt: number)
 			elseif stateDuration > 3 then
 				-- Start wandering
 				state.state = "Wander"
-				state.targetPosition = position + Vector3.new(
-					(math.random() - 0.5) * 30,
-					0,
-					(math.random() - 0.5) * 30
-				)
+				state.targetPosition = position + Vector3.new((math.random() - 0.5) * 30, 0, (math.random() - 0.5) * 30)
 				state.stateTime = now
 			end
-
 		elseif state.state == "Wander" then
 			if nearestPlayer then
 				state.state = "Hunt"
@@ -506,7 +519,6 @@ local function updateAnimalAI(model: Model, dt: number)
 					model:PivotTo(CFrame.new(newPos.X, y + 1, newPos.Z))
 				end
 			end
-
 		elseif state.state == "Hunt" then
 			if not nearestPlayer or not nearestPlayer.Character then
 				state.state = "Idle"
@@ -536,7 +548,6 @@ local function updateAnimalAI(model: Model, dt: number)
 					end
 				end
 			end
-
 		elseif state.state == "Attack" then
 			-- Deal damage (simplified)
 			if nearestPlayer and nearestPlayer.Character then
@@ -560,14 +571,9 @@ local function updateAnimalAI(model: Model, dt: number)
 				state.stateTime = now
 			elseif stateDuration > 2 + math.random() * 3 then
 				state.state = "Wander"
-				state.targetPosition = position + Vector3.new(
-					(math.random() - 0.5) * 20,
-					0,
-					(math.random() - 0.5) * 20
-				)
+				state.targetPosition = position + Vector3.new((math.random() - 0.5) * 20, 0, (math.random() - 0.5) * 20)
 				state.stateTime = now
 			end
-
 		elseif state.state == "Wander" then
 			if nearestPlayer then
 				state.state = "Flee"
@@ -585,7 +591,6 @@ local function updateAnimalAI(model: Model, dt: number)
 					model:PivotTo(CFrame.new(newPos.X, y + 1, newPos.Z))
 				end
 			end
-
 		elseif state.state == "Flee" then
 			if not nearestPlayer or not nearestPlayer.Character then
 				state.state = "Idle"
@@ -625,7 +630,9 @@ end
 -- ==========================================
 
 local function onTimePeriodChange()
-	if not DayNightService then return end
+	if not DayNightService then
+		return
+	end
 
 	local period = DayNightService:GetCurrentPeriod()
 

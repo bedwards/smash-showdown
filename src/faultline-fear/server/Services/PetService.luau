@@ -264,26 +264,36 @@ end
 local function showDialogue(player: Player, category: string)
 	local pet = pets[player]
 	local state = petStates[player]
-	if not pet or not state then return end
+	if not pet or not state then
+		return
+	end
 
 	-- Rate limit dialogue
 	local now = tick()
-	if now - state.lastDialogueTime < 5 then return end
+	if now - state.lastDialogueTime < 5 then
+		return
+	end
 	state.lastDialogueTime = now
 
 	-- Get random dialogue from category
 	local dialogueList = DIALOGUE[category]
-	if not dialogueList then return end
+	if not dialogueList then
+		return
+	end
 
 	local text = dialogueList[math.random(1, #dialogueList)]
 
 	-- Show dialogue billboard
 	local billboard = pet.PrimaryPart and pet.PrimaryPart:FindFirstChild("DialogueBillboard") :: BillboardGui?
-	if not billboard then return end
+	if not billboard then
+		return
+	end
 
 	local background = billboard:FindFirstChild("Frame")
 	local textLabel = background and background:FindFirstChild("DialogueText") :: TextLabel?
-	if not textLabel then return end
+	if not textLabel then
+		return
+	end
 
 	textLabel.Text = text
 	billboard.Enabled = true
@@ -302,7 +312,9 @@ end
 
 local function setState(player: Player, newState: PetStateType)
 	local state = petStates[player]
-	if not state then return end
+	if not state then
+		return
+	end
 
 	state.state = newState
 	state.stateStartTime = tick()
@@ -322,11 +334,7 @@ end
 local function getRandomDistraction(petPos: Vector3): Vector3
 	local angle = math.random() * math.pi * 2
 	local distance = math.random(5, WANDER_DISTANCE)
-	return petPos + Vector3.new(
-		math.cos(angle) * distance,
-		0,
-		math.sin(angle) * distance
-	)
+	return petPos + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
 end
 
 -- ==========================================
@@ -335,7 +343,9 @@ end
 
 local function checkForNearbyDangers(player: Player): boolean
 	local pet = pets[player]
-	if not pet or not pet.PrimaryPart then return false end
+	if not pet or not pet.PrimaryPart then
+		return false
+	end
 
 	local petPos = pet.PrimaryPart.Position
 
@@ -366,11 +376,17 @@ local function updatePet(player: Player, _dt: number)
 	local state = petStates[player]
 	local character = player.Character
 
-	if not pet or not state or not character then return end
-	if not pet.PrimaryPart or not pet.Parent then return end
+	if not pet or not state or not character then
+		return
+	end
+	if not pet.PrimaryPart or not pet.Parent then
+		return
+	end
 
 	local playerRoot = character:FindFirstChild("HumanoidRootPart")
-	if not playerRoot then return end
+	if not playerRoot then
+		return
+	end
 
 	local petPos = pet.PrimaryPart.Position
 	local playerPos = playerRoot.Position
@@ -428,7 +444,6 @@ local function updatePet(player: Player, _dt: number)
 			)
 			pet:PivotTo(lookCFrame)
 		end
-
 	elseif state.state == "distracted" then
 		local stateDuration = now - state.stateStartTime
 		local maxDuration = math.random(DISTRACTION_DURATION.min, DISTRACTION_DURATION.max)
@@ -447,14 +462,12 @@ local function updatePet(player: Player, _dt: number)
 			local terrainY = Heightmap:GetHeight(targetPos.X, targetPos.Z)
 			pet:PivotTo(CFrame.new(targetPos.X, terrainY + 0.5, targetPos.Z))
 		end
-
 	elseif state.state == "sleeping" then
 		-- Wake up if player moves or after a while
 		local stateDuration = now - state.stateStartTime
 		if stateDuration > 5 or distanceToPlayer > 15 then
 			setState(player, "following")
 		end
-
 	elseif state.state == "scared" then
 		-- Run to player
 		if distanceToPlayer < FOLLOW_DISTANCE + 1 then
@@ -468,7 +481,6 @@ local function updatePet(player: Player, _dt: number)
 
 		local terrainY = Heightmap:GetHeight(targetPos.X, targetPos.Z)
 		pet:PivotTo(CFrame.new(targetPos.X, terrainY + 0.5, targetPos.Z))
-
 	elseif state.state == "returning" then
 		if distanceToPlayer < FOLLOW_DISTANCE + 2 then
 			setState(player, "following")
@@ -496,13 +508,19 @@ end
 -- ==========================================
 
 function PetService:SpawnPet(player: Player)
-	if pets[player] then return end -- Already has pet
+	if pets[player] then
+		return
+	end -- Already has pet
 
 	local character = player.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local playerRoot = character:FindFirstChild("HumanoidRootPart")
-	if not playerRoot then return end
+	if not playerRoot then
+		return
+	end
 
 	-- Create pet
 	local pet = createPetModel()
@@ -594,7 +612,9 @@ function PetService:Initialize()
 	local function onCharacterAdded(player: Player, character: Model)
 		-- Wait for character to be fully loaded
 		local humanoid = character:WaitForChild("Humanoid", 5)
-		if not humanoid then return end
+		if not humanoid then
+			return
+		end
 
 		-- Small delay for everything to settle
 		task.delay(1, function()

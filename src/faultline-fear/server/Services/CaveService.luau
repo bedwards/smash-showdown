@@ -140,8 +140,7 @@ local function spawnCave(def: CaveDef): Model
 	local y = Heightmap:GetHeight(def.position.X, def.position.Z)
 
 	-- Position and rotate
-	local cframe = CFrame.new(def.position.X, y, def.position.Z)
-		* CFrame.Angles(0, math.rad(def.rotation), 0)
+	local cframe = CFrame.new(def.position.X, y, def.position.Z) * CFrame.Angles(0, math.rad(def.rotation), 0)
 
 	if model.PrimaryPart then
 		model:PivotTo(cframe)
@@ -202,10 +201,14 @@ end
 -- ==========================================
 
 local function spawnCaveSecrets(cave: Model)
-	if not cave:GetAttribute("HasSecrets") then return end
+	if not cave:GetAttribute("HasSecrets") then
+		return
+	end
 
 	local interiorZone = cave:FindFirstChild("InteriorZone")
-	if not interiorZone or not interiorZone:IsA("BasePart") then return end
+	if not interiorZone or not interiorZone:IsA("BasePart") then
+		return
+	end
 
 	-- Create supply cache
 	local cache = Instance.new("Part")
@@ -290,12 +293,7 @@ function CaveService:Initialize()
 	for _, def in ipairs(CAVE_DEFINITIONS) do
 		local cave = spawnCave(def)
 		spawnCaveSecrets(cave)
-		print(string.format("  - %s (%s) at (%.0f, %.0f)",
-			def.name,
-			def.size,
-			def.position.X,
-			def.position.Z
-		))
+		print(string.format("  - %s (%s) at (%.0f, %.0f)", def.name, def.size, def.position.X, def.position.Z))
 	end
 
 	-- Clean up on player leave

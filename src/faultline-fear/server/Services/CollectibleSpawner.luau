@@ -171,7 +171,9 @@ function CollectibleSpawner:SpawnGeneratorParts()
 
 	for _, partDef in ipairs(GENERATOR_PARTS) do
 		local zoneCenter = getZoneCenter(partDef.zone)
-		if not zoneCenter then continue end
+		if not zoneCenter then
+			continue
+		end
 
 		-- Calculate position
 		local x = zoneCenter.X + partDef.offset.X
@@ -185,12 +187,14 @@ function CollectibleSpawner:SpawnGeneratorParts()
 		model:PivotTo(CFrame.new(position))
 		model.Parent = partsFolder
 
-		print(string.format(
-			"[CollectibleSpawner] Spawned '%s' at %s (zone: %s)",
-			partDef.name,
-			tostring(position),
-			partDef.zone
-		))
+		print(
+			string.format(
+				"[CollectibleSpawner] Spawned '%s' at %s (zone: %s)",
+				partDef.name,
+				tostring(position),
+				partDef.zone
+			)
+		)
 	end
 
 	print(string.format("[CollectibleSpawner] Spawned %d generator parts", #GENERATOR_PARTS))
@@ -243,7 +247,9 @@ function CollectibleSpawner:SpawnFood()
 
 	for _, spawnConfig in ipairs(FOOD_SPAWN_ZONES) do
 		local zoneCenter = getZoneCenter(spawnConfig.zone)
-		if not zoneCenter then continue end
+		if not zoneCenter then
+			continue
+		end
 
 		local zoneConfig = Config.ZONES[spawnConfig.zone]
 		local zoneWidth = Config.WORLD_SIZE / 2

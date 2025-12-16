@@ -127,7 +127,9 @@ end
 -- ==========================================
 
 local function muteMusic()
-	if musicMuted then return end
+	if musicMuted then
+		return
+	end
 	musicMuted = true
 
 	if AudioController and AudioController.Mute then
@@ -137,7 +139,9 @@ local function muteMusic()
 end
 
 local function unmuteMusic()
-	if not musicMuted then return end
+	if not musicMuted then
+		return
+	end
 	musicMuted = false
 
 	if AudioController and AudioController.Unmute then

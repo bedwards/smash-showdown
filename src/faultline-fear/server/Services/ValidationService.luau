@@ -42,7 +42,12 @@ local hasRun: boolean = false
 -- VALIDATION CHECKS
 -- ==========================================
 
-local function addResult(name: string, passed: boolean, message: string, severity: "info" | "warning" | "error" | "critical")
+local function addResult(
+	name: string,
+	passed: boolean,
+	message: string,
+	severity: "info" | "warning" | "error" | "critical"
+)
 	table.insert(results, {
 		name = name,
 		passed = passed,
@@ -75,7 +80,12 @@ local function checkHeightmap(): boolean
 	end
 
 	if validPoints < #testPoints then
-		addResult("Heightmap", false, string.format("Heightmap returning invalid heights (%d/%d valid)", validPoints, #testPoints), "error")
+		addResult(
+			"Heightmap",
+			false,
+			string.format("Heightmap returning invalid heights (%d/%d valid)", validPoints, #testPoints),
+			"error"
+		)
 		return false
 	end
 
@@ -258,9 +268,14 @@ local function generateReport(): string
 	end
 
 	table.insert(lines, "")
-	table.insert(lines, "────────────────────────────────────────────────")
-	table.insert(lines, string.format("Summary: %d passed, %d warnings, %d errors, %d critical",
-		passed, warnings, errors, critical))
+	table.insert(
+		lines,
+		"────────────────────────────────────────────────"
+	)
+	table.insert(
+		lines,
+		string.format("Summary: %d passed, %d warnings, %d errors, %d critical", passed, warnings, errors, critical)
+	)
 
 	if critical > 0 then
 		table.insert(lines, "")
@@ -276,7 +291,10 @@ local function generateReport(): string
 		table.insert(lines, "✅ All validation checks passed!")
 	end
 
-	table.insert(lines, "────────────────────────────────────────────────")
+	table.insert(
+		lines,
+		"────────────────────────────────────────────────"
+	)
 	table.insert(lines, "")
 
 	return table.concat(lines, "\n")
@@ -340,7 +358,9 @@ function ValidationService:ShowValidationToPlayer(player: Player)
 	end
 
 	local playerGui = player:FindFirstChild("PlayerGui")
-	if not playerGui then return end
+	if not playerGui then
+		return
+	end
 
 	-- Create warning UI
 	local gui = Instance.new("ScreenGui")

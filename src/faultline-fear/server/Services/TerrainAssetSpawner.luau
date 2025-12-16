@@ -54,14 +54,20 @@ local function generateBoulderPlacements(): { AssetPlacement }
 		{ zone = "VALLEY", count = 25, types = { "Boulder_Small", "Boulder_Medium", "RockCluster_1" } },
 		{ zone = "FOREST", count = 30, types = { "Boulder_Medium", "Boulder_Large", "RockCluster_2" } },
 		{ zone = "FAULT_LINE", count = 20, types = { "Boulder_Large", "FallenRocks", "Boulder_Huge" } },
-		{ zone = "MOUNTAIN", count = 35, types = { "Boulder_Large", "Boulder_Huge", "RockCluster_1", "RockCluster_2" } },
+		{
+			zone = "MOUNTAIN",
+			count = 35,
+			types = { "Boulder_Large", "Boulder_Huge", "RockCluster_1", "RockCluster_2" },
+		},
 	}
 
 	local worldHalfSize = Config.WORLD_SIZE / 2
 
 	for _, zoneConfig in ipairs(zoneConfigs) do
 		local zone = Config.ZONES[zoneConfig.zone]
-		if not zone then continue end
+		if not zone then
+			continue
+		end
 
 		for _ = 1, zoneConfig.count do
 			local x = random:NextNumber(-worldHalfSize, worldHalfSize)
@@ -86,7 +92,9 @@ local function generateFaultLinePlacements(): { AssetPlacement }
 	local random = Random.new(Config.TERRAIN_SEED + 200)
 
 	local faultZone = Config.ZONES.FAULT_LINE
-	if not faultZone then return placements end
+	if not faultZone then
+		return placements
+	end
 
 	local worldHalfSize = Config.WORLD_SIZE / 2
 	local faultCenterZ = (faultZone.zMin + faultZone.zMax) / 2
@@ -122,7 +130,9 @@ local function generateSteamVentPlacements(): { AssetPlacement }
 	local random = Random.new(Config.TERRAIN_SEED + 300)
 
 	local faultZone = Config.ZONES.FAULT_LINE
-	if not faultZone then return placements end
+	if not faultZone then
+		return placements
+	end
 
 	local worldHalfSize = Config.WORLD_SIZE / 2
 	local numVents = 12
@@ -169,7 +179,7 @@ local function generateCliffPlacements(): { AssetPlacement }
 	if mountainZone then
 		local numCliffs = 10
 		for i = 1, numCliffs do
-			local angle = (i / numCliffs) * math.pi  -- Semicircle
+			local angle = (i / numCliffs) * math.pi -- Semicircle
 			local radius = worldHalfSize * 0.6
 			local x = math.cos(angle) * radius
 			local z = mountainZone.zMax - 100 + math.sin(angle) * 50

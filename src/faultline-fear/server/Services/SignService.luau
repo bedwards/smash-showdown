@@ -168,7 +168,7 @@ local SIGN_DEFINITIONS: { SignDef } = {
 		position = Vector3.new(-80, 0, 650),
 		rotation = 20,
 		signType = "story",
-		text = "\"We waited here.\"",
+		text = '"We waited here."',
 		subText = "- Survivor, Day 3",
 	},
 	{
@@ -182,7 +182,7 @@ local SIGN_DEFINITIONS: { SignDef } = {
 		position = Vector3.new(-200, 0, 1100),
 		rotation = 15,
 		signType = "story",
-		text = "\"Stay together.\"",
+		text = '"Stay together."',
 		subText = "- Unknown",
 	},
 
@@ -326,8 +326,7 @@ local function spawnSign(def: SignDef): Model
 	local y = Heightmap:GetHeight(def.position.X, def.position.Z)
 
 	-- Position and rotate
-	local cframe = CFrame.new(def.position.X, y, def.position.Z)
-		* CFrame.Angles(0, math.rad(def.rotation), 0)
+	local cframe = CFrame.new(def.position.X, y, def.position.Z) * CFrame.Angles(0, math.rad(def.rotation), 0)
 
 	if model.PrimaryPart then
 		model:PivotTo(cframe)
@@ -368,7 +367,13 @@ function SignService:GetSignsByType(signType: string): { Model }
 	return result
 end
 
-function SignService:CreateCustomSign(position: Vector3, rotation: number, signType: string, text: string, subText: string?): Model
+function SignService:CreateCustomSign(
+	position: Vector3,
+	rotation: number,
+	signType: string,
+	text: string,
+	subText: string?
+): Model
 	local def: SignDef = {
 		position = position,
 		rotation = rotation,

@@ -51,7 +51,9 @@ local FlashlightUpdate: RemoteEvent? = nil
 
 local function createFlashlight(character: Model): SpotLight?
 	local head = character:FindFirstChild("Head")
-	if not head then return nil end
+	if not head then
+		return nil
+	end
 
 	-- Create attachment for light
 	local attach = Instance.new("Attachment")
@@ -87,7 +89,9 @@ end
 -- ==========================================
 
 local function setFlashlightEnabled(enabled: boolean)
-	if not flashlight then return end
+	if not flashlight then
+		return
+	end
 
 	isOn = enabled
 	flashlight.Enabled = enabled
@@ -113,7 +117,9 @@ end
 -- ==========================================
 
 local function updateFlashlightEffects(dt: number)
-	if not flashlight or not isOn then return end
+	if not flashlight or not isOn then
+		return
+	end
 
 	-- Flicker effect when low battery
 	if battery <= LOW_BATTERY_THRESHOLD then
@@ -141,7 +147,11 @@ end
 -- INPUT HANDLING
 -- ==========================================
 
-local function handleFlashlightInput(actionName: string, inputState: Enum.UserInputState, _inputObject: InputObject): Enum.ContextActionResult
+local function handleFlashlightInput(
+	actionName: string,
+	inputState: Enum.UserInputState,
+	_inputObject: InputObject
+): Enum.ContextActionResult
 	if actionName ~= "ToggleFlashlight" then
 		return Enum.ContextActionResult.Pass
 	end
@@ -161,7 +171,9 @@ end
 local function onCharacterAdded(character: Model)
 	-- Wait for head to load
 	local head = character:WaitForChild("Head", 5)
-	if not head then return end
+	if not head then
+		return
+	end
 
 	-- Create flashlight
 	flashlight = createFlashlight(character)
@@ -188,10 +200,14 @@ end
 local function onOtherPlayerFlashlightToggle(player: Player, enabled: boolean)
 	-- Show/hide other player's flashlight
 	local character = player.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local head = character:FindFirstChild("Head")
-	if not head then return end
+	if not head then
+		return
+	end
 
 	local attach = head:FindFirstChild("FlashlightAttachment")
 	if enabled and not attach then
@@ -255,12 +271,7 @@ function FlashlightController:Initialize()
 	end
 
 	-- Bind input
-	ContextActionService:BindAction(
-		"ToggleFlashlight",
-		handleFlashlightInput,
-		false,
-		Enum.KeyCode.F
-	)
+	ContextActionService:BindAction("ToggleFlashlight", handleFlashlightInput, false, Enum.KeyCode.F)
 
 	-- Handle character
 	if Player.Character then

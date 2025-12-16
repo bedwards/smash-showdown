@@ -275,7 +275,9 @@ local function moveToPosition(creatureData: CreatureData, targetPosition: Vector
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local rootPart = model.PrimaryPart
 
-	if not humanoid or not rootPart then return end
+	if not humanoid or not rootPart then
+		return
+	end
 
 	-- Simple direct movement (can be upgraded to PathfindingService)
 	humanoid:MoveTo(targetPosition)
@@ -283,21 +285,33 @@ end
 
 local function attackPlayer(creatureData: CreatureData, player: Player)
 	local now = tick()
-	if now - creatureData.lastAttackTime < 1.5 then return end -- Attack cooldown
+	if now - creatureData.lastAttackTime < 1.5 then
+		return
+	end -- Attack cooldown
 
 	creatureData.lastAttackTime = now
 
 	local character = player.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then return end
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
 
 	-- Deal damage
 	humanoid:TakeDamage(creatureData.config.damage)
 
-	print(string.format("[CreatureService] %s attacked %s for %d damage",
-		creatureData.creatureType, player.Name, creatureData.config.damage))
+	print(
+		string.format(
+			"[CreatureService] %s attacked %s for %d damage",
+			creatureData.creatureType,
+			player.Name,
+			creatureData.config.damage
+		)
+	)
 end
 
 local function updateCreatureAI(creatureData: CreatureData)
@@ -305,7 +319,9 @@ local function updateCreatureAI(creatureData: CreatureData)
 	local rootPart = model.PrimaryPart
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 
-	if not rootPart or not humanoid then return end
+	if not rootPart or not humanoid then
+		return
+	end
 	if humanoid.Health <= 0 then
 		creatureData.state = "Dead"
 		return
@@ -322,7 +338,6 @@ local function updateCreatureAI(creatureData: CreatureData)
 			creatureData.target = target
 			creatureData.state = "Hunt"
 		end
-
 	elseif creatureData.state == "Hunt" then
 		local target = creatureData.target
 		if not target or not target.Character then
@@ -353,7 +368,6 @@ local function updateCreatureAI(creatureData: CreatureData)
 			-- Chase
 			moveToPosition(creatureData, targetRoot.Position)
 		end
-
 	elseif creatureData.state == "Attack" then
 		local target = creatureData.target
 		if not target or not target.Character then
@@ -375,7 +389,6 @@ local function updateCreatureAI(creatureData: CreatureData)
 		else
 			creatureData.state = "Hunt"
 		end
-
 	elseif creatureData.state == "Flee" then
 		-- Move away from players toward spawn
 		moveToPosition(creatureData, creatureData.spawnPosition)
@@ -385,7 +398,6 @@ local function updateCreatureAI(creatureData: CreatureData)
 			-- Reached spawn, despawn
 			CreatureService:DespawnCreature(model)
 		end
-
 	end
 	-- Note: "Dead" state is handled by Humanoid.Died connection
 end
@@ -398,7 +410,9 @@ local function getRandomSpawnPosition(zones: { string }): Vector3?
 	local zoneName = zones[math.random(1, #zones)]
 	local zoneConfig = Config.ZONES[zoneName]
 
-	if not zoneConfig then return nil end
+	if not zoneConfig then
+		return nil
+	end
 
 	local x = math.random(-Config.WORLD_SIZE / 4, Config.WORLD_SIZE / 4)
 	local z = math.random(zoneConfig.zMin, zoneConfig.zMax)
@@ -421,7 +435,9 @@ function CreatureService:SpawnCreature(creatureType: string, position: Vector3?)
 	end
 
 	local spawnPos = position or getRandomSpawnPosition(SPAWN_ZONES[creatureType] or { "FOREST" })
-	if not spawnPos then return nil end
+	if not spawnPos then
+		return nil
+	end
 
 	local model = createCreatureModel(creatureType, spawnPos)
 	model.Parent = creaturesFolder
@@ -502,11 +518,7 @@ local function spawnNightCreatures()
 			if basePosition then
 				for _ = 1, packSize do
 					-- Offset pack members slightly
-					local offset = Vector3.new(
-						math.random(-10, 10),
-						0,
-						math.random(-10, 10)
-					)
+					local offset = Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
 					CreatureService:SpawnCreature(creatureType, basePosition + offset)
 				end
 			end

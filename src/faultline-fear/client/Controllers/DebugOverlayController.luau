@@ -145,12 +145,16 @@ end
 -- ==========================================
 
 local function getLabel(name: string): TextLabel?
-	if not mainFrame then return nil end
+	if not mainFrame then
+		return nil
+	end
 	return mainFrame:FindFirstChild(name) :: TextLabel?
 end
 
 local function updateMetrics()
-	if not isVisible or not mainFrame then return end
+	if not isVisible or not mainFrame then
+		return
+	end
 
 	local player = Players.LocalPlayer
 	local character = player.Character
@@ -168,11 +172,7 @@ local function updateMetrics()
 	local fpsLabel = getLabel("FPS")
 	if fpsLabel then
 		fpsLabel.Text = string.format("FPS: %d", currentFps)
-		fpsLabel.TextColor3 = Color3.fromRGB(
-			currentFps >= 55 and 0 or 255,
-			currentFps >= 30 and 255 or 0,
-			0
-		)
+		fpsLabel.TextColor3 = Color3.fromRGB(currentFps >= 55 and 0 or 255, currentFps >= 30 and 255 or 0, 0)
 	end
 
 	-- Memory
@@ -347,7 +347,9 @@ local function dumpDetailedMetrics()
 end
 
 local function handleInput(input: InputObject, gameProcessed: boolean)
-	if gameProcessed then return end
+	if gameProcessed then
+		return
+	end
 
 	if input.KeyCode == Enum.KeyCode.F3 then
 		toggleOverlay()

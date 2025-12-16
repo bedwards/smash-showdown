@@ -133,8 +133,12 @@ function DialogueController:CreateUI()
 
 	-- Keyboard handler
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then return end
-		if not isShowing then return end
+		if gameProcessed then
+			return
+		end
+		if not isShowing then
+			return
+		end
 
 		if input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.Return then
 			self:OnAdvance()
@@ -168,9 +172,13 @@ local function typewriterEffect(text: string): ()
 	continueHint.Visible = true
 
 	-- Animate continue hint
-	local hintTween = TweenService:Create(continueHint, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-		TextTransparency = 0.5,
-	})
+	local hintTween = TweenService:Create(
+		continueHint,
+		TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+		{
+			TextTransparency = 0.5,
+		}
+	)
 	hintTween:Play()
 end
 
@@ -179,7 +187,9 @@ end
 -- ==========================================
 
 function DialogueController:OnAdvance()
-	if not isShowing then return end
+	if not isShowing then
+		return
+	end
 
 	if isTyping then
 		-- Skip typewriter, show full text
@@ -242,7 +252,9 @@ function DialogueController:ShowDialogueData(data: { name: string, lines: { stri
 end
 
 function DialogueController:Hide()
-	if not isShowing then return end
+	if not isShowing then
+		return
+	end
 
 	isShowing = false
 	currentLines = {}

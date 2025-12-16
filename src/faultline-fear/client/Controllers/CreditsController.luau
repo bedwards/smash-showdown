@@ -271,9 +271,14 @@ function CreditsController:Show(endingData: {
 	end
 
 	-- Set stats
-	survivorsStat.Text = string.format("Survivors Rescued: %d/%d", endingData.survivorsRescued, Shared.Config.OBJECTIVES.SURVIVORS_TOTAL)
+	survivorsStat.Text =
+		string.format("Survivors Rescued: %d/%d", endingData.survivorsRescued, Shared.Config.OBJECTIVES.SURVIVORS_TOTAL)
 	timeStat.Text = string.format("Completion Time: %s", timeString)
-	generatorStat.Text = string.format("Generator Parts: %d/%d", endingData.generatorPartsCollected, Shared.Config.OBJECTIVES.GENERATOR_PARTS_TOTAL)
+	generatorStat.Text = string.format(
+		"Generator Parts: %d/%d",
+		endingData.generatorPartsCollected,
+		Shared.Config.OBJECTIVES.GENERATOR_PARTS_TOTAL
+	)
 
 	-- Add ending suffix to credits
 	local fullCredits = table.concat(CreditsText, "\n") .. "\n\n\n" .. endingData.creditsSuffix

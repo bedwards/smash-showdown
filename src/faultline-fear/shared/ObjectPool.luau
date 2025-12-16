@@ -112,7 +112,8 @@ function ObjectPool:Get()
 	self.inUse[obj] = true
 
 	-- Expand pool for next time (create additional objects)
-	local expandCount = math.min(self.expandSize, self.maxSize > 0 and (self.maxSize - currentTotal - 1) or self.expandSize)
+	local expandCount =
+		math.min(self.expandSize, self.maxSize > 0 and (self.maxSize - currentTotal - 1) or self.expandSize)
 	if expandCount > 0 then
 		task.defer(function()
 			for _ = 1, expandCount do

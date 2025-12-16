@@ -215,7 +215,13 @@ function StoryBeatProcessor:FireEvent(eventId: string, player: Player)
 					startTime = tick(),
 					beat = beat,
 				}
-				print(string.format("[StoryBeatProcessor] Timer started for '%s' (%d seconds)", beat.id, beat.triggerData.delaySeconds))
+				print(
+					string.format(
+						"[StoryBeatProcessor] Timer started for '%s' (%d seconds)",
+						beat.id,
+						beat.triggerData.delaySeconds
+					)
+				)
 			end
 		end
 	end

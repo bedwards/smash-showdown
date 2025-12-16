@@ -61,7 +61,9 @@ end
 -- ==========================================
 
 local function drainBattery(player: Player, dt: number)
-	if not playerFlashlightOn[player] then return end
+	if not playerFlashlightOn[player] then
+		return
+	end
 
 	local current = playerBattery[player] or MAX_BATTERY
 	local newBattery = math.max(0, current - BATTERY_DRAIN_PER_SECOND * dt)

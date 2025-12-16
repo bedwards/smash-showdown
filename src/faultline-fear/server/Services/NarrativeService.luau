@@ -82,7 +82,14 @@ function NarrativeService:CompleteObjective(player: Player, objectiveId: string,
 
 	progress.completedObjectives[objectiveId] = (progress.completedObjectives[objectiveId] or 0) + addCount
 
-	print(string.format("[NarrativeService] %s completed objective: %s (%d)", player.Name, objectiveId, progress.completedObjectives[objectiveId]))
+	print(
+		string.format(
+			"[NarrativeService] %s completed objective: %s (%d)",
+			player.Name,
+			objectiveId,
+			progress.completedObjectives[objectiveId]
+		)
+	)
 
 	-- Check if act is complete
 	self:CheckActCompletion(player)
@@ -128,7 +135,13 @@ function NarrativeService:CollectGeneratorPart(player: Player)
 
 	self:CompleteObjective(player, "collect_generator_parts", 1)
 
-	print(string.format("[NarrativeService] %s collected generator part #%d", player.Name, progress.generatorPartsCollected))
+	print(
+		string.format(
+			"[NarrativeService] %s collected generator part #%d",
+			player.Name,
+			progress.generatorPartsCollected
+		)
+	)
 end
 
 function NarrativeService:GetSurvivorsRescued(player: Player): number
@@ -307,14 +320,16 @@ function NarrativeService:CompleteGame(player: Player)
 	local ending = StoryData.GetEndingForSurvivors(progress.survivorsRescued)
 	progress.ending = ending.id
 
-	print(string.format(
-		"[NarrativeService] %s COMPLETED GAME! Ending: %s, Survivors: %d/%d, Time: %.1f minutes",
-		player.Name,
-		ending.name,
-		progress.survivorsRescued,
-		Config.OBJECTIVES.SURVIVORS_TOTAL,
-		playTime / 60
-	))
+	print(
+		string.format(
+			"[NarrativeService] %s COMPLETED GAME! Ending: %s, Survivors: %d/%d, Time: %.1f minutes",
+			player.Name,
+			ending.name,
+			progress.survivorsRescued,
+			Config.OBJECTIVES.SURVIVORS_TOTAL,
+			playTime / 60
+		)
+	)
 
 	-- Award badge if configured
 	if ending.badgeId and ending.badgeId > 0 then

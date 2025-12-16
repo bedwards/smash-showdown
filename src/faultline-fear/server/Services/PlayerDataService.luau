@@ -126,14 +126,16 @@ function PlayerDataService:LoadPlayerData(player: Player): PlayerSaveData?
 		playerData[player] = savedData
 		loadedPlayers[player] = true
 
-		print(string.format(
-			"[PlayerDataService] Loaded: %s - Act: %s, Survivors: %d, Parts: %d, PlayTime: %.1f min",
-			player.Name,
-			savedData.currentAct,
-			savedData.survivorsRescued,
-			savedData.generatorPartsCollected,
-			savedData.totalPlayTime / 60
-		))
+		print(
+			string.format(
+				"[PlayerDataService] Loaded: %s - Act: %s, Survivors: %d, Parts: %d, PlayTime: %.1f min",
+				player.Name,
+				savedData.currentAct,
+				savedData.survivorsRescued,
+				savedData.generatorPartsCollected,
+				savedData.totalPlayTime / 60
+			)
+		)
 
 		return savedData
 	elseif success and not data then
@@ -144,7 +146,9 @@ function PlayerDataService:LoadPlayerData(player: Player): PlayerSaveData?
 		print(string.format("[PlayerDataService] New player: %s", player.Name))
 		return defaultData
 	else
-		warn(string.format("[PlayerDataService] Failed to load data for %s after %d attempts", player.Name, MAX_RETRIES))
+		warn(
+			string.format("[PlayerDataService] Failed to load data for %s after %d attempts", player.Name, MAX_RETRIES)
+		)
 		-- Use default data but mark as not loaded (won't save)
 		playerData[player] = createDefaultData()
 		loadedPlayers[player] = false
@@ -185,13 +189,15 @@ function PlayerDataService:SavePlayerData(player: Player): boolean
 	end, MAX_RETRIES)
 
 	if success then
-		print(string.format(
-			"[PlayerDataService] Saved: %s - Act: %s, Survivors: %d, Parts: %d",
-			player.Name,
-			data.currentAct,
-			data.survivorsRescued,
-			data.generatorPartsCollected
-		))
+		print(
+			string.format(
+				"[PlayerDataService] Saved: %s - Act: %s, Survivors: %d, Parts: %d",
+				player.Name,
+				data.currentAct,
+				data.survivorsRescued,
+				data.generatorPartsCollected
+			)
+		)
 		return true
 	else
 		warn(string.format("[PlayerDataService] Failed to save data for %s", player.Name))
@@ -204,8 +210,12 @@ end
 -- ==========================================
 
 function PlayerDataService:SyncFromNarrative(player: Player)
-	if not NarrativeService then return end
-	if not playerData[player] then return end
+	if not NarrativeService then
+		return
+	end
+	if not playerData[player] then
+		return
+	end
 
 	local progress = NarrativeService:GetPlayerProgress(player)
 	local data = playerData[player]
@@ -233,8 +243,12 @@ function PlayerDataService:SyncFromNarrative(player: Player)
 end
 
 function PlayerDataService:SyncToNarrative(player: Player)
-	if not NarrativeService then return end
-	if not playerData[player] then return end
+	if not NarrativeService then
+		return
+	end
+	if not playerData[player] then
+		return
+	end
 
 	local data = playerData[player]
 
@@ -287,8 +301,7 @@ function PlayerDataService:Initialize()
 	-- Initialize DataStore
 	if isStudio then
 		-- Studio testing - use mock or real based on setting
-		local useStudioDataStore = game:GetService("RunService"):IsStudio()
-			and game.GameId ~= 0 -- Has a real game ID
+		local useStudioDataStore = game:GetService("RunService"):IsStudio() and game.GameId ~= 0 -- Has a real game ID
 
 		if useStudioDataStore then
 			local success, result = pcall(function()

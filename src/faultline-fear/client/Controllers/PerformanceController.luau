@@ -233,7 +233,10 @@ function PerformanceController:Initialize()
 	end
 
 	print("[PerformanceController] Initialized")
-	print("[PerformanceController] Target FPS:", deviceType == "Mobile" and Config.PERFORMANCE.TARGET_FPS_MOBILE or Config.PERFORMANCE.TARGET_FPS_DESKTOP)
+	print(
+		"[PerformanceController] Target FPS:",
+		deviceType == "Mobile" and Config.PERFORMANCE.TARGET_FPS_MOBILE or Config.PERFORMANCE.TARGET_FPS_DESKTOP
+	)
 end
 
 return PerformanceController

@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Run Selene on Faultline Fear
+        run: selene src/faultline-fear/
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Run Lune Tests
+        run: lune run tests/run.luau
+
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Check Formatting
+        run: stylua --check src/faultline-fear/
+
+  rojo-build:
+    name: Rojo Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Build Faultline Fear
+        run: |
+          if [ -f "faultline-fear.project.json" ]; then
+            rojo build faultline-fear.project.json -o faultline-fear.rbxl
+            echo "Build successful: faultline-fear.rbxl"
+          else
+            echo "No faultline-fear.project.json found, skipping"
+          fi
+
+      - name: Build Default Project
+        run: |
+          if [ -f "default.project.json" ]; then
+            rojo build default.project.json -o game.rbxl
+            echo "Build successful: game.rbxl"
+          else
+            echo "No default.project.json found, skipping"
+          fi
