@@ -107,6 +107,20 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Fault line crossing",
 		required = false,
 	},
+	WaterTower = {
+		name = "WaterTower",
+		category = "Structures",
+		blenderScript = "tools/blender/create_structures.py",
+		description = "Town landmark, elevated tank",
+		required = false,
+	},
+	Lighthouse = {
+		name = "Lighthouse",
+		category = "Structures",
+		blenderScript = "tools/blender/create_structures.py",
+		description = "Coastal beacon with light",
+		required = false,
+	},
 
 	-- NPCs (from tools/blender/create_npcs.py - TODO)
 	Survivor = {
