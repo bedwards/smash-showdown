@@ -531,7 +531,17 @@ lune run tests/run.luau
 - 32 tests, runs in seconds
 - Add new tests in `tests/faultline-fear/`
 
-**2. run-in-roblox Verification** (runs IN actual Studio):
+**2. TestEZ Tests** (BDD-style, runs IN Studio):
+```bash
+rojo build faultline-fear.project.json -o faultline-fear.rbxl
+run-in-roblox --place faultline-fear.rbxl --script tools/run-testez.luau
+```
+- Uses TestEZ expect() assertions
+- Tests Config, Heightmap, StoryData
+- 17 tests, runs in Studio via run-in-roblox
+- Script: `tools/run-testez.luau`
+
+**3. run-in-roblox Verification** (runs IN actual Studio):
 ```bash
 rojo build faultline-fear.project.json -o faultline-fear.rbxl
 run-in-roblox --place faultline-fear.rbxl --script tools/verify-game.luau
