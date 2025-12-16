@@ -57,6 +57,7 @@ local ObjectiveUpdate = Remotes:WaitForChild("ObjectiveUpdate") :: RemoteEvent
 local HUDController = require(script.Controllers.HUDController)
 local AudioController = require(script.Controllers.AudioController)
 local TouchController = require(script.Controllers.TouchController)
+local PerformanceController = require(script.Controllers.PerformanceController)
 -- TODO: Initialize other controllers
 -- local CameraController = require(script.Controllers.CameraController)
 -- local InputController = require(script.Controllers.InputController)
@@ -65,6 +66,7 @@ local TouchController = require(script.Controllers.TouchController)
 HUDController:Initialize()
 AudioController:Initialize()
 TouchController:Initialize() -- Only activates on touch devices
+PerformanceController:Initialize() -- FPS monitoring, battery saver
 
 -- ==========================================
 -- REMOTE EVENT HANDLERS

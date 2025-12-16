@@ -32,6 +32,18 @@ local joystickStartPosition: Vector2 = Vector2.zero
 local joystickCurrentPosition: Vector2 = Vector2.zero
 local joystickTouchId: number? = nil
 
+-- Gesture state
+local lastTapTime: number = 0
+local lastTapPosition: Vector2 = Vector2.zero
+local swipeStartPosition: Vector2? = nil
+local swipeStartTime: number = 0
+
+-- Gesture constants
+local DOUBLE_TAP_TIME = 0.3 -- Max time between taps
+local DOUBLE_TAP_DISTANCE = 50 -- Max distance between taps
+local SWIPE_MIN_DISTANCE = 100 -- Min swipe distance
+local SWIPE_MAX_TIME = 0.5 -- Max time for swipe
+
 -- Constants
 local BUTTON_SIZE = 60 -- 60px, good touch target
 local BUTTON_SIZE_LARGE = 70
@@ -336,6 +348,93 @@ function TouchController:HideInteractButton()
 end
 
 -- ==========================================
+-- GESTURE HANDLERS
+-- ==========================================
+
+local function onDoubleTap()
+	print("[TouchController] Double tap - center camera")
+	-- Center camera on character
+	local player = Players.LocalPlayer
+	local character = player.Character
+	if character then
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		if rootPart then
+			local camera = workspace.CurrentCamera
+			if camera then
+				-- Smooth camera reset to behind character
+				local targetCFrame = CFrame.new(rootPart.Position + Vector3.new(0, 10, 15), rootPart.Position)
+				TweenService:Create(camera, TweenInfo.new(0.3), {
+					CFrame = targetCFrame,
+				}):Play()
+			end
+		end
+	end
+end
+
+local function onSwipeLeft()
+	print("[TouchController] Swipe left - previous item")
+	-- TODO: Switch to previous item in hotbar
+end
+
+local function onSwipeRight()
+	print("[TouchController] Swipe right - next item")
+	-- TODO: Switch to next item in hotbar
+end
+
+local function processGesture(touchPosition: Vector2, touchDuration: number)
+	local now = tick()
+
+	-- Check for double tap
+	if touchDuration < 0.2 then -- Quick tap
+		local timeSinceLastTap = now - lastTapTime
+		local distanceFromLastTap = (touchPosition - lastTapPosition).Magnitude
+
+		if timeSinceLastTap < DOUBLE_TAP_TIME and distanceFromLastTap < DOUBLE_TAP_DISTANCE then
+			-- Double tap detected
+			onDoubleTap()
+			lastTapTime = 0 -- Reset to prevent triple-tap
+			return true
+		else
+			-- Single tap - save for potential double tap
+			lastTapTime = now
+			lastTapPosition = touchPosition
+		end
+	end
+
+	return false
+end
+
+local function processSwipe(startPos: Vector2, endPos: Vector2, duration: number)
+	if duration > SWIPE_MAX_TIME then
+		return false
+	end
+
+	local delta = endPos - startPos
+	local distance = delta.Magnitude
+
+	if distance < SWIPE_MIN_DISTANCE then
+		return false
+	end
+
+	-- Determine swipe direction (horizontal vs vertical)
+	local absX = math.abs(delta.X)
+	local absY = math.abs(delta.Y)
+
+	if absX > absY then
+		-- Horizontal swipe
+		if delta.X > 0 then
+			onSwipeRight()
+		else
+			onSwipeLeft()
+		end
+		return true
+	end
+
+	-- Vertical swipes not used currently
+	return false
+end
+
+-- ==========================================
 -- UI CREATION
 -- ==========================================
 
@@ -468,6 +567,40 @@ local function setupJoystickInput()
 	end)
 end
 
+local function setupGestureInput()
+	-- Track touches for gesture detection (on empty screen areas)
+	UserInputService.TouchStarted:Connect(function(touch, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		swipeStartPosition = Vector2.new(touch.Position.X, touch.Position.Y)
+		swipeStartTime = tick()
+	end)
+
+	UserInputService.TouchEnded:Connect(function(touch, gameProcessed)
+		if gameProcessed then
+			swipeStartPosition = nil
+			return
+		end
+
+		local touchEndPosition = Vector2.new(touch.Position.X, touch.Position.Y)
+		local touchDuration = tick() - swipeStartTime
+
+		-- Check for swipe first (takes priority over tap)
+		if swipeStartPosition then
+			if processSwipe(swipeStartPosition, touchEndPosition, touchDuration) then
+				swipeStartPosition = nil
+				return
+			end
+		end
+
+		-- Check for double-tap
+		processGesture(touchEndPosition, touchDuration)
+
+		swipeStartPosition = nil
+	end)
+end
+
 -- ==========================================
 -- LAYOUT ADAPTATION
 -- ==========================================
@@ -592,6 +725,7 @@ function TouchController:Initialize()
 
 	self:CreateUI()
 	setupJoystickInput()
+	setupGestureInput()
 
 	-- Apply initial layout
 	local screenSize = InputService:GetScreenSize()
@@ -616,6 +750,7 @@ function TouchController:Initialize()
 
 	print("[TouchController] Initialized")
 	print("[TouchController] Touch controls active")
+	print("[TouchController] Gestures: double-tap (center camera), swipe L/R (switch item)")
 
 	return true
 end

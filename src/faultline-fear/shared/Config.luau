@@ -198,6 +198,21 @@ local Config = {
 		},
 
 		STREAMING_ENABLED = true,
+
+		-- Battery saver mode settings
+		BATTERY_SAVER = {
+			-- Reduced update frequencies
+			HUD_UPDATE_RATE = 0.5, -- seconds (normal is real-time)
+			ZONE_CHECK_RATE = 5, -- seconds (normal is 2)
+
+			-- Visual reductions
+			PARTICLE_MULTIPLIER = 0.3, -- 30% of normal particles
+			SHADOW_ENABLED = false,
+			POST_EFFECTS_ENABLED = false,
+
+			-- LOD adjustments (closer culling)
+			LOD_DISTANCE_MULTIPLIER = 0.5,
+		},
 	},
 
 	-- ==========================================
