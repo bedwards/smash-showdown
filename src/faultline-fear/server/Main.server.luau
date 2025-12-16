@@ -214,6 +214,20 @@ local function onPlayerAdded(player: Player)
 		HeightmapReady:FireClient(player)
 	end
 
+	-- Position player on terrain when character loads
+	player.CharacterAdded:Connect(function(character)
+		task.wait(0.1) -- Brief wait for character to fully load
+		local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if rootPart and Heightmap:IsGenerated() then
+			-- Get terrain height at spawn position
+			local pos = rootPart.Position
+			local terrainHeight = Heightmap:GetHeight(pos.X, pos.Z)
+			-- Position player 5 studs above terrain
+			rootPart.CFrame = CFrame.new(pos.X, terrainHeight + 5, pos.Z)
+			print(string.format("[FaultlineFear] Positioned %s at height %.1f", player.Name, terrainHeight + 5))
+		end
+	end)
+
 	-- Fire GAME_START event for story system (after character loads)
 	player.CharacterAdded:Once(function()
 		task.delay(2, function() -- Give a moment for UI to load

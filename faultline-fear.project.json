@@ -31,6 +31,18 @@
       "$className": "Workspace",
       "$properties": {
         "StreamingEnabled": true
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Position": [0, 50, 0],
+          "Size": [10, 1, 10],
+          "Anchored": true,
+          "Transparency": 1,
+          "CanCollide": false,
+          "Neutral": true,
+          "Duration": 0
+        }
       }
     },
 
@@ -48,7 +60,7 @@
     "SoundService": {
       "$className": "SoundService",
       "$properties": {
-        "AmbientReverb": "OutdoorsMedium"
+        "AmbientReverb": "Forest"
       }
     }
   }
