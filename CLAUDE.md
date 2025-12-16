@@ -330,15 +330,42 @@ assets/faultline-fear/
 
 ### Ground Level Elevation (CRITICAL)
 
-**THE PROBLEM WE SOLVED**: Items spawning inside terrain or floating.
+**THE PROBLEM WE SOLVED**: Items spawning inside terrain or floating due to race conditions.
 
-**THE SOLUTION**:
-```lua
--- ALWAYS do this when placing ANYTHING on terrain
-local TerrainUtils = require(shared.TerrainUtils)
-local height = TerrainUtils.getTerrainHeight(x, z)
-object.Position = Vector3.new(x, height + offset, z)
+**THE SOLUTION - TWO PHASE TERRAIN**:
+
 ```
+STARTUP SEQUENCE (Main.server.luau):
+1. Heightmap:Generate(seed)  ← BLOCKING - must complete
+2. HeightmapReady:FireAllClients()
+3. Services Initialize (can now query heights safely)
+4. TerrainGenerator:GenerateVisualTerrain() ← ASYNC background
+```
+
+**GUARANTEED HEIGHT QUERIES**:
+```lua
+-- ALWAYS use Heightmap (O(1) lookup, deterministic)
+local height = Heightmap:GetHeight(x, z)
+object.Position = Vector3.new(x, height + offset, z)
+
+-- Or via TerrainUtils wrapper
+local height = TerrainUtils.getTerrainHeight(x, z)
+```
+
+**FOR BUILDING PLACEMENT** (flattens terrain):
+```lua
+-- Flattens area and returns guaranteed flat height
+local buildingHeight = Heightmap:FlattenArea(centerX, centerZ, radius)
+-- OR
+local buildingHeight = TerrainGenerator:PrepareBuilding(x, z, radius)
+building:PivotTo(CFrame.new(x, buildingHeight, z))
+```
+
+**KEY FILES**:
+- `shared/Heightmap.luau` - Single source of truth (O(1) lookup)
+- `shared/TerrainUtils.luau` - Convenience wrapper
+- `server/Services/TerrainGenerator.luau` - Visual terrain from heightmap
+- `docs/faultline-fear/TERRAIN_ARCHITECTURE.md` - Full documentation
 
 ### Blender to Roblox Workflow
 
@@ -409,7 +436,31 @@ type StoryBeat = {
 | Wally | 0.3.2 | Package manager | Working |
 | Selene | 0.27.1 | Linter | Working |
 | StyLua | 0.20.0 | Formatter | Working |
-| Blender | 5.0.0 | 3D modeling | Working |
+| Blender | 5.0.0 | 3D modeling | **Headless Ready** |
+
+### Blender Headless Mode (WORKING)
+
+**Claude CAN create 3D assets programmatically.** Blender 5.0.0 is installed and headless mode works.
+
+```bash
+# Test headless mode
+blender --background --python-expr "import bpy; print('Works!')"
+
+# Run asset generation scripts
+blender --background --python tools/blender/create_creatures.py
+```
+
+**Existing Scripts:**
+- `tools/blender/blender_utils.py` - Common utilities (materials, export, primitives)
+- `tools/blender/create_creatures.py` - Generates creature FBX models
+
+**Output:** FBX files in `assets/models/` (tracked in git)
+
+**To create new assets:**
+1. Create Python script in `tools/blender/`
+2. Use `blender_utils.py` helpers
+3. Export to `assets/models/<category>/`
+4. Run: `blender --background --python tools/blender/your_script.py`
 
 ### Need to Install
 
