@@ -309,6 +309,43 @@ local ASSETS: { [string]: AssetEntry } = {
 		description = "Floor cave formation",
 		required = false,
 	},
+
+	-- Liminal Space Assets (from tools/blender/create_liminal_spaces.py)
+	AbandonedMall = {
+		name = "AbandonedMall",
+		category = "Liminal",
+		blenderScript = "tools/blender/create_liminal_spaces.py",
+		description = "Empty mall with fluorescent lights",
+		required = false,
+	},
+	HotelLobby = {
+		name = "HotelLobby",
+		category = "Liminal",
+		blenderScript = "tools/blender/create_liminal_spaces.py",
+		description = "Grand lobby with stopped clocks",
+		required = false,
+	},
+	AbandonedSchool = {
+		name = "AbandonedSchool",
+		category = "Liminal",
+		blenderScript = "tools/blender/create_liminal_spaces.py",
+		description = "Classroom with neat desks",
+		required = false,
+	},
+	Hospital = {
+		name = "Hospital",
+		category = "Liminal",
+		blenderScript = "tools/blender/create_liminal_spaces.py",
+		description = "Corridor with gurneys",
+		required = false,
+	},
+	HighwayUnderpass = {
+		name = "HighwayUnderpass",
+		category = "Liminal",
+		blenderScript = "tools/blender/create_liminal_spaces.py",
+		description = "Underpass with sodium lights",
+		required = false,
+	},
 }
 
 -- ==========================================
