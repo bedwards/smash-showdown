@@ -1,0 +1,24 @@
+# Asset Models Directory
+
+This directory contains Blender-generated 3D models.
+
+## Structure
+```
+models/
+├── creatures/   - Night creatures (ShadowStalker, FissureDweller, NightBird)
+├── animals/     - Day/night wildlife
+├── structures/  - Buildings, landmarks
+├── npcs/        - Survivors, pet companion
+├── props/       - Signs, collectibles
+└── terrain/     - Fault line edges, cliffs
+```
+
+## Note
+FBX/OBJ/BLEND files are NOT committed to git.
+Run Blender scripts to generate them:
+
+```bash
+blender --background --python tools/blender/create_creatures.py
+```
+
+See docs/faultline-fear/ASSET_PIPELINE.md for full workflow.
