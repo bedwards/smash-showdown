@@ -156,10 +156,14 @@ function TerrainGenerator:GenerateVisualChunk(startX: number, startZ: number, si
 
 	-- Y dimension needs to accommodate full height range
 	-- Include buffer below sea level for ocean floor and above for safety
-	local minY = -50 -- Below sea level for ocean floor
-	local maxY = Config.MOUNTAIN_MAX_HEIGHT + 50 -- Above max mountains for safety
+	-- CRITICAL: Align to voxel grid to match ExpandToGrid behavior
+	local rawMinY = -50 -- Below sea level for ocean floor
+	local rawMaxY = Config.MOUNTAIN_MAX_HEIGHT + 50 -- Above max mountains for safety
+	-- Round down for minY, round up for maxY to ensure we cover the full range
+	local minY = math.floor(rawMinY / voxelSize) * voxelSize
+	local maxY = math.ceil(rawMaxY / voxelSize) * voxelSize
 	local heightRange = maxY - minY
-	local voxelsPerAxisY = math.ceil(heightRange / voxelSize)
+	local voxelsPerAxisY = heightRange / voxelSize -- Exact division since grid-aligned
 
 	-- Pre-allocate 3D arrays with correct Y dimension
 	local materials: { { { Enum.Material } } } = {}
