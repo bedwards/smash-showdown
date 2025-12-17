@@ -278,9 +278,30 @@ local function organizeAssets()
 	local toProcess = {}
 	for _, obj in game.Workspace:GetChildren() do
 		-- Skip folders and known game objects
-		if obj:IsA("Model") or obj:IsA("MeshPart") then
-			if not obj:FindFirstChild("Humanoid") then -- Skip characters
+		if obj:IsA("MeshPart") then
+			if not obj.Parent:FindFirstChild("Humanoid") then
 				table.insert(toProcess, obj)
+			end
+		elseif obj:IsA("Model") then
+			if not obj:FindFirstChild("Humanoid") then
+				-- Check if this is a combined FBX import (contains multiple meshes)
+				local meshChildren = {}
+				for _, child in obj:GetDescendants() do
+					if child:IsA("MeshPart") then
+						table.insert(meshChildren, child)
+					end
+				end
+
+				if #meshChildren > 1 then
+					-- This is a combined import - extract individual meshes
+					print("[AssetOrganizer] Found combined import with", #meshChildren, "meshes - extracting...")
+					for _, mesh in ipairs(meshChildren) do
+						table.insert(toProcess, mesh)
+					end
+				else
+					-- Single model
+					table.insert(toProcess, obj)
+				end
 			end
 		end
 	end
