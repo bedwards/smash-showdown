@@ -11,6 +11,8 @@
 	This is the single source of truth for the game's story.
 ]]
 
+local Config = require(script.Parent.Config)
+
 export type ActId = "ACT_1_CALL" | "ACT_2_TRIALS" | "ACT_3_ORDEAL" | "ACT_4_RETURN" | "ACT_5_RESOLUTION"
 export type EndingId = "BAD" | "NEUTRAL" | "GOOD" | "BEST"
 
@@ -222,7 +224,7 @@ StoryData.Endings = {
 		name = "Lone Survivor",
 		description = "You escaped, but left many behind.",
 		survivorsRequired = 0,
-		badgeId = 0, -- Placeholder
+		badgeId = Config.BADGES.SURVIVOR,
 		creditsSuffix = "You made it out... but at what cost?",
 	},
 	NEUTRAL = {
@@ -230,7 +232,7 @@ StoryData.Endings = {
 		name = "Survivor",
 		description = "You saved some, but not all.",
 		survivorsRequired = 4,
-		badgeId = 0,
+		badgeId = Config.BADGES.SURVIVOR,
 		creditsSuffix = "Some made it. Some didn't. Life goes on.",
 	},
 	GOOD = {
@@ -238,7 +240,7 @@ StoryData.Endings = {
 		name = "Hero",
 		description = "You saved most of the survivors.",
 		survivorsRequired = 8,
-		badgeId = 0,
+		badgeId = Config.BADGES.SURVIVOR,
 		creditsSuffix = "You gave everything to save others. They'll never forget.",
 	},
 	BEST = {
@@ -246,7 +248,7 @@ StoryData.Endings = {
 		name = "True Survivor",
 		description = "You saved everyone. No one was left behind.",
 		survivorsRequired = 10,
-		badgeId = 0,
+		badgeId = Config.BADGES.SURVIVOR,
 		creditsSuffix = "Against all odds, everyone made it. A miracle.",
 	},
 }

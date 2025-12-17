@@ -216,6 +216,15 @@ local Config = {
 	},
 
 	-- ==========================================
+	-- BADGES
+	-- ==========================================
+	BADGES = {
+		SURVIVOR = 4228023429993265, -- Endure The Big One and complete the game
+		EXPLORER = 4258190789797301, -- Visit all seven zones
+		RESCUER = 732146320143385, -- Rescue all survivors
+	},
+
+	-- ==========================================
 	-- INPUT
 	-- ==========================================
 	KEYBINDS = {
