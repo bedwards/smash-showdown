@@ -47,8 +47,15 @@ local function createRemotes()
 	remotes.Parent = ReplicatedStorage
 
 	local events = {
-		"HungerUpdate", "EarthquakeEvent", "TimeUpdate",
-		"ObjectiveUpdate", "StoryEvent", "DialogueEvent", "HeightmapReady", "WorldReady", "LiminalEvent"
+		"HungerUpdate",
+		"EarthquakeEvent",
+		"TimeUpdate",
+		"ObjectiveUpdate",
+		"StoryEvent",
+		"DialogueEvent",
+		"HeightmapReady",
+		"WorldReady",
+		"LiminalEvent",
 	}
 	for _, name in events do
 		local event = Instance.new("RemoteEvent")

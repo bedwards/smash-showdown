@@ -417,7 +417,12 @@ local function getTemplatesFolder(): Folder?
 		warn("[AssetManifest] ServerStorage.AssetTemplates not found!")
 		warn("[AssetManifest] After importing FBX, move MeshParts to ServerStorage.AssetTemplates")
 	else
-		print(string.format("[AssetManifest] Found %d templates in ServerStorage.AssetTemplates", #templatesFolder:GetChildren()))
+		print(
+			string.format(
+				"[AssetManifest] Found %d templates in ServerStorage.AssetTemplates",
+				#templatesFolder:GetChildren()
+			)
+		)
 	end
 
 	return templatesFolder
@@ -497,7 +502,13 @@ function AssetManifest:GetAsset(assetName: string): Instance?
 		-- Only warn once per asset to avoid log spam
 		if not missingAssetWarnings[assetName] then
 			missingAssetWarnings[assetName] = true
-			warn(string.format("[AssetManifest] Asset '%s' not found. Expected: ServerStorage.AssetTemplates.%s", assetName, fullName))
+			warn(
+				string.format(
+					"[AssetManifest] Asset '%s' not found. Expected: ServerStorage.AssetTemplates.%s",
+					assetName,
+					fullName
+				)
+			)
 		end
 		return nil
 	end
