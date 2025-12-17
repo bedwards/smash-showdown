@@ -1,485 +1,69 @@
 --[[
 	Faultline Fear: Asset Organizer Plugin
+	Version: 2.0.1 - December 2024
 
 	WHAT THIS DOES:
-	1. After you import the combined FBX, click "Organize Assets"
-	2. Plugin finds all MeshParts/Models in Workspace
-	3. Matches them to AssetManifest names
-	4. Moves them to ReplicatedStorage.Assets with correct structure
-	5. Applies colors from AssetColors definitions
+	1. "Clear Assets" - Removes ALL imported assets from everywhere:
+	   - Workspace (freshly imported meshes)
+	   - ReplicatedStorage.Assets (old organize location)
+	   - ServerStorage.AssetTemplates (new storage location)
+
+	After clearing, use:
+	- File → Import 3D → combined_all_assets.fbx
+	- Then use "Move to Storage" plugin to move assets to ServerStorage.AssetTemplates
 
 	INSTALLATION:
 	1. Copy this file to your Roblox Plugins folder:
 	   - Windows: %LOCALAPPDATA%\Roblox\Plugins\
 	   - Mac: ~/Documents/Roblox/Plugins/
-	2. Restart Roblox Studio
-	3. Look for "Faultline Fear" toolbar
+	2. Delete plugin cache: ~/Library/Roblox/PluginStorage/ (Mac)
+	3. Restart Roblox Studio
+	4. Look for "Faultline Fear" toolbar
 
-	USAGE (EASIEST):
-	1. File → Import 3D
-	2. Select: assets/models/combined_all_assets.fbx
-	3. Import settings: keep defaults, click Import
-	4. All meshes appear in Workspace
-	5. Click "Organize Assets" button in Faultline Fear toolbar
-	6. Done! Models are in ReplicatedStorage.Assets with colors applied
-	7. SAVE THE FILE so models persist!
-
-	The plugin handles:
-	- Naming models correctly (FerrisWheel, AbandonedHouse, etc.)
-	- Organizing into category folders
-	- Applying colors (Roblox doesn't import FBX colors)
+	WORKFLOW:
+	1. Click "Clear Assets" (removes ALL old imports)
+	2. File → Import 3D → combined_all_assets.fbx
+	3. Use "Move to Storage" plugin (separate plugin)
+	4. Save the place!
 ]]
 
-local Selection = game:GetService("Selection")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
+local ServerStorage = game:GetService("ServerStorage")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Create toolbar and buttons
+-- Create toolbar and button
 local toolbar = plugin:CreateToolbar("Faultline Fear")
 local clearButton = toolbar:CreateButton(
-	"1. Clear Assets",
-	"Delete all assets from ReplicatedStorage.Assets (do this before re-importing)",
+	"Clear ALL Assets",
+	"Delete ALL imported assets from Workspace, ReplicatedStorage, and ServerStorage",
 	"rbxassetid://6031075931" -- Trash icon
 )
-local organizeButton = toolbar:CreateButton(
-	"2. Organize",
-	"Move imported meshes to ReplicatedStorage and apply colors",
-	"rbxassetid://6031075938" -- Folder icon
-)
-local applyColorsButton = toolbar:CreateButton(
-	"3. Recolor",
-	"Re-apply colors to all assets in ReplicatedStorage.Assets",
-	"rbxassetid://6031075929" -- Paint icon
-)
-
--- ==========================================
--- ASSET NAME MAPPING
--- Maps FBX filename patterns to asset names
--- ==========================================
-
-local NAME_PATTERNS = {
-	-- Structures
-	{ pattern = "ferris", name = "FerrisWheel", category = "Structures" },
-	{ pattern = "radio_tower", name = "RadioTower", category = "Structures" },
-	{ pattern = "radiotower", name = "RadioTower", category = "Structures" },
-	{ pattern = "water_tower", name = "WaterTower", category = "Structures" },
-	{ pattern = "watertower", name = "WaterTower", category = "Structures" },
-	{ pattern = "lighthouse", name = "Lighthouse", category = "Structures" },
-	{ pattern = "house", name = "AbandonedHouse", category = "Structures" },
-	{ pattern = "bridge", name = "Bridge", category = "Structures" },
-
-	-- Animals
-	{ pattern = "deer", name = "Deer", category = "Animals" },
-	{ pattern = "rabbit", name = "Rabbit", category = "Animals" },
-	{ pattern = "bird", name = "Bird", category = "Animals" },
-	{ pattern = "squirrel", name = "Squirrel", category = "Animals" },
-	{ pattern = "fish", name = "Fish", category = "Animals" },
-	{ pattern = "crab", name = "Crab", category = "Animals" },
-	{ pattern = "coyote", name = "Coyote", category = "Animals" },
-	{ pattern = "wolf", name = "Wolf", category = "Animals" },
-	{ pattern = "mountainlion", name = "MountainLion", category = "Animals" },
-	{ pattern = "lion", name = "MountainLion", category = "Animals" },
-
-	-- Creatures
-	{ pattern = "stalker", name = "Stalker", category = "Creatures" },
-	{ pattern = "gloom", name = "GloomWraith", category = "Creatures" },
-	{ pattern = "tremor", name = "TremorWorm", category = "Creatures" },
-	{ pattern = "fissure", name = "FissureDweller", category = "Creatures" },
-	{ pattern = "dweller", name = "FissureDweller", category = "Creatures" },
-
-	-- Terrain
-	{ pattern = "rock", name = "Rock", category = "Terrain" },
-	{ pattern = "boulder", name = "Boulder", category = "Terrain" },
-	{ pattern = "tree", name = "Tree", category = "Terrain" },
-	{ pattern = "bush", name = "Bush", category = "Terrain" },
-	{ pattern = "grass", name = "GrassClump", category = "Terrain" },
-	{ pattern = "log", name = "FallenLog", category = "Terrain" },
-	{ pattern = "stump", name = "TreeStump", category = "Terrain" },
-	{ pattern = "cliff_coastal", name = "CliffCoastal", category = "Terrain" },
-	{ pattern = "cliff_mountain", name = "CliffMountain", category = "Terrain" },
-	{ pattern = "cliff", name = "Cliff", category = "Terrain" },
-	{ pattern = "faultedge", name = "FaultEdge", category = "Terrain" },
-	{ pattern = "fault", name = "FaultEdge", category = "Terrain" },
-	{ pattern = "steamvent", name = "SteamVent", category = "Terrain" },
-	{ pattern = "steam", name = "SteamVent", category = "Terrain" },
-
-	-- NPCs
-	{ pattern = "survivor", name = "Survivor", category = "NPCs" },
-	{ pattern = "npc", name = "NPC", category = "NPCs" },
-
-	-- Caves
-	{ pattern = "cave", name = "CaveEntrance", category = "Caves" },
-	{ pattern = "stalactite", name = "Stalactite", category = "Caves" },
-	{ pattern = "stalagmite", name = "Stalagmite", category = "Caves" },
-
-	-- Signs
-	{ pattern = "sign", name = "Sign", category = "Signs" },
-
-	-- Liminal
-	{ pattern = "mall", name = "AbandonedMall", category = "Liminal" },
-	{ pattern = "hotel", name = "HotelLobby", category = "Liminal" },
-	{ pattern = "school", name = "AbandonedSchool", category = "Liminal" },
-	{ pattern = "hospital", name = "Hospital", category = "Liminal" },
-	{ pattern = "underpass", name = "HighwayUnderpass", category = "Liminal" },
-
-	-- Pet
-	{ pattern = "pet", name = "PetCompanion", category = "Pet" },
-	{ pattern = "companion", name = "PetCompanion", category = "Pet" },
-	{ pattern = "dog", name = "PetCompanion", category = "Pet" },
-	{ pattern = "cat", name = "PetCompanion", category = "Pet" },
-}
-
--- ==========================================
--- COLOR DEFINITIONS (from AssetColors.luau)
--- ==========================================
-
-local COLORS = {
-	FerrisWheel = {
-		primary = Color3.new(0.3, 0.3, 0.35),
-		patterns = {
-			Gondola = Color3.new(0.8, 0.2, 0.2),
-			Light = Color3.new(1.0, 0.9, 0.7),
-			Rust = Color3.new(0.4, 0.25, 0.15),
-		},
-	},
-	RadioTower = {
-		primary = Color3.new(0.5, 0.5, 0.55),
-		patterns = {
-			Red = Color3.new(0.8, 0.1, 0.1),
-			Beacon = Color3.new(1.0, 0.2, 0.1),
-		},
-	},
-	AbandonedHouse = {
-		primary = Color3.new(0.6, 0.55, 0.5),
-		patterns = {
-			Roof = Color3.new(0.25, 0.2, 0.18),
-			Shingle = Color3.new(0.25, 0.2, 0.18),
-			Door = Color3.new(0.35, 0.25, 0.15),
-			Porch = Color3.new(0.35, 0.25, 0.15),
-			Wood = Color3.new(0.35, 0.25, 0.15),
-			Window = Color3.new(0.3, 0.35, 0.4),
-		},
-	},
-	Bridge = {
-		primary = Color3.new(0.5, 0.5, 0.48),
-		patterns = {
-			Steel = Color3.new(0.4, 0.4, 0.45),
-			Tower = Color3.new(0.4, 0.4, 0.45),
-			Cable = Color3.new(0.2, 0.2, 0.22),
-			Rail = Color3.new(0.5, 0.3, 0.2),
-			Rust = Color3.new(0.5, 0.3, 0.2),
-		},
-	},
-	WaterTower = {
-		primary = Color3.new(0.7, 0.75, 0.8),
-		patterns = {
-			Tank = Color3.new(0.7, 0.75, 0.8),
-			Leg = Color3.new(0.3, 0.3, 0.32),
-			Rust = Color3.new(0.5, 0.35, 0.25),
-		},
-	},
-	Lighthouse = {
-		primary = Color3.new(0.95, 0.95, 0.9),
-		patterns = {
-			Red = Color3.new(0.7, 0.15, 0.1),
-			Stripe = Color3.new(0.7, 0.15, 0.1),
-			Glass = Color3.new(0.8, 0.85, 0.9),
-			Lens = Color3.new(1.0, 0.95, 0.8),
-		},
-	},
-	-- Creatures
-	FissureDweller = {
-		primary = Color3.new(0.25, 0.2, 0.3),
-		patterns = {
-			Eye = Color3.new(0.8, 0.2, 0.1),
-			Claw = Color3.new(0.15, 0.1, 0.1),
-		},
-	},
-	-- Terrain
-	CliffCoastal = {
-		primary = Color3.new(0.65, 0.6, 0.55),
-	},
-	CliffMountain = {
-		primary = Color3.new(0.5, 0.45, 0.4),
-	},
-	Cliff = {
-		primary = Color3.new(0.55, 0.5, 0.45),
-	},
-	FaultEdge = {
-		primary = Color3.new(0.35, 0.3, 0.25),
-		patterns = {
-			Crack = Color3.new(0.2, 0.15, 0.1),
-			Edge = Color3.new(0.4, 0.35, 0.3),
-		},
-	},
-	SteamVent = {
-		primary = Color3.new(0.4, 0.4, 0.45),
-		patterns = {
-			Vent = Color3.new(0.3, 0.3, 0.35),
-			Steam = Color3.new(0.9, 0.9, 0.95),
-		},
-	},
-	-- Animals
-	Coyote = {
-		primary = Color3.new(0.6, 0.5, 0.35),
-	},
-	Wolf = {
-		primary = Color3.new(0.4, 0.4, 0.45),
-	},
-	MountainLion = {
-		primary = Color3.new(0.7, 0.55, 0.35),
-	},
-}
-
--- Default colors for categories without specific definitions
-local CATEGORY_DEFAULTS = {
-	Structures = Color3.new(0.6, 0.55, 0.5),
-	Animals = Color3.new(0.6, 0.5, 0.4),
-	Creatures = Color3.new(0.3, 0.25, 0.35),
-	Terrain = Color3.new(0.5, 0.5, 0.45),
-	NPCs = Color3.new(0.7, 0.6, 0.5),
-	Caves = Color3.new(0.4, 0.35, 0.3),
-	Signs = Color3.new(0.3, 0.5, 0.3),
-	Liminal = Color3.new(0.7, 0.7, 0.65),
-	Pet = Color3.new(0.8, 0.6, 0.4),
-}
-
--- ==========================================
--- HELPER FUNCTIONS
--- ==========================================
-
-local function matchAssetName(objectName: string): (string?, string?)
-	local lowerName = objectName:lower()
-	for _, mapping in ipairs(NAME_PATTERNS) do
-		if lowerName:find(mapping.pattern) then
-			return mapping.name, mapping.category
-		end
-	end
-	return nil, nil
-end
-
-local function ensureFolder(parent, name): Folder
-	local folder = parent:FindFirstChild(name)
-	if not folder then
-		folder = Instance.new("Folder")
-		folder.Name = name
-		folder.Parent = parent
-	end
-	return folder
-end
-
-local function applyColorsToModel(model: Model, assetName: string, category: string)
-	local colorDef = COLORS[assetName]
-	local defaultColor = CATEGORY_DEFAULTS[category] or Color3.new(0.5, 0.5, 0.5)
-
-	-- Debug: show what we're looking up
-	print(string.format("[AssetOrganizer] Looking up color for '%s' in category '%s'", assetName, category))
-	print(string.format("[AssetOrganizer]   COLORS[%s] exists: %s", assetName, tostring(colorDef ~= nil)))
-	print(string.format("[AssetOrganizer]   CATEGORY_DEFAULTS[%s] = %s", category, tostring(CATEGORY_DEFAULTS[category])))
-
-	-- Determine primary color to use
-	local primaryColor = defaultColor
-	if colorDef and colorDef.primary then
-		primaryColor = colorDef.primary
-		print("[AssetOrganizer]   Using specific color definition")
-	else
-		print("[AssetOrganizer]   Using category default color")
-	end
-
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			local partName = part.Name
-			local colorApplied = false
-
-			-- Try pattern matching first (for multi-part models)
-			if colorDef and colorDef.patterns then
-				for pattern, color in pairs(colorDef.patterns) do
-					if partName:find(pattern) then
-						part.Color = color
-						colorApplied = true
-						break
-					end
-				end
-			end
-
-			-- Fall back to primary color
-			if not colorApplied then
-				part.Color = primaryColor
-			end
-
-			-- Also set material for better appearance
-			if part:IsA("MeshPart") then
-				part.Material = Enum.Material.SmoothPlastic
-			end
-		end
-	end
-
-	print(string.format("[AssetOrganizer] Applied color to %s: RGB(%.0f, %.0f, %.0f)",
-		assetName, primaryColor.R * 255, primaryColor.G * 255, primaryColor.B * 255))
-end
-
--- ==========================================
--- MAIN FUNCTIONS
--- ==========================================
-
-local function organizeAssets()
-	ChangeHistoryService:SetWaypoint("Before Asset Organization")
-
-	local assetsFolder = ensureFolder(game.ReplicatedStorage, "Assets")
-	local organized = 0
-	local unmatched = {}
-
-	-- Find all models/meshes in Workspace that look like imports
-	local toProcess = {}
-	for _, obj in game.Workspace:GetChildren() do
-		-- Skip folders and known game objects
-		if obj:IsA("MeshPart") then
-			if not obj.Parent:FindFirstChild("Humanoid") then
-				table.insert(toProcess, obj)
-			end
-		elseif obj:IsA("Model") then
-			if not obj:FindFirstChild("Humanoid") then
-				-- Check if this is a combined FBX import (contains multiple meshes)
-				local meshChildren = {}
-				for _, child in obj:GetDescendants() do
-					if child:IsA("MeshPart") then
-						table.insert(meshChildren, child)
-					end
-				end
-
-				if #meshChildren > 1 then
-					-- This is a combined import - extract individual meshes
-					print("[AssetOrganizer] Found combined import with", #meshChildren, "meshes - extracting...")
-					for _, mesh in ipairs(meshChildren) do
-						table.insert(toProcess, mesh)
-					end
-				else
-					-- Single model
-					table.insert(toProcess, obj)
-				end
-			end
-		end
-	end
-
-	print("[AssetOrganizer] Found", #toProcess, "objects to process")
-
-	for _, obj in ipairs(toProcess) do
-		local assetName, category = matchAssetName(obj.Name)
-
-		if assetName and category then
-			-- Create category folder
-			local categoryFolder = ensureFolder(assetsFolder, category)
-
-			-- Check if asset already exists
-			local existing = categoryFolder:FindFirstChild(assetName)
-			if existing then
-				-- Add number suffix for duplicates
-				local count = 1
-				while categoryFolder:FindFirstChild(assetName .. "_" .. count) do
-					count = count + 1
-				end
-				assetName = assetName .. "_" .. count
-			end
-
-			-- Wrap MeshPart in Model if needed
-			local model
-			if obj:IsA("MeshPart") then
-				model = Instance.new("Model")
-				model.Name = assetName
-				obj.Parent = model
-				model.PrimaryPart = obj
-			else
-				model = obj
-				model.Name = assetName
-			end
-
-			-- Apply colors
-			applyColorsToModel(model, assetName:gsub("_%d+$", ""), category)
-
-			-- Move to assets folder
-			model.Parent = categoryFolder
-			organized = organized + 1
-			print("[AssetOrganizer] Organized:", assetName, "→", category)
-		else
-			table.insert(unmatched, obj.Name)
-		end
-	end
-
-	ChangeHistoryService:SetWaypoint("After Asset Organization")
-
-	-- Report results
-	print("========================================")
-	print("[AssetOrganizer] COMPLETE")
-	print("  Organized:", organized, "assets")
-	print("  Unmatched:", #unmatched, "objects")
-	if #unmatched > 0 then
-		print("  Unmatched names:")
-		for _, name in ipairs(unmatched) do
-			print("    -", name)
-		end
-	end
-	print("========================================")
-
-	-- Select the Assets folder so user can see results
-	Selection:Set({assetsFolder})
-end
-
-local function reapplyColors()
-	ChangeHistoryService:SetWaypoint("Before Color Application")
-
-	local assetsFolder = game.ReplicatedStorage:FindFirstChild("Assets")
-	if not assetsFolder then
-		warn("[AssetOrganizer] No Assets folder found in ReplicatedStorage")
-		return
-	end
-
-	local colored = 0
-
-	for _, categoryFolder in assetsFolder:GetChildren() do
-		if categoryFolder:IsA("Folder") then
-			local category = categoryFolder.Name
-			for _, model in categoryFolder:GetChildren() do
-				if model:IsA("Model") then
-					local assetName = model.Name:gsub("_%d+$", "") -- Remove number suffix
-					applyColorsToModel(model, assetName, category)
-					colored = colored + 1
-				end
-			end
-		end
-	end
-
-	ChangeHistoryService:SetWaypoint("After Color Application")
-
-	print("[AssetOrganizer] Applied colors to", colored, "assets")
-end
 
 -- ==========================================
 -- CLEAR FUNCTION
 -- ==========================================
 
 local function clearAssets()
-	local assetsFolder = game.ReplicatedStorage:FindFirstChild("Assets")
-	if not assetsFolder then
-		print("[AssetOrganizer] No Assets folder found - nothing to clear")
-		return
-	end
-
 	ChangeHistoryService:SetWaypoint("Before Clear Assets")
 
-	local count = 0
-	for _, categoryFolder in assetsFolder:GetChildren() do
-		if categoryFolder:IsA("Folder") then
-			for _, asset in categoryFolder:GetChildren() do
-				asset:Destroy()
-				count = count + 1
-			end
-		end
-	end
-
-	-- Also clear any meshes left in Workspace from previous imports
 	local workspaceCount = 0
+	local replicatedCount = 0
+	local serverCount = 0
+
+	-- 1. Clear from Workspace (freshly imported meshes)
 	for _, obj in game.Workspace:GetChildren() do
-		if obj:IsA("MeshPart") or (obj:IsA("Model") and obj:FindFirstChildOfClass("MeshPart")) then
-			-- Skip player characters
+		-- Match Category_AssetName pattern
+		if string.match(obj.Name, "^%w+_%w+") then
+			local skipNames = {
+				Camera = true,
+				Terrain = true,
+				SpawnLocation = true,
+			}
+			if not skipNames[obj.Name] then
+				obj:Destroy()
+				workspaceCount = workspaceCount + 1
+			end
+		elseif obj:IsA("MeshPart") or (obj:IsA("Model") and obj:FindFirstChildOfClass("MeshPart")) then
 			if not obj:FindFirstChild("Humanoid") then
 				obj:Destroy()
 				workspaceCount = workspaceCount + 1
@@ -487,38 +71,70 @@ local function clearAssets()
 		end
 	end
 
+	-- Also check inside container models
+	for _, container in game.Workspace:GetChildren() do
+		if container:IsA("Model") or container:IsA("Folder") then
+			local cleared = false
+			for _, item in container:GetChildren() do
+				if string.match(item.Name, "^%w+_%w+") then
+					item:Destroy()
+					workspaceCount = workspaceCount + 1
+					cleared = true
+				end
+			end
+			if cleared and #container:GetChildren() == 0 then
+				container:Destroy()
+			end
+		end
+	end
+
+	-- 2. Clear from ReplicatedStorage.Assets (old organize location)
+	local assetsFolder = ReplicatedStorage:FindFirstChild("Assets")
+	if assetsFolder then
+		for _, categoryFolder in assetsFolder:GetChildren() do
+			if categoryFolder:IsA("Folder") then
+				for _, asset in categoryFolder:GetChildren() do
+					asset:Destroy()
+					replicatedCount = replicatedCount + 1
+				end
+			end
+		end
+		print("[FF_AssetOrganizer] Cleared ReplicatedStorage.Assets")
+	end
+
+	-- 3. Clear from ServerStorage.AssetTemplates (new storage location)
+	local templatesFolder = ServerStorage:FindFirstChild("AssetTemplates")
+	if templatesFolder then
+		for _, asset in templatesFolder:GetChildren() do
+			asset:Destroy()
+			serverCount = serverCount + 1
+		end
+		print("[FF_AssetOrganizer] Cleared ServerStorage.AssetTemplates")
+	end
+
 	ChangeHistoryService:SetWaypoint("After Clear Assets")
 
 	print("========================================")
-	print("[AssetOrganizer] CLEARED")
-	print("  Deleted from ReplicatedStorage.Assets:", count)
-	print("  Deleted from Workspace:", workspaceCount)
+	print("[FF_AssetOrganizer] CLEARED EVERYTHING")
+	print("  Workspace:", workspaceCount)
+	print("  ReplicatedStorage.Assets:", replicatedCount)
+	print("  ServerStorage.AssetTemplates:", serverCount)
+	print("  TOTAL:", workspaceCount + replicatedCount + serverCount)
 	print("========================================")
-	print("Now do: File → Import 3D → select combined_all_assets.fbx")
+	print("Next steps:")
+	print("  1. File → Import 3D → combined_all_assets.fbx")
+	print("  2. Click 'Move to Storage' (other plugin)")
+	print("  3. Save the place!")
 end
 
 -- ==========================================
--- BUTTON HANDLERS
+-- BUTTON HANDLER
 -- ==========================================
 
 clearButton.Click:Connect(function()
-	print("[AssetOrganizer] Clearing old assets...")
+	print("[FF_AssetOrganizer] Clearing ALL assets from all locations...")
 	clearAssets()
 end)
 
-organizeButton.Click:Connect(function()
-	print("[AssetOrganizer] Starting asset organization...")
-	organizeAssets()
-end)
-
-applyColorsButton.Click:Connect(function()
-	print("[AssetOrganizer] Re-applying colors...")
-	reapplyColors()
-end)
-
-print("[FF_AssetOrganizer] Plugin loaded!")
-print("[FF_AssetOrganizer] Workflow:")
-print("[FF_AssetOrganizer]   1. Click 'Clear Assets' (if re-importing)")
-print("[FF_AssetOrganizer]   2. File → Import 3D → combined_all_assets.fbx")
-print("[FF_AssetOrganizer]   3. Click 'Organize' to move & color assets")
-print("[FF_AssetOrganizer]   4. Save the place!")
+print("[FF_AssetOrganizer] Plugin v2.0.1 loaded!")
+print("[FF_AssetOrganizer] Click 'Clear ALL Assets' before importing new FBX")
