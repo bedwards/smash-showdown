@@ -54,18 +54,18 @@ local ObjectiveUpdate = Remotes:WaitForChild("ObjectiveUpdate") :: RemoteEvent
 -- CONTROLLER INITIALIZATION
 -- ==========================================
 
-local HUDController = require(script.Controllers.HUDController)
-local AudioController = require(script.Controllers.AudioController)
-local TouchController = require(script.Controllers.TouchController)
-local PerformanceController = require(script.Controllers.PerformanceController)
-local CreditsController = require(script.Controllers.CreditsController)
-local DialogueController = require(script.Controllers.DialogueController)
-local BeaconController = require(script.Controllers.BeaconController)
-local FlashlightController = require(script.Controllers.FlashlightController)
-local LiminalZoneController = require(script.Controllers.LiminalZoneController)
-local DebugOverlayController = require(script.Controllers.DebugOverlayController)
+local HUDController = require(script.Parent.Controllers.HUDController)
+local AudioController = require(script.Parent.Controllers.AudioController)
+local TouchController = require(script.Parent.Controllers.TouchController)
+local PerformanceController = require(script.Parent.Controllers.PerformanceController)
+local CreditsController = require(script.Parent.Controllers.CreditsController)
+local DialogueController = require(script.Parent.Controllers.DialogueController)
+local BeaconController = require(script.Parent.Controllers.BeaconController)
+local FlashlightController = require(script.Parent.Controllers.FlashlightController)
+local LiminalZoneController = require(script.Parent.Controllers.LiminalZoneController)
+local DebugOverlayController = require(script.Parent.Controllers.DebugOverlayController)
 -- TODO: Initialize other controllers
--- local CameraController = require(script.Controllers.CameraController)
+-- local CameraController = require(script.Parent.Controllers.CameraController)
 
 -- Initialize controllers
 HUDController:Initialize()
