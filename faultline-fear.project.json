@@ -14,9 +14,6 @@
       "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/faultline-fear/shared"
-      },
-      "DevPackages": {
-        "$path": "DevPackages"
       }
     },
 

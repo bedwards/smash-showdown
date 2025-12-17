@@ -725,8 +725,7 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 		TweenService:Create(topCenter, tweenInfo, {
 			Size = UDim2.new(0, 150, 0, 30),
 			Position = UDim2.new(0.5, -75, 0, 5),
-		}):Play()		-- Hide zone name, show only time icon on small
-;
+		}):Play(); -- Hide zone name, show only time icon on small
 		(elements.zoneName :: TextLabel).Visible = false;
 		(elements.timeDisplay :: TextLabel).TextSize = 10
 

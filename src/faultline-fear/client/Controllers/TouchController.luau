@@ -230,7 +230,7 @@ end
 
 local function resetJoystick()
 	joystickActive = false
-	joystickTouchId = nil
+	joystickTouch = nil
 
 	local joystick = elements.joystick :: Frame
 	local inner = joystick:FindFirstChild("Inner") :: Frame
