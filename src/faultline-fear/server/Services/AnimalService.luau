@@ -30,6 +30,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local AnimalService = {}
 
@@ -218,7 +219,10 @@ local function createAnimalModel(animalType: string): Model
 	-- Try imported model first
 	local model = AssetManifest:CloneAsset(animalType)
 
-	if not model then
+	if model then
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, animalType)
+	else
 		model = createPlaceholderAnimal(animalType, config)
 	end
 

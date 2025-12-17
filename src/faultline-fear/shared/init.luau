@@ -16,6 +16,7 @@ Shared.InputService = require(script.InputService)
 Shared.ObjectPool = require(script.ObjectPool)
 Shared.StoryData = require(script.StoryData)
 Shared.AssetManifest = require(script.AssetManifest)
+Shared.AssetColors = require(script.AssetColors)
 
 -- Re-export commonly used functions for convenience
 -- These now use Heightmap internally for O(1) lookups

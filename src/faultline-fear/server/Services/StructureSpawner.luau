@@ -26,6 +26,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local StructureSpawner = {}
 
@@ -221,7 +222,9 @@ local function spawnStructure(def: StructureDef): Model?
 	local model = AssetManifest:CloneAsset(def.assetName)
 
 	if model then
-		print(string.format("[StructureSpawner] Using imported model for %s", def.name))
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, def.assetName)
+		print(string.format("[StructureSpawner] Using imported model for %s (colors applied)", def.name))
 	else
 		-- Create placeholder
 		model = createPlaceholderStructure(def)

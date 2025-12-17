@@ -25,6 +25,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local TerrainAssetSpawner = {}
 
@@ -262,7 +263,10 @@ local function spawnAsset(placement: AssetPlacement): Model?
 	-- Try to get imported model
 	local model = AssetManifest:CloneAsset(placement.assetName)
 
-	if not model then
+	if model then
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, placement.assetName)
+	else
 		-- Create placeholder
 		model = createPlaceholderAsset(placement.assetName)
 	end
