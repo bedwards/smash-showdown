@@ -231,6 +231,67 @@ local function checkPlayerSpawn(): boolean
 	return true
 end
 
+local function checkAndFixInvisibleColliders(): boolean
+	--[[
+		Find and FIX invisible collision parts that block player movement.
+		These are typically caused by:
+		- FBX imports with hidden collision meshes
+		- Parts that should be CanCollide=false but aren't
+		- Zone triggers with accidental collision
+
+		Parts with Transparency >= 0.9 AND CanCollide = true are fixed.
+		Exceptions:
+		- Parts named with "Collider" (intentional collision)
+		- Parts in ServerStorage (templates, not active)
+	]]
+
+	local fixedCount = 0
+
+	-- Scan all parts in Workspace
+	for _, descendant in Workspace:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			local part = descendant :: BasePart
+
+			-- Check for invisible collision
+			if part.Transparency >= 0.9 and part.CanCollide then
+				-- Exceptions: intentional colliders
+				local isIntentional = string.find(part.Name:lower(), "collider")
+					or string.find(part.Name:lower(), "hitbox")
+					or string.find(part.Name:lower(), "barrier")
+
+				if not isIntentional then
+					-- FIX: Disable collision on invisible parts
+					part.CanCollide = false
+					fixedCount += 1
+
+					-- Log for debugging
+					local fullPath = part:GetFullName()
+					print(
+						string.format(
+							"[ValidationService] FIXED invisible collider: %s (Transparency=%.1f)",
+							fullPath,
+							part.Transparency
+						)
+					)
+				end
+			end
+		end
+	end
+
+	if fixedCount > 0 then
+		addResult(
+			"InvisibleColliders",
+			true, -- Marked as passed because we FIXED the issue
+			string.format("Found and FIXED %d invisible collision parts", fixedCount),
+			"warning"
+		)
+		return true
+	end
+
+	addResult("InvisibleColliders", true, "No invisible colliders found", "info")
+	return true
+end
+
 -- ==========================================
 -- REPORT GENERATION
 -- ==========================================
@@ -320,6 +381,7 @@ function ValidationService:RunValidation(): { ValidationResult }
 	checkRemotes()
 	checkWorkspaceFolders()
 	checkPlayerSpawn()
+	checkAndFixInvisibleColliders()
 
 	hasRun = true
 
