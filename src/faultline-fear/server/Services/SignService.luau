@@ -319,11 +319,14 @@ end
 -- SIGN SPAWNING
 -- ==========================================
 
+-- Sign Y offset to ensure visibility above grass
+local SIGN_HEIGHT_OFFSET = 1.5
+
 local function spawnSign(def: SignDef): Model
 	local model = createSign(def)
 
-	-- Get terrain height
-	local y = Heightmap:GetHeight(def.position.X, def.position.Z)
+	-- Get terrain height and add offset to hover above grass
+	local y = Heightmap:GetHeight(def.position.X, def.position.Z) + SIGN_HEIGHT_OFFSET
 
 	-- Position and rotate
 	local cframe = CFrame.new(def.position.X, y, def.position.Z) * CFrame.Angles(0, math.rad(def.rotation), 0)
