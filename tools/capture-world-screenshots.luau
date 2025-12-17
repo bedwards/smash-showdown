@@ -15,17 +15,266 @@
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
-local Lighting = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
 
 -- Wait for shared modules
 local Shared = ReplicatedStorage:WaitForChild("Shared", 5)
 local Heightmap = Shared and require(Shared:WaitForChild("Heightmap"))
 local Config = Shared and require(Shared:WaitForChild("Config"))
+local AssetManifest = Shared and require(Shared:WaitForChild("AssetManifest"))
+local AssetColors = Shared and require(Shared:WaitForChild("AssetColors"))
 
 -- Generate heightmap if needed
 if Heightmap and not Heightmap:IsGenerated() then
 	print("[Screenshot] Generating heightmap...")
 	Heightmap:Generate(Config.TERRAIN_SEED)
+end
+
+-- ==========================================
+-- STRUCTURE SPAWNING (since Main.server doesn't run)
+-- ==========================================
+
+local structuresFolder: Folder = nil
+
+local function createPlaceholderStructure(
+	name: string,
+	assetName: string,
+	position: Vector3,
+	rotation: number,
+	scale: number,
+	beacon: boolean
+): Model
+	local model = Instance.new("Model")
+	model.Name = name
+
+	local part = Instance.new("Part")
+	part.Name = "Main"
+	part.Anchored = true
+	part.CanCollide = true
+
+	-- Size based on structure type
+	local sizes: { [string]: Vector3 } = {
+		FerrisWheel = Vector3.new(40, 45, 10),
+		RadioTower = Vector3.new(15, 60, 15),
+		WaterTower = Vector3.new(15, 35, 15),
+		Lighthouse = Vector3.new(10, 30, 10),
+		AbandonedHouse = Vector3.new(25, 20, 20),
+		Bridge = Vector3.new(80, 5, 15),
+	}
+
+	local colors: { [string]: Color3 } = {
+		FerrisWheel = Color3.fromRGB(200, 50, 50),
+		RadioTower = Color3.fromRGB(200, 200, 200),
+		WaterTower = Color3.fromRGB(100, 150, 200),
+		Lighthouse = Color3.fromRGB(255, 255, 240),
+		AbandonedHouse = Color3.fromRGB(150, 130, 110),
+		Bridge = Color3.fromRGB(120, 120, 130),
+	}
+
+	part.Size = (sizes[assetName] or Vector3.new(20, 20, 20)) * scale
+	part.Color = colors[assetName] or Color3.fromRGB(150, 150, 150)
+	part.Material = Enum.Material.SmoothPlastic
+	part.Parent = model
+	model.PrimaryPart = part
+
+	-- Add beacon light
+	if beacon then
+		local light = Instance.new("PointLight")
+		light.Brightness = 3
+		light.Range = 100
+		light.Color = Color3.fromRGB(255, 200, 100)
+		light.Parent = part
+	end
+
+	-- Position
+	local y = Heightmap:GetHeight(position.X, position.Z)
+	if Heightmap.FlattenArea then
+		y = Heightmap:FlattenArea(position.X, position.Z, 20)
+	end
+	local halfHeight = part.Size.Y / 2
+	local cframe = CFrame.new(position.X, y + halfHeight, position.Z) * CFrame.Angles(0, math.rad(rotation), 0)
+	model:PivotTo(cframe)
+
+	-- Tags
+	CollectionService:AddTag(model, "Structure")
+	CollectionService:AddTag(model, assetName)
+	if beacon then
+		CollectionService:AddTag(model, "Beacon")
+	end
+	model:SetAttribute("StructureType", assetName)
+	model:SetAttribute("IsBeacon", beacon)
+
+	return model
+end
+
+local function spawnStructures()
+	print("[Screenshot] Spawning structures...")
+
+	structuresFolder = Instance.new("Folder")
+	structuresFolder.Name = "Structures"
+	structuresFolder.Parent = Workspace
+
+	-- Structure definitions (matching StructureSpawner.luau)
+	local STRUCTURE_DEFS = {
+		{
+			name = "FerrisWheel_Main",
+			assetName = "FerrisWheel",
+			position = Vector3.new(200, 0, -1000),
+			rotation = 0,
+			scale = 1,
+			beacon = true,
+		},
+		{
+			name = "Lighthouse_Main",
+			assetName = "Lighthouse",
+			position = Vector3.new(-400, 0, -600),
+			rotation = 45,
+			scale = 1,
+			beacon = true,
+		},
+		{
+			name = "WaterTower_Main",
+			assetName = "WaterTower",
+			position = Vector3.new(0, 0, 100),
+			rotation = 0,
+			scale = 1,
+			beacon = true,
+		},
+		{
+			name = "House_1",
+			assetName = "AbandonedHouse",
+			position = Vector3.new(-100, 0, 50),
+			rotation = 15,
+			scale = 1,
+			beacon = false,
+		},
+		{
+			name = "House_2",
+			assetName = "AbandonedHouse",
+			position = Vector3.new(80, 0, 150),
+			rotation = -30,
+			scale = 1,
+			beacon = false,
+		},
+		{
+			name = "House_3",
+			assetName = "AbandonedHouse",
+			position = Vector3.new(-150, 0, -400),
+			rotation = 90,
+			scale = 1,
+			beacon = false,
+		},
+		{
+			name = "House_4",
+			assetName = "AbandonedHouse",
+			position = Vector3.new(200, 0, -350),
+			rotation = 180,
+			scale = 1.1,
+			beacon = false,
+		},
+		{
+			name = "Bridge_Main",
+			assetName = "Bridge",
+			position = Vector3.new(0, 0, 600),
+			rotation = 0,
+			scale = 1,
+			beacon = false,
+		},
+		{
+			name = "Bridge_East",
+			assetName = "Bridge",
+			position = Vector3.new(500, 0, 650),
+			rotation = 15,
+			scale = 0.8,
+			beacon = false,
+		},
+		{
+			name = "RadioTower_Main",
+			assetName = "RadioTower",
+			position = Vector3.new(0, 0, 1700),
+			rotation = 0,
+			scale = 1,
+			beacon = true,
+		},
+	}
+
+	local spawned = 0
+	for _, def in ipairs(STRUCTURE_DEFS) do
+		-- Try to get imported model first
+		local model = AssetManifest and AssetManifest:CloneAsset(def.assetName)
+		if model then
+			-- Apply colors
+			if AssetColors then
+				AssetColors:ApplyColors(model, def.assetName)
+			end
+			-- Position it
+			local y = Heightmap:GetHeight(def.position.X, def.position.Z)
+			if Heightmap.FlattenArea then
+				y = Heightmap:FlattenArea(def.position.X, def.position.Z, 20)
+			end
+			if model.PrimaryPart then
+				local halfHeight = model.PrimaryPart.Size.Y / 2 * def.scale
+				local cframe = CFrame.new(def.position.X, y + halfHeight, def.position.Z)
+					* CFrame.Angles(0, math.rad(def.rotation), 0)
+				model:PivotTo(cframe)
+			end
+			model.Name = def.name
+			CollectionService:AddTag(model, "Structure")
+			model.Parent = structuresFolder
+		else
+			-- Create placeholder
+			model =
+				createPlaceholderStructure(def.name, def.assetName, def.position, def.rotation, def.scale, def.beacon)
+			model.Parent = structuresFolder
+		end
+		spawned += 1
+	end
+
+	print(string.format("[Screenshot] Spawned %d structures", spawned))
+	return spawned
+end
+
+local function spawnTerrainAssets()
+	print("[Screenshot] Spawning terrain assets (boulders, cliffs)...")
+
+	local terrainFolder = Instance.new("Folder")
+	terrainFolder.Name = "TerrainAssets"
+	terrainFolder.Parent = Workspace
+
+	local random = Random.new(Config.TERRAIN_SEED + 100)
+	local worldHalfSize = Config.WORLD_SIZE / 2
+	local spawned = 0
+
+	-- Simplified boulder spawning (subset for screenshot verification)
+	local boulderZones = {
+		{ zone = "VALLEY", zMin = -200, zMax = 400, count = 10 },
+		{ zone = "COASTAL", zMin = -800, zMax = -200, count = 8 },
+		{ zone = "FAULT_LINE", zMin = 400, zMax = 800, count = 8 },
+		{ zone = "MOUNTAIN", zMin = 1500, zMax = 2000, count = 12 },
+	}
+
+	for _, zoneConfig in ipairs(boulderZones) do
+		for _ = 1, zoneConfig.count do
+			local x = random:NextNumber(-worldHalfSize * 0.8, worldHalfSize * 0.8)
+			local z = random:NextNumber(zoneConfig.zMin, zoneConfig.zMax)
+			local y = Heightmap:GetHeight(x, z)
+
+			local boulder = Instance.new("Part")
+			boulder.Name = "Boulder"
+			boulder.Anchored = true
+			boulder.Shape = Enum.PartType.Ball
+			boulder.Size = Vector3.new(3, 2.5, 2.5) * (0.8 + random:NextNumber() * 0.6)
+			boulder.Color = Color3.fromRGB(100, 95, 88)
+			boulder.Material = Enum.Material.Rock
+			boulder.Position = Vector3.new(x, y + boulder.Size.Y / 2, z)
+			boulder.Parent = terrainFolder
+			CollectionService:AddTag(boulder, "TerrainAsset")
+			spawned += 1
+		end
+	end
+
+	print(string.format("[Screenshot] Spawned %d terrain assets", spawned))
+	return spawned
 end
 
 -- ==========================================
@@ -75,10 +324,8 @@ local function generateVisualChunk(terrain, startX: number, startZ: number, size
 		end
 	end
 
-	local region = Region3.new(
-		Vector3.new(startX, 0, startZ),
-		Vector3.new(startX + size, size, startZ + size)
-	):ExpandToGrid(voxelSize)
+	local region = Region3.new(Vector3.new(startX, 0, startZ), Vector3.new(startX + size, size, startZ + size))
+		:ExpandToGrid(voxelSize)
 
 	terrain:WriteVoxels(region, voxelSize, materials, occupancy)
 end
@@ -135,6 +382,12 @@ end
 -- Generate visual terrain (since Main.server doesn't run via run-in-roblox)
 if Heightmap and Heightmap:IsGenerated() then
 	generateVisualTerrain()
+end
+
+-- Spawn structures and terrain assets (since Main.server doesn't run via run-in-roblox)
+if Heightmap and Heightmap:IsGenerated() then
+	spawnStructures()
+	spawnTerrainAssets()
 end
 
 -- ==========================================
@@ -226,8 +479,8 @@ local function httpRequest(endpoint, data)
 end
 
 local function takeScreenshot(name)
-	local success, result = httpRequest("/screenshot", {
-		destination = "world-verify/" .. name,  -- Server adds .png automatically
+	local success, _result = httpRequest("/screenshot", {
+		destination = "world-verify/" .. name, -- Server adds .png automatically
 	})
 	return success
 end
@@ -258,11 +511,8 @@ local function positionCamera(shot)
 	local yawRad = math.rad(shot.yaw)
 
 	-- Direction vector
-	local lookDir = Vector3.new(
-		math.sin(yawRad) * math.cos(pitchRad),
-		math.sin(pitchRad),
-		math.cos(yawRad) * math.cos(pitchRad)
-	)
+	local lookDir =
+		Vector3.new(math.sin(yawRad) * math.cos(pitchRad), math.sin(pitchRad), math.cos(yawRad) * math.cos(pitchRad))
 
 	local lookAt = cameraPos + lookDir * 100
 
@@ -281,9 +531,13 @@ end
 -- MAIN CAPTURE LOOP
 -- ==========================================
 
-print("╔════════════════════════════════════════════════╗")
+print(
+	"╔════════════════════════════════════════════════╗"
+)
 print("║   FAULTLINE FEAR WORLD SCREENSHOT CAPTURE      ║")
-print("╚════════════════════════════════════════════════╝")
+print(
+	"╚════════════════════════════════════════════════╝"
+)
 print("")
 
 -- Test screenshot server connection (any response means server is up)
@@ -347,7 +601,128 @@ for i, shot in ipairs(CAMERA_SHOTS) do
 end
 
 print("")
-print("════════════════════════════════════════════════")
+print(
+	"════════════════════════════════════════════════"
+)
 print(string.format("Results: %d captured, %d failed", captured, failed))
 print("Screenshots saved to: tools/roblox-screenshot/screenshots/world-verify/")
-print("════════════════════════════════════════════════")
+print(
+	"════════════════════════════════════════════════"
+)
+
+-- ==========================================
+-- CONTENT VERIFICATION
+-- ==========================================
+
+print("")
+print(
+	"╔════════════════════════════════════════════════╗"
+)
+print("║          CONTENT VERIFICATION                  ║")
+print(
+	"╚════════════════════════════════════════════════╝"
+)
+print("")
+
+local verificationPassed = true
+local verificationErrors = {}
+
+-- Check structures exist
+local structuresInWorkspace = Workspace:FindFirstChild("Structures")
+local actualStructureCount = 0
+if structuresInWorkspace then
+	actualStructureCount = #structuresInWorkspace:GetChildren()
+end
+
+if actualStructureCount < 10 then
+	verificationPassed = false
+	table.insert(verificationErrors, string.format("FAIL: Expected 10 structures, found %d", actualStructureCount))
+else
+	print(string.format("✓ Structures: %d found (expected 10)", actualStructureCount))
+end
+
+-- Check terrain assets exist
+local terrainAssetsInWorkspace = Workspace:FindFirstChild("TerrainAssets")
+local actualTerrainAssetCount = 0
+if terrainAssetsInWorkspace then
+	actualTerrainAssetCount = #terrainAssetsInWorkspace:GetChildren()
+end
+
+if actualTerrainAssetCount < 30 then
+	verificationPassed = false
+	table.insert(
+		verificationErrors,
+		string.format("FAIL: Expected 30+ terrain assets, found %d", actualTerrainAssetCount)
+	)
+else
+	print(string.format("✓ Terrain Assets: %d found (expected 30+)", actualTerrainAssetCount))
+end
+
+-- Check key landmarks by name
+local keyLandmarks = {
+	{ name = "FerrisWheel_Main", zone = "Beach", required = true },
+	{ name = "RadioTower_Main", zone = "Mountain", required = true },
+	{ name = "WaterTower_Main", zone = "Valley", required = true },
+	{ name = "Lighthouse_Main", zone = "Coastal", required = true },
+	{ name = "Bridge_Main", zone = "Fault Line", required = true },
+}
+
+for _, landmark in ipairs(keyLandmarks) do
+	local found = structuresInWorkspace and structuresInWorkspace:FindFirstChild(landmark.name)
+	if found then
+		local pos = found:GetPivot().Position
+		print(string.format("✓ %s at (%.0f, %.0f, %.0f)", landmark.name, pos.X, pos.Y, pos.Z))
+	elseif landmark.required then
+		verificationPassed = false
+		table.insert(
+			verificationErrors,
+			string.format("FAIL: Missing required landmark: %s (%s)", landmark.name, landmark.zone)
+		)
+	end
+end
+
+-- Check terrain was generated (not just empty)
+local terrain = Workspace.Terrain
+local terrainRegion =
+	terrain:ReadVoxels(Region3.new(Vector3.new(-100, 0, -100), Vector3.new(100, 50, 100)):ExpandToGrid(4), 4)
+local hasTerrainVoxels = false
+for _, xLayer in ipairs(terrainRegion) do
+	for _, yLayer in ipairs(xLayer) do
+		for _, material in ipairs(yLayer) do
+			if material ~= Enum.Material.Air then
+				hasTerrainVoxels = true
+				break
+			end
+		end
+		if hasTerrainVoxels then
+			break
+		end
+	end
+	if hasTerrainVoxels then
+		break
+	end
+end
+
+if hasTerrainVoxels then
+	print("✓ Terrain voxels present around origin")
+else
+	verificationPassed = false
+	table.insert(verificationErrors, "FAIL: No terrain voxels found around origin")
+end
+
+-- Print verification summary
+print("")
+print(
+	"════════════════════════════════════════════════"
+)
+if verificationPassed then
+	print("✅ VERIFICATION PASSED - All content present")
+else
+	print("❌ VERIFICATION FAILED")
+	for _, err in ipairs(verificationErrors) do
+		print("  " .. err)
+	end
+end
+print(
+	"════════════════════════════════════════════════"
+)
