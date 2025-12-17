@@ -32,6 +32,23 @@ local bigOneTriggered: boolean = false
 -- Aftershock queue
 local aftershockQueue: { { delay: number, magnitude: number } } = {}
 
+-- Fall damage tracking
+type LaunchedPlayer = {
+	launchTime: number,
+	launchY: number,
+	maxY: number,
+	magnitude: number,
+}
+local launchedPlayers: { [Player]: LaunchedPlayer } = {}
+
+-- Fall damage config
+local FALL_DAMAGE = {
+	MIN_HEIGHT = 10, -- Minimum fall height to take damage
+	DAMAGE_PER_STUD = 2, -- Damage per stud fallen above minimum
+	MAX_DAMAGE = 80, -- Cap damage at 80% of max health
+	IMMUNITY_TIME = 0.5, -- Grace period after launch before tracking starts
+}
+
 -- Remote events
 local EarthquakeEvent: RemoteEvent = nil :: any
 
@@ -205,15 +222,26 @@ function EarthquakeService:ApplyKnockdown(magnitude: number)
 			-- Ragdoll-like effect: apply force and briefly disable control
 			local knockbackForce = magnitude * 50
 
-			-- Random knockback direction
+			-- Random knockback direction with upward component
 			local angle = math.random() * math.pi * 2
-			local direction = Vector3.new(math.cos(angle), 0.5, math.sin(angle))
+			-- Higher magnitude = more upward launch (0.5 base, up to 1.0 for BIG_ONE)
+			local upwardComponent = 0.5 + magnitude * 0.5
+			local direction = Vector3.new(math.cos(angle), upwardComponent, math.sin(angle)).Unit
 
 			-- Apply impulse
 			local bodyVelocity = Instance.new("BodyVelocity")
 			bodyVelocity.Velocity = direction * knockbackForce
 			bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
 			bodyVelocity.Parent = rootPart
+
+			-- Start tracking for fall damage
+			local currentY = rootPart.Position.Y
+			launchedPlayers[player] = {
+				launchTime = tick(),
+				launchY = currentY,
+				maxY = currentY,
+				magnitude = magnitude,
+			}
 
 			-- Brief stun
 			humanoid.WalkSpeed = 0
@@ -229,9 +257,114 @@ function EarthquakeService:ApplyKnockdown(magnitude: number)
 				end
 			end)
 
-			print("[EarthquakeService] Knocked down:", player.Name)
+			print("[EarthquakeService] Knocked down:", player.Name, "tracking fall damage")
 		end
 	end
+end
+
+-- ==========================================
+-- FALL DAMAGE
+-- ==========================================
+
+--[[
+	Monitor launched players and apply fall damage when they land.
+	Called every heartbeat from the scheduler.
+]]
+local function monitorFallDamage()
+	local now = tick()
+	local playersToRemove: { Player } = {}
+
+	for player, data in pairs(launchedPlayers) do
+		-- Skip during immunity period
+		if now - data.launchTime < FALL_DAMAGE.IMMUNITY_TIME then
+			continue
+		end
+
+		local character = player.Character
+		if not character then
+			table.insert(playersToRemove, player)
+			continue
+		end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+
+		if not humanoid or not rootPart then
+			table.insert(playersToRemove, player)
+			continue
+		end
+
+		local currentY = rootPart.Position.Y
+
+		-- Update max height
+		if currentY > data.maxY then
+			data.maxY = currentY
+		end
+
+		-- Check if player has landed (on ground and falling speed is low)
+		local state = humanoid:GetState()
+		local isOnGround = state == Enum.HumanoidStateType.Running
+			or state == Enum.HumanoidStateType.RunningNoPhysics
+			or state == Enum.HumanoidStateType.Landed
+
+		-- Alternative check: Y velocity is near zero after going negative
+		local velocity = rootPart.AssemblyLinearVelocity
+		local isStopped = math.abs(velocity.Y) < 5
+
+		-- Player has landed if they were above maxY and now stopped/on ground
+		local fallHeight = data.maxY - currentY
+		local hasLanded = (isOnGround or isStopped) and fallHeight > 2
+
+		-- Also stop tracking if they've been tracked for too long (10 seconds)
+		local trackingTimeout = now - data.launchTime > 10
+
+		if hasLanded or trackingTimeout then
+			-- Calculate fall damage
+			if fallHeight >= FALL_DAMAGE.MIN_HEIGHT then
+				local damageableHeight = fallHeight - FALL_DAMAGE.MIN_HEIGHT
+				local baseDamage = damageableHeight * FALL_DAMAGE.DAMAGE_PER_STUD
+
+				-- Scale damage by earthquake magnitude (bigger quakes = more damage)
+				local magnitudeMultiplier = 0.5 + data.magnitude * 0.5
+				local finalDamage = math.min(baseDamage * magnitudeMultiplier, FALL_DAMAGE.MAX_DAMAGE)
+
+				if finalDamage > 0 and humanoid.Health > 0 then
+					humanoid:TakeDamage(finalDamage)
+					print(
+						string.format(
+							"[EarthquakeService] Fall damage: %s fell %.1f studs, took %.1f damage",
+							player.Name,
+							fallHeight,
+							finalDamage
+						)
+					)
+
+					-- Notify client for screen effect (red flash)
+					if EarthquakeEvent then
+						EarthquakeEvent:FireClient(player, {
+							fallDamage = true,
+							damage = finalDamage,
+							height = fallHeight,
+						})
+					end
+				end
+			end
+
+			table.insert(playersToRemove, player)
+		end
+	end
+
+	-- Clean up tracked players
+	for _, player in ipairs(playersToRemove) do
+		launchedPlayers[player] = nil
+	end
+end
+
+--[[
+	Clean up tracking when player leaves.
+]]
+local function onPlayerRemoving(player: Player)
+	launchedPlayers[player] = nil
 end
 
 -- ==========================================
@@ -509,10 +642,22 @@ function EarthquakeService:Initialize()
 	lastQuakeTimes["MODERATE"] = now - Config.EARTHQUAKE.MODERATE.interval * 0.9
 	lastQuakeTimes["MAJOR"] = now
 
-	-- Start scheduler
-	RunService.Heartbeat:Connect(schedulerTick)
+	-- Start scheduler (includes quake timing and fall damage monitoring)
+	RunService.Heartbeat:Connect(function()
+		schedulerTick()
+		monitorFallDamage()
+	end)
 
-	print("[EarthquakeService] Initialized")
+	-- Clean up tracking when player leaves
+	Players.PlayerRemoving:Connect(onPlayerRemoving)
+
+	print("[EarthquakeService] Initialized with fall damage system")
+	print(
+		"[EarthquakeService] Fall damage: min height",
+		FALL_DAMAGE.MIN_HEIGHT,
+		"studs, max damage",
+		FALL_DAMAGE.MAX_DAMAGE
+	)
 	print("[EarthquakeService] Minor tremors every ~", Config.EARTHQUAKE.MINOR_TREMOR.interval, "seconds")
 	print("[EarthquakeService] Moderate quakes every ~", Config.EARTHQUAKE.MODERATE.interval, "seconds")
 	print("[EarthquakeService] Major quakes every ~", Config.EARTHQUAKE.MAJOR.interval, "seconds")
