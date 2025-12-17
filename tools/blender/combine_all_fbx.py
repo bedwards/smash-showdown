@@ -21,8 +21,21 @@ from pathlib import Path
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
-IMPORT_DIR = PROJECT_ROOT / "assets" / "models" / "for-import"
+MODELS_DIR = PROJECT_ROOT / "assets" / "models"
 OUTPUT_FILE = PROJECT_ROOT / "assets" / "models" / "combined_all_assets.fbx"
+
+# Category subdirectories to scan (in addition to for-import)
+CATEGORY_DIRS = [
+    "structures",
+    "animals",
+    "creatures",
+    "caves",
+    "npcs",
+    "signs",
+    "liminal",
+    "terrain",
+    "for-import",  # Also check for-import for backwards compatibility
+]
 
 def clear_scene():
     """Remove all objects from scene."""
@@ -38,10 +51,17 @@ def import_and_combine():
     """Import all FBX files and combine into one scene."""
     clear_scene()
 
-    fbx_files = list(IMPORT_DIR.glob("*.fbx"))
+    # Collect FBX files from all category directories
+    fbx_files = []
+    for category in CATEGORY_DIRS:
+        category_dir = MODELS_DIR / category
+        if category_dir.exists():
+            for fbx_path in category_dir.glob("*.fbx"):
+                # Add category prefix to help with naming
+                fbx_files.append((category, fbx_path))
 
     if not fbx_files:
-        print(f"ERROR: No FBX files found in {IMPORT_DIR}")
+        print(f"ERROR: No FBX files found in {MODELS_DIR} subdirectories")
         return False
 
     print(f"Found {len(fbx_files)} FBX files to combine")
@@ -49,11 +69,17 @@ def import_and_combine():
 
     imported_count = 0
 
-    for fbx_path in sorted(fbx_files):
-        # Get the asset name from filename (e.g., "Creatures_ShadowStalker.fbx" → "Creatures_ShadowStalker")
-        asset_name = fbx_path.stem
+    for category, fbx_path in sorted(fbx_files, key=lambda x: x[1].name):
+        # Create asset name: Category_Filename (e.g., "Structures_FerrisWheel")
+        # Capitalize category for consistency
+        category_name = category.capitalize()
+        if category == "for-import":
+            # Already has category prefix in filename
+            asset_name = fbx_path.stem
+        else:
+            asset_name = f"{category_name}_{fbx_path.stem}"
 
-        print(f"Importing: {asset_name}")
+        print(f"Importing: {asset_name} (from {category}/)")
 
         # Remember what objects exist before import
         existing_objects = set(bpy.data.objects.keys())
@@ -123,10 +149,13 @@ def main():
     print("COMBINE ALL FBX FILES")
     print("=" * 50)
 
-    if not IMPORT_DIR.exists():
-        print(f"ERROR: Import directory not found: {IMPORT_DIR}")
-        print("Run 'python tools/generate-all-assets.py' first")
+    if not MODELS_DIR.exists():
+        print(f"ERROR: Models directory not found: {MODELS_DIR}")
+        print("Run the create_*.py scripts first")
         return
+
+    print(f"Scanning: {MODELS_DIR}")
+    print(f"Categories: {', '.join(CATEGORY_DIRS)}")
 
     if import_and_combine():
         export_combined()
