@@ -217,12 +217,26 @@ local function applyColorsToModel(model: Model, assetName: string, category: str
 	local colorDef = COLORS[assetName]
 	local defaultColor = CATEGORY_DEFAULTS[category] or Color3.new(0.5, 0.5, 0.5)
 
+	-- Debug: show what we're looking up
+	print(string.format("[AssetOrganizer] Looking up color for '%s' in category '%s'", assetName, category))
+	print(string.format("[AssetOrganizer]   COLORS[%s] exists: %s", assetName, tostring(colorDef ~= nil)))
+	print(string.format("[AssetOrganizer]   CATEGORY_DEFAULTS[%s] = %s", category, tostring(CATEGORY_DEFAULTS[category])))
+
+	-- Determine primary color to use
+	local primaryColor = defaultColor
+	if colorDef and colorDef.primary then
+		primaryColor = colorDef.primary
+		print("[AssetOrganizer]   Using specific color definition")
+	else
+		print("[AssetOrganizer]   Using category default color")
+	end
+
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") then
 			local partName = part.Name
 			local colorApplied = false
 
-			-- Try pattern matching first
+			-- Try pattern matching first (for multi-part models)
 			if colorDef and colorDef.patterns then
 				for pattern, color in pairs(colorDef.patterns) do
 					if partName:find(pattern) then
@@ -235,14 +249,18 @@ local function applyColorsToModel(model: Model, assetName: string, category: str
 
 			-- Fall back to primary color
 			if not colorApplied then
-				if colorDef and colorDef.primary then
-					part.Color = colorDef.primary
-				else
-					part.Color = defaultColor
-				end
+				part.Color = primaryColor
+			end
+
+			-- Also set material for better appearance
+			if part:IsA("MeshPart") then
+				part.Material = Enum.Material.SmoothPlastic
 			end
 		end
 	end
+
+	print(string.format("[AssetOrganizer] Applied color to %s: RGB(%.0f, %.0f, %.0f)",
+		assetName, primaryColor.R * 255, primaryColor.G * 255, primaryColor.B * 255))
 end
 
 -- ==========================================
