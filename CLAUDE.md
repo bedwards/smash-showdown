@@ -670,21 +670,30 @@ Two buttons in "Faultline Import Tools" toolbar:
 
 Roblox Studio aggressively caches plugins. If you update a plugin and it doesn't reflect changes:
 
-1. **Clear the cache:**
+1. **Clear the cache (macOS):**
    ```bash
-   rm -f ~/Library/Caches/com.Roblox.RobloxStudio/Cache.db*
+   rm -rf ~/Library/Caches/com.Roblox.RobloxStudio/*
+   rm -rf ~/Library/Roblox/LocalStorage/*
    ```
 
-2. **Rename the plugin file** (increment version number):
+2. **Clear the cache (Windows):**
    ```bash
-   mv Plugin_v1.lua Plugin_v2.lua
+   rmdir /s /q "%LOCALAPPDATA%\Roblox\cache"
+   rmdir /s /q "%LOCALAPPDATA%\Roblox\LocalStorage"
    ```
 
-3. **Update PLUGIN_ID inside the file** to match
+3. **Reinstall the plugin:**
+   ```bash
+   # macOS
+   cp tools/plugins/FF_AssetOrganizer.lua ~/Documents/Roblox/Plugins/
+
+   # Windows
+   copy tools\plugins\FF_AssetOrganizer.lua %LOCALAPPDATA%\Roblox\Plugins\
+   ```
 
 4. **Restart Studio**
 
-This forces Studio to treat it as a brand new plugin.
+This forces Studio to reload the plugin fresh.
 
 ### Write Plugins. Script Everything.
 
