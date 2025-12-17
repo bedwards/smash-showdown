@@ -373,10 +373,11 @@ function NPCService:RescueSurvivor(player: Player, survivorId: string)
 		end
 	end
 
-	-- Play rescue dialogue via DialogueEvent
-	if survivorData then
-		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-		if remotes then
+	-- Play rescue dialogue via DialogueEvent and update progress
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if remotes then
+		-- Send dialogue
+		if survivorData then
 			local dialogueEvent = remotes:FindFirstChild("DialogueEvent")
 			if dialogueEvent then
 				(dialogueEvent :: RemoteEvent):FireClient(player, {
@@ -384,6 +385,16 @@ function NPCService:RescueSurvivor(player: Player, survivorId: string)
 					lines = survivorData.dialogue,
 				})
 			end
+		end
+
+		-- Send progress update with new survivor count
+		local progressEvent = remotes:FindFirstChild("ProgressUpdate") :: RemoteEvent?
+		if progressEvent then
+			local survivorCount = self:GetRescuedCount(player)
+			progressEvent:FireClient(player, {
+				survivors = survivorCount,
+			})
+			print(string.format("[NPCService] Sent progress update: survivors=%d", survivorCount))
 		end
 	end
 

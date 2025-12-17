@@ -49,6 +49,7 @@ local HungerUpdate = Remotes:WaitForChild("HungerUpdate") :: RemoteEvent
 local EarthquakeEvent = Remotes:WaitForChild("EarthquakeEvent") :: RemoteEvent
 local TimeUpdate = Remotes:WaitForChild("TimeUpdate") :: RemoteEvent
 local ObjectiveUpdate = Remotes:WaitForChild("ObjectiveUpdate") :: RemoteEvent
+local ProgressUpdate = Remotes:WaitForChild("ProgressUpdate") :: RemoteEvent
 
 -- ==========================================
 -- CONTROLLER INITIALIZATION
@@ -106,6 +107,11 @@ end)
 
 ObjectiveUpdate.OnClientEvent:Connect(function(objectiveData)
 	HUDController:UpdateObjective(objectiveData)
+end)
+
+ProgressUpdate.OnClientEvent:Connect(function(progressData)
+	HUDController:UpdateProgress(progressData)
+	print("[FaultlineFear Client] Progress update:", progressData)
 end)
 
 -- ==========================================

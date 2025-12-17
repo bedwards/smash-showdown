@@ -51,6 +51,7 @@ local function createRemotes()
 		"EarthquakeEvent",
 		"TimeUpdate",
 		"ObjectiveUpdate",
+		"ProgressUpdate", -- Survivor count, generator parts
 		"StoryEvent",
 		"DialogueEvent",
 		"HeightmapReady",
