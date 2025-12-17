@@ -81,6 +81,89 @@ local FOOD_SPAWN_ZONES = {
 	{ zone = "FOREST", count = 4 },
 }
 
+-- Food spawns near landmarks (reward for reaching them)
+-- Multiple spawn points around each landmark
+local LANDMARK_FOOD_SPAWNS = {
+	-- Ferris Wheel (Beach) - boardwalk snacks
+	{
+		name = "FerrisWheel",
+		center = Vector3.new(200, 0, -1000),
+		spawns = {
+			{ offset = Vector3.new(15, 0, 0), foodType = "Popcorn", hungerRestore = 15 },
+			{ offset = Vector3.new(-15, 0, 5), foodType = "Cotton Candy", hungerRestore = 10 },
+			{ offset = Vector3.new(0, 0, 20), foodType = "Hot Dog", hungerRestore = 25 },
+			{ offset = Vector3.new(10, 0, -15), foodType = "Soda", hungerRestore = 10 },
+		},
+	},
+	-- Lighthouse (Coastal) - keeper's supplies
+	{
+		name = "Lighthouse",
+		center = Vector3.new(-400, 0, -600),
+		spawns = {
+			{ offset = Vector3.new(8, 0, 0), foodType = "Canned Beans", hungerRestore = 30 },
+			{ offset = Vector3.new(-5, 0, 8), foodType = "Crackers", hungerRestore = 15 },
+			{ offset = Vector3.new(0, 0, -10), foodType = "Dried Fish", hungerRestore = 25 },
+		},
+	},
+	-- Water Tower (Valley) - emergency cache
+	{
+		name = "WaterTower",
+		center = Vector3.new(0, 0, 100),
+		spawns = {
+			{ offset = Vector3.new(12, 0, 0), foodType = "MRE", hungerRestore = 40 },
+			{ offset = Vector3.new(-10, 0, 5), foodType = "Water Bottle", hungerRestore = 20 },
+			{ offset = Vector3.new(5, 0, -12), foodType = "Energy Bar", hungerRestore = 20 },
+		},
+	},
+	-- Radio Tower (Mountain) - rescue supply drop
+	{
+		name = "RadioTower",
+		center = Vector3.new(0, 0, 1700),
+		spawns = {
+			{ offset = Vector3.new(10, 0, 0), foodType = "MRE", hungerRestore = 40 },
+			{ offset = Vector3.new(-8, 0, 8), foodType = "MRE", hungerRestore = 40 },
+			{ offset = Vector3.new(0, 0, -10), foodType = "Energy Bar", hungerRestore = 20 },
+			{ offset = Vector3.new(-5, 0, -8), foodType = "Water Bottle", hungerRestore = 20 },
+			{ offset = Vector3.new(8, 0, 10), foodType = "First Aid Ration", hungerRestore = 35 },
+		},
+	},
+	-- Bridge (Fault Line) - abandoned supplies
+	{
+		name = "Bridge",
+		center = Vector3.new(0, 0, 600),
+		spawns = {
+			{ offset = Vector3.new(20, 0, 0), foodType = "Canned Food", hungerRestore = 25 },
+			{ offset = Vector3.new(-25, 0, 5), foodType = "Granola Bar", hungerRestore = 15 },
+		},
+	},
+	-- Houses in Valley - pantry items
+	{
+		name = "House_Valley_1",
+		center = Vector3.new(-100, 0, 50),
+		spawns = {
+			{ offset = Vector3.new(5, 0, 0), foodType = "Canned Soup", hungerRestore = 30 },
+			{ offset = Vector3.new(-3, 0, 5), foodType = "Cereal", hungerRestore = 20 },
+		},
+	},
+	{
+		name = "House_Valley_2",
+		center = Vector3.new(80, 0, 150),
+		spawns = {
+			{ offset = Vector3.new(0, 0, 8), foodType = "Pasta", hungerRestore = 25 },
+			{ offset = Vector3.new(6, 0, -3), foodType = "Canned Vegetables", hungerRestore = 20 },
+		},
+	},
+	-- Houses in Coastal - pantry items
+	{
+		name = "House_Coastal_1",
+		center = Vector3.new(-150, 0, -400),
+		spawns = {
+			{ offset = Vector3.new(4, 0, 0), foodType = "Canned Tuna", hungerRestore = 25 },
+			{ offset = Vector3.new(-5, 0, 4), foodType = "Crackers", hungerRestore = 15 },
+		},
+	},
+}
+
 -- ==========================================
 -- UTILITY FUNCTIONS
 -- ==========================================
@@ -204,9 +287,9 @@ end
 -- FOOD ITEMS
 -- ==========================================
 
-local function createFoodItem(foodType: string, position: Vector3): Model
+local function createFoodItem(foodType: string, position: Vector3, hungerRestore: number?): Model
 	local model = Instance.new("Model")
-	model.Name = "Food_" .. foodType
+	model.Name = "Food_" .. foodType:gsub(" ", "")
 
 	-- Create the part (placeholder)
 	local part = Instance.new("Part")
@@ -215,16 +298,30 @@ local function createFoodItem(foodType: string, position: Vector3): Model
 	part.Size = Vector3.new(1, 1, 1)
 	part.Anchored = true
 	part.CanCollide = false
-	part.BrickColor = BrickColor.new("Bright green")
 	part.Material = Enum.Material.SmoothPlastic
 	part.Position = position
-	part.Parent = model
 
+	-- Color based on food type
+	if string.find(foodType, "MRE") or string.find(foodType, "Canned") then
+		part.BrickColor = BrickColor.new("Medium stone grey")
+	elseif string.find(foodType, "Water") or string.find(foodType, "Soda") then
+		part.BrickColor = BrickColor.new("Bright blue")
+	elseif string.find(foodType, "Bar") or string.find(foodType, "Granola") then
+		part.BrickColor = BrickColor.new("Cork")
+	elseif string.find(foodType, "Hot Dog") or string.find(foodType, "Fish") then
+		part.BrickColor = BrickColor.new("Bright red")
+	elseif string.find(foodType, "Popcorn") or string.find(foodType, "Cotton") then
+		part.BrickColor = BrickColor.new("White")
+	else
+		part.BrickColor = BrickColor.new("Bright green")
+	end
+
+	part.Parent = model
 	model.PrimaryPart = part
 
 	-- Add attributes
 	model:SetAttribute("FoodType", foodType)
-	model:SetAttribute("HungerRestore", 25)
+	model:SetAttribute("HungerRestore", hungerRestore or 25)
 	model:SetAttribute("ObjectTag", "Food")
 
 	-- Add tags
@@ -270,7 +367,42 @@ function CollectibleSpawner:SpawnFood()
 		end
 	end
 
-	print(string.format("[CollectibleSpawner] Spawned %d food items", totalSpawned))
+	print(string.format("[CollectibleSpawner] Spawned %d food items in zones", totalSpawned))
+end
+
+function CollectibleSpawner:SpawnLandmarkFood()
+	local foodFolder = collectiblesFolder:FindFirstChild("FoodItems")
+	if not foodFolder then
+		foodFolder = Instance.new("Folder")
+		foodFolder.Name = "FoodItems"
+		foodFolder.Parent = collectiblesFolder
+	end
+
+	local totalSpawned = 0
+
+	for _, landmarkDef in ipairs(LANDMARK_FOOD_SPAWNS) do
+		for _, spawnDef in ipairs(landmarkDef.spawns) do
+			-- Calculate position
+			local x = landmarkDef.center.X + spawnDef.offset.X
+			local z = landmarkDef.center.Z + spawnDef.offset.Z
+			local y = getTerrainHeight(x, z) + 0.5
+
+			local position = Vector3.new(x, y, z)
+
+			-- Create food item with custom hunger restore
+			local model = createFoodItem(spawnDef.foodType, position, spawnDef.hungerRestore)
+			model:SetAttribute("Landmark", landmarkDef.name)
+			model.Parent = foodFolder
+
+			totalSpawned += 1
+		end
+
+		print(
+			string.format("[CollectibleSpawner] Spawned %d food items near %s", #landmarkDef.spawns, landmarkDef.name)
+		)
+	end
+
+	print(string.format("[CollectibleSpawner] Spawned %d total landmark food items", totalSpawned))
 end
 
 -- ==========================================
@@ -286,6 +418,7 @@ function CollectibleSpawner:Initialize()
 	-- Spawn all collectibles
 	self:SpawnGeneratorParts()
 	self:SpawnFood()
+	self:SpawnLandmarkFood()
 
 	print("[CollectibleSpawner] Initialized")
 end
