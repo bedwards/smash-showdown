@@ -126,6 +126,24 @@ local COLORS = {
 	JUKEBOX_WOOD = Color3.fromRGB(100, 60, 40),
 	JUKEBOX_CHROME = Color3.fromRGB(210, 215, 220),
 	NEON_YELLOW = Color3.fromRGB(255, 240, 100),
+
+	-- Spanish House
+	SPANISH_STUCCO = Color3.fromRGB(255, 240, 220),
+	SPANISH_TERRACOTTA = Color3.fromRGB(190, 100, 55),
+	SPANISH_TRIM = Color3.fromRGB(60, 40, 30),
+	SPANISH_TILE = Color3.fromRGB(180, 90, 50),
+	IRON_BLACK = Color3.fromRGB(35, 30, 25),
+	COURTYARD_STONE = Color3.fromRGB(190, 180, 165),
+
+	-- Beach Shack
+	WEATHERED_WOOD = Color3.fromRGB(140, 115, 85),
+	WEATHERED_WOOD_LIGHT = Color3.fromRGB(170, 150, 120),
+	BEACH_BLUE = Color3.fromRGB(100, 160, 200),
+	BEACH_YELLOW = Color3.fromRGB(240, 220, 150),
+	SURFBOARD_ORANGE = Color3.fromRGB(230, 130, 50),
+	SURFBOARD_GREEN = Color3.fromRGB(80, 180, 130),
+	COOLER_RED = Color3.fromRGB(180, 60, 60),
+	COOLER_WHITE = Color3.fromRGB(240, 245, 250),
 }
 
 -- Building placements (where to spawn buildings)
@@ -229,6 +247,66 @@ local BUILDING_PLACEMENTS: { BuildingDef } = {
 		position = Vector3.new(-200, 0, -1000),
 		rotation = 180,
 		damageLevel = "MODERATE",
+	},
+
+	-- Spanish Houses (Coastal/Valley - upscale California homes)
+	{
+		name = "SpanishHouse_Coastal_1",
+		buildingType = "SpanishHouse",
+		position = Vector3.new(-180, 0, -300),
+		rotation = 30,
+		damageLevel = "INTACT",
+	},
+	{
+		name = "SpanishHouse_Coastal_2",
+		buildingType = "SpanishHouse",
+		position = Vector3.new(280, 0, -500),
+		rotation = -45,
+		damageLevel = "MODERATE",
+	},
+	{
+		name = "SpanishHouse_Valley_1",
+		buildingType = "SpanishHouse",
+		position = Vector3.new(-200, 0, 250),
+		rotation = 0,
+		damageLevel = "SEVERE",
+	},
+	{
+		name = "SpanishHouse_Valley_2",
+		buildingType = "SpanishHouse",
+		position = Vector3.new(180, 0, 350),
+		rotation = 90,
+		damageLevel = "INTACT",
+	},
+
+	-- Beach Shacks (Beach zone - boardwalk structures)
+	{
+		name = "BeachShack_1",
+		buildingType = "BeachShack",
+		position = Vector3.new(100, 0, -1100),
+		rotation = -10,
+		damageLevel = "INTACT",
+	},
+	{
+		name = "BeachShack_2",
+		buildingType = "BeachShack",
+		position = Vector3.new(-100, 0, -1150),
+		rotation = 15,
+		damageLevel = "MODERATE",
+	},
+	{
+		name = "BeachShack_3",
+		buildingType = "BeachShack",
+		position = Vector3.new(250, 0, -1050),
+		rotation = 180,
+		damageLevel = "MODERATE",
+	},
+	{
+		name = "BeachShack_4",
+		buildingType = "BeachShack",
+		position = Vector3.new(-250, 0, -1100),
+		rotation = -30,
+		damageLevel = "SEVERE",
 	},
 }
 
@@ -2374,6 +2452,559 @@ local function createDiner(def: BuildingDef): Model
 	return diner
 end
 
+-- Create Spanish-style California house with courtyard
+local function createSpanishHouse(def: BuildingDef): Model
+	local house = Instance.new("Model")
+	house.Name = def.name
+
+	-- Base dimensions (L-shaped with courtyard)
+	local mainWidth = 32
+	local mainDepth = 22
+	local wingWidth = 16
+	local wingDepth = 18
+	local wallHeight = 13
+	local wallThickness = 0.8
+	local roofOverhang = 2.5
+
+	-- Determine damage effects
+	local isBrokenWindows = def.damageLevel == "MODERATE" or def.damageLevel == "SEVERE"
+	local hasCracks = def.damageLevel ~= "INTACT"
+	local hasDebris = def.damageLevel == "SEVERE"
+	local roofTilt = def.damageLevel == "SEVERE" and 4 or 0
+
+	-- FOUNDATION / MAIN FLOOR
+	local mainFloor = Instance.new("Part")
+	mainFloor.Name = "MainFloor"
+	mainFloor.Anchored = true
+	mainFloor.Size = Vector3.new(mainWidth, 0.5, mainDepth)
+	mainFloor.Position = Vector3.new(0, 0.25, 0)
+	mainFloor.Color = COLORS.FLOOR_TILE
+	mainFloor.Material = Enum.Material.Slate
+	mainFloor.Parent = house
+
+	-- WING FLOOR (creates L-shape)
+	local wingFloor = Instance.new("Part")
+	wingFloor.Name = "WingFloor"
+	wingFloor.Anchored = true
+	wingFloor.Size = Vector3.new(wingWidth, 0.5, wingDepth)
+	wingFloor.Position = Vector3.new(mainWidth / 2 + wingWidth / 2 - wallThickness, 0.25, mainDepth / 2 - wingDepth / 2)
+	wingFloor.Color = COLORS.FLOOR_TILE
+	wingFloor.Material = Enum.Material.Slate
+	wingFloor.Parent = house
+
+	-- COURTYARD (inside the L)
+	local courtyard = Instance.new("Part")
+	courtyard.Name = "Courtyard"
+	courtyard.Anchored = true
+	courtyard.Size = Vector3.new(wingWidth, 0.3, mainDepth - wingDepth)
+	courtyard.Position =
+		Vector3.new(mainWidth / 2 + wingWidth / 2 - wallThickness, 0.15, -mainDepth / 2 + (mainDepth - wingDepth) / 2)
+	courtyard.Color = COLORS.COURTYARD_STONE
+	courtyard.Material = Enum.Material.Cobblestone
+	courtyard.Parent = house
+
+	-- MAIN EXTERIOR WALLS (warm Spanish stucco)
+	-- Front wall
+	local frontWall = createWall(
+		house,
+		Vector3.new(0, wallHeight / 2, -mainDepth / 2),
+		Vector3.new(mainWidth, wallHeight, wallThickness),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	frontWall.Name = "FrontWall"
+
+	-- Back wall
+	local backWall = createWall(
+		house,
+		Vector3.new(0, wallHeight / 2, mainDepth / 2),
+		Vector3.new(mainWidth, wallHeight, wallThickness),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	backWall.Name = "BackWall"
+
+	-- Left wall
+	local leftWall = createWall(
+		house,
+		Vector3.new(-mainWidth / 2, wallHeight / 2, 0),
+		Vector3.new(wallThickness, wallHeight, mainDepth),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	leftWall.Name = "LeftWall"
+
+	-- Right wall (partial - connects to wing)
+	local rightWall = createWall(
+		house,
+		Vector3.new(mainWidth / 2, wallHeight / 2, mainDepth / 4),
+		Vector3.new(wallThickness, wallHeight, mainDepth / 2),
+		COLORS.SPANISH_STUCCO,
+		false,
+		false
+	)
+	rightWall.Name = "RightWall"
+
+	-- WING WALLS
+	-- Wing front wall
+	local wingFrontWall = createWall(
+		house,
+		Vector3.new(mainWidth / 2 + wingWidth / 2, wallHeight / 2, mainDepth / 2 - wingDepth),
+		Vector3.new(wingWidth, wallHeight, wallThickness),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	wingFrontWall.Name = "WingFrontWall"
+
+	-- Wing back wall
+	local wingBackWall = createWall(
+		house,
+		Vector3.new(mainWidth / 2 + wingWidth / 2, wallHeight / 2, mainDepth / 2),
+		Vector3.new(wingWidth, wallHeight, wallThickness),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	wingBackWall.Name = "WingBackWall"
+
+	-- Wing right wall
+	local wingRightWall = createWall(
+		house,
+		Vector3.new(mainWidth / 2 + wingWidth - wallThickness / 2, wallHeight / 2, mainDepth / 2 - wingDepth / 2),
+		Vector3.new(wallThickness, wallHeight, wingDepth),
+		COLORS.SPANISH_STUCCO,
+		true,
+		isBrokenWindows
+	)
+	wingRightWall.Name = "WingRightWall"
+
+	-- ARCHED FRONT DOOR
+	local doorWidth = 5
+	local doorHeight = 9
+	local doorPos = Vector3.new(0, doorHeight / 2, -mainDepth / 2 - wallThickness / 2)
+	local door = createDoor(house, doorPos, Vector3.new(doorWidth, doorHeight, wallThickness), "FrontDoor")
+	door.Color = COLORS.SPANISH_TRIM
+
+	-- Door arch (decorative)
+	local arch = Instance.new("Part")
+	arch.Name = "DoorArch"
+	arch.Anchored = true
+	arch.Size = Vector3.new(doorWidth + 2, 2, wallThickness + 0.1)
+	arch.Position = doorPos + Vector3.new(0, doorHeight / 2 + 0.5, 0)
+	arch.Color = COLORS.SPANISH_TRIM
+	arch.Material = Enum.Material.SmoothPlastic
+	arch.Parent = house
+
+	-- TERRACOTTA TILE ROOF (main building)
+	local mainRoof = Instance.new("Part")
+	mainRoof.Name = "MainRoof"
+	mainRoof.Anchored = true
+	mainRoof.Size = Vector3.new(mainWidth + roofOverhang * 2, 1.5, mainDepth + roofOverhang * 2)
+	mainRoof.Color = COLORS.SPANISH_TERRACOTTA
+	mainRoof.Material = Enum.Material.Brick
+	mainRoof.Parent = house
+	local mainRoofCFrame = CFrame.new(0, wallHeight + 0.75, 0) * CFrame.Angles(math.rad(roofTilt), 0, 0)
+	mainRoof.CFrame = mainRoofCFrame
+
+	-- Wing roof
+	local wingRoof = Instance.new("Part")
+	wingRoof.Name = "WingRoof"
+	wingRoof.Anchored = true
+	wingRoof.Size = Vector3.new(wingWidth + roofOverhang * 2, 1.5, wingDepth + roofOverhang * 2)
+	wingRoof.Position =
+		Vector3.new(mainWidth / 2 + wingWidth / 2 - wallThickness, wallHeight + 0.75, mainDepth / 2 - wingDepth / 2)
+	wingRoof.Color = COLORS.SPANISH_TERRACOTTA
+	wingRoof.Material = Enum.Material.Brick
+	wingRoof.Parent = house
+
+	-- WROUGHT IRON COURTYARD GATE
+	local gate = Instance.new("Part")
+	gate.Name = "CourtyardGate"
+	gate.Anchored = true
+	gate.Size = Vector3.new(0.3, 6, 8)
+	gate.Position = Vector3.new(mainWidth / 2, 3, -mainDepth / 2 + 4)
+	gate.Color = COLORS.IRON_BLACK
+	gate.Material = Enum.Material.Metal
+	gate.Transparency = 0.3
+	gate.Parent = house
+
+	-- INTERIOR CONTAINERS
+	-- Kitchen (main building back left)
+	createContainer(
+		house,
+		Vector3.new(-mainWidth / 3, 3, mainDepth / 3),
+		Vector3.new(6, 6, 2),
+		"KitchenCabinet",
+		"Cabinet",
+		COLORS.CABINET_WOOD
+	)
+
+	createContainer(
+		house,
+		Vector3.new(-mainWidth / 3 + 8, 4, mainDepth / 3),
+		Vector3.new(3, 8, 3),
+		"Refrigerator",
+		"Refrigerator",
+		COLORS.APPLIANCE_WHITE
+	)
+
+	-- Pantry (larger than ranch house)
+	createContainer(
+		house,
+		Vector3.new(-mainWidth / 3 - 5, 5, mainDepth / 4),
+		Vector3.new(3, 10, 3),
+		"Pantry",
+		"Pantry",
+		COLORS.SPANISH_TRIM
+	)
+
+	-- Wing bedroom storage
+	createContainer(
+		house,
+		Vector3.new(mainWidth / 2 + wingWidth / 3, 3, mainDepth / 2 - wingDepth / 3),
+		Vector3.new(4, 6, 2),
+		"BedroomCabinet",
+		"Cabinet",
+		COLORS.WOOD_BROWN
+	)
+
+	-- FURNITURE
+	-- Living room couch
+	local couch = Instance.new("Part")
+	couch.Name = "Couch"
+	couch.Anchored = true
+	couch.Size = Vector3.new(8, 3, 3)
+	couch.Position = Vector3.new(mainWidth / 4, 1.5, -mainDepth / 4)
+	couch.Color = Color3.fromRGB(120, 80, 50)
+	couch.Material = Enum.Material.Fabric
+	couch.Parent = house
+
+	-- Bed in wing
+	local bed = Instance.new("Part")
+	bed.Name = "Bed"
+	bed.Anchored = true
+	bed.Size = Vector3.new(7, 2, 9)
+	bed.Position = Vector3.new(mainWidth / 2 + wingWidth / 2, 1, mainDepth / 2 - wingDepth / 2)
+	bed.Color = Color3.fromRGB(230, 220, 200)
+	bed.Material = Enum.Material.Fabric
+	bed.Parent = house
+
+	-- Courtyard fountain (decorative)
+	local fountain = Instance.new("Part")
+	fountain.Name = "Fountain"
+	fountain.Anchored = true
+	fountain.Size = Vector3.new(5, 3, 5)
+	fountain.Position = Vector3.new(mainWidth / 2 + wingWidth / 2, 1.5, -mainDepth / 2 + (mainDepth - wingDepth) / 2)
+	fountain.Color = COLORS.COURTYARD_STONE
+	fountain.Material = Enum.Material.Slate
+	fountain.Shape = Enum.PartType.Cylinder
+	fountain.Orientation = Vector3.new(0, 0, 90)
+	fountain.Parent = house
+
+	-- DAMAGE EFFECTS
+	if hasCracks then
+		local crack = Instance.new("Part")
+		crack.Name = "WallCrack"
+		crack.Anchored = true
+		crack.CanCollide = false
+		crack.Size = Vector3.new(0.2, wallHeight * 0.7, wallThickness + 0.1)
+		crack.Position = frontWall.Position + Vector3.new(mainWidth / 4, 0, 0)
+		crack.Color = COLORS.CRACK_DARK
+		crack.Material = Enum.Material.Slate
+		crack.Transparency = 0.3
+		crack.Parent = house
+		CollectionService:AddTag(crack, "DamageEffect")
+	end
+
+	if hasDebris then
+		local random = Random.new()
+		for i = 1, 10 do
+			local debris = Instance.new("Part")
+			debris.Name = "Debris_" .. i
+			debris.Anchored = true
+			debris.Size =
+				Vector3.new(random:NextNumber(0.5, 2.5), random:NextNumber(0.3, 1.2), random:NextNumber(0.5, 2.5))
+			debris.Position = Vector3.new(
+				random:NextNumber(-mainWidth / 3, mainWidth / 3),
+				debris.Size.Y / 2,
+				random:NextNumber(-mainDepth / 3, mainDepth / 3)
+			)
+			debris.Color = COLORS.SPANISH_TILE
+			debris.Material = Enum.Material.Brick
+			debris.Rotation =
+				Vector3.new(random:NextNumber(-20, 20), random:NextNumber(0, 360), random:NextNumber(-20, 20))
+			debris.Parent = house
+			CollectionService:AddTag(debris, "Debris")
+		end
+	end
+
+	-- Set primary part
+	house.PrimaryPart = mainFloor
+
+	-- Tags and attributes
+	CollectionService:AddTag(house, "Building")
+	CollectionService:AddTag(house, "SpanishHouse")
+	CollectionService:AddTag(house, "Enterable")
+	house:SetAttribute("BuildingType", "SpanishHouse")
+	house:SetAttribute("DamageLevel", def.damageLevel)
+
+	return house
+end
+
+-- Create beach shack (simple boardwalk structure)
+local function createBeachShack(def: BuildingDef): Model
+	local shack = Instance.new("Model")
+	shack.Name = def.name
+
+	-- Small, simple structure
+	local width = 16
+	local depth = 12
+	local wallHeight = 9
+	local wallThickness = 0.5
+	local roofOverhang = 3
+
+	-- Determine damage effects
+	local isBrokenWindows = def.damageLevel == "MODERATE" or def.damageLevel == "SEVERE"
+	local hasDebris = def.damageLevel == "SEVERE"
+	local roofTilt = def.damageLevel == "SEVERE" and 8 or (def.damageLevel == "MODERATE" and 3 or 0)
+
+	-- ELEVATED FLOOR (beach shacks often on stilts)
+	local floorHeight = 2
+	local floor = Instance.new("Part")
+	floor.Name = "Floor"
+	floor.Anchored = true
+	floor.Size = Vector3.new(width, 0.4, depth)
+	floor.Position = Vector3.new(0, floorHeight, 0)
+	floor.Color = COLORS.WEATHERED_WOOD
+	floor.Material = Enum.Material.Wood
+	floor.Parent = shack
+
+	-- STILTS (4 corners)
+	local stiltPositions = {
+		Vector3.new(-width / 2 + 1, floorHeight / 2, -depth / 2 + 1),
+		Vector3.new(width / 2 - 1, floorHeight / 2, -depth / 2 + 1),
+		Vector3.new(-width / 2 + 1, floorHeight / 2, depth / 2 - 1),
+		Vector3.new(width / 2 - 1, floorHeight / 2, depth / 2 - 1),
+	}
+	for i, pos in ipairs(stiltPositions) do
+		local stilt = Instance.new("Part")
+		stilt.Name = "Stilt_" .. i
+		stilt.Anchored = true
+		stilt.Size = Vector3.new(0.8, floorHeight, 0.8)
+		stilt.Position = pos
+		stilt.Color = COLORS.WEATHERED_WOOD
+		stilt.Material = Enum.Material.Wood
+		stilt.Parent = shack
+	end
+
+	-- WALLS (weathered wood planks)
+	-- Front wall (with large opening for service window)
+	local frontWallLeft = Instance.new("Part")
+	frontWallLeft.Name = "FrontWallLeft"
+	frontWallLeft.Anchored = true
+	frontWallLeft.Size = Vector3.new(width / 3, wallHeight, wallThickness)
+	frontWallLeft.Position = Vector3.new(-width / 3, floorHeight + wallHeight / 2, -depth / 2)
+	frontWallLeft.Color = COLORS.WEATHERED_WOOD_LIGHT
+	frontWallLeft.Material = Enum.Material.Wood
+	frontWallLeft.Parent = shack
+
+	local frontWallRight = Instance.new("Part")
+	frontWallRight.Name = "FrontWallRight"
+	frontWallRight.Anchored = true
+	frontWallRight.Size = Vector3.new(width / 3, wallHeight, wallThickness)
+	frontWallRight.Position = Vector3.new(width / 3, floorHeight + wallHeight / 2, -depth / 2)
+	frontWallRight.Color = COLORS.WEATHERED_WOOD_LIGHT
+	frontWallRight.Material = Enum.Material.Wood
+	frontWallRight.Parent = shack
+
+	-- Service window header
+	local serviceHeader = Instance.new("Part")
+	serviceHeader.Name = "ServiceHeader"
+	serviceHeader.Anchored = true
+	serviceHeader.Size = Vector3.new(width / 3 + 2, 2, wallThickness)
+	serviceHeader.Position = Vector3.new(0, floorHeight + wallHeight - 1, -depth / 2)
+	serviceHeader.Color = COLORS.BEACH_BLUE
+	serviceHeader.Material = Enum.Material.Wood
+	serviceHeader.Parent = shack
+
+	-- Back wall
+	local backWall = Instance.new("Part")
+	backWall.Name = "BackWall"
+	backWall.Anchored = true
+	backWall.Size = Vector3.new(width, wallHeight, wallThickness)
+	backWall.Position = Vector3.new(0, floorHeight + wallHeight / 2, depth / 2)
+	backWall.Color = COLORS.WEATHERED_WOOD_LIGHT
+	backWall.Material = Enum.Material.Wood
+	backWall.Parent = shack
+
+	-- Side walls
+	local leftWall = Instance.new("Part")
+	leftWall.Name = "LeftWall"
+	leftWall.Anchored = true
+	leftWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	leftWall.Position = Vector3.new(-width / 2, floorHeight + wallHeight / 2, 0)
+	leftWall.Color = COLORS.WEATHERED_WOOD_LIGHT
+	leftWall.Material = Enum.Material.Wood
+	leftWall.Parent = shack
+
+	local rightWall = Instance.new("Part")
+	rightWall.Name = "RightWall"
+	rightWall.Anchored = true
+	rightWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	rightWall.Position = Vector3.new(width / 2, floorHeight + wallHeight / 2, 0)
+	rightWall.Color = COLORS.WEATHERED_WOOD_LIGHT
+	rightWall.Material = Enum.Material.Wood
+	rightWall.Parent = shack
+
+	-- PITCHED ROOF
+	local roofPeak = 4
+	local roofLeft = Instance.new("Part")
+	roofLeft.Name = "RoofLeft"
+	roofLeft.Anchored = true
+	roofLeft.Size = Vector3.new((width + roofOverhang * 2) / 1.4, 0.6, depth + roofOverhang * 2)
+	roofLeft.Color = COLORS.WEATHERED_WOOD
+	roofLeft.Material = Enum.Material.Wood
+	roofLeft.Parent = shack
+	local leftRoofCFrame = CFrame.new(-width / 4, floorHeight + wallHeight + roofPeak / 2, 0)
+		* CFrame.Angles(0, 0, math.rad(25 + roofTilt))
+	roofLeft.CFrame = leftRoofCFrame
+
+	local roofRight = Instance.new("Part")
+	roofRight.Name = "RoofRight"
+	roofRight.Anchored = true
+	roofRight.Size = Vector3.new((width + roofOverhang * 2) / 1.4, 0.6, depth + roofOverhang * 2)
+	roofRight.Color = COLORS.WEATHERED_WOOD
+	roofRight.Material = Enum.Material.Wood
+	roofRight.Parent = shack
+	local rightRoofCFrame = CFrame.new(width / 4, floorHeight + wallHeight + roofPeak / 2, 0)
+		* CFrame.Angles(0, 0, math.rad(-25 - roofTilt))
+	roofRight.CFrame = rightRoofCFrame
+
+	-- DOOR (side entry)
+	local doorWidth = 3.5
+	local doorHeight = 7
+	local doorPos = Vector3.new(-width / 2 - wallThickness / 2, floorHeight + doorHeight / 2, 0)
+	local door = createDoor(shack, doorPos, Vector3.new(wallThickness, doorHeight, doorWidth), "SideDoor")
+	door.Color = COLORS.BEACH_BLUE
+
+	-- SURFBOARD DECORATION (leaning against wall)
+	local surfboard = Instance.new("Part")
+	surfboard.Name = "Surfboard"
+	surfboard.Anchored = true
+	surfboard.Size = Vector3.new(0.3, 7, 1.5)
+	surfboard.Position = Vector3.new(width / 2 + 1, 3.5, -depth / 4)
+	surfboard.Color = COLORS.SURFBOARD_ORANGE
+	surfboard.Material = Enum.Material.SmoothPlastic
+	surfboard.Rotation = Vector3.new(0, 15, 10)
+	surfboard.Parent = shack
+
+	-- Second surfboard
+	local surfboard2 = Instance.new("Part")
+	surfboard2.Name = "Surfboard2"
+	surfboard2.Anchored = true
+	surfboard2.Size = Vector3.new(0.3, 6.5, 1.4)
+	surfboard2.Position = Vector3.new(width / 2 + 1.3, 3.25, -depth / 4 + 1.8)
+	surfboard2.Color = COLORS.SURFBOARD_GREEN
+	surfboard2.Material = Enum.Material.SmoothPlastic
+	surfboard2.Rotation = Vector3.new(0, 20, 12)
+	surfboard2.Parent = shack
+
+	-- INTERIOR CONTAINERS
+	-- Cooler (main food source)
+	createContainer(
+		shack,
+		Vector3.new(0, floorHeight + 1.5, depth / 3),
+		Vector3.new(4, 3, 3),
+		"Cooler",
+		"Cooler",
+		COLORS.COOLER_RED
+	)
+
+	-- Counter with snacks
+	local counter = Instance.new("Part")
+	counter.Name = "Counter"
+	counter.Anchored = true
+	counter.Size = Vector3.new(width / 2, 3, 2)
+	counter.Position = Vector3.new(0, floorHeight + 1.5, -depth / 3)
+	counter.Color = COLORS.WEATHERED_WOOD
+	counter.Material = Enum.Material.Wood
+	counter.Parent = shack
+
+	-- Small storage cabinet
+	createContainer(
+		shack,
+		Vector3.new(-width / 3, floorHeight + 2.5, depth / 4),
+		Vector3.new(3, 5, 2),
+		"StorageCabinet",
+		"Cabinet",
+		COLORS.WEATHERED_WOOD
+	)
+
+	-- BEACH SIGN
+	local sign = Instance.new("Part")
+	sign.Name = "BeachSign"
+	sign.Anchored = true
+	sign.Size = Vector3.new(6, 2, 0.3)
+	sign.Position = Vector3.new(0, floorHeight + wallHeight + 2, -depth / 2 - 1)
+	sign.Color = COLORS.BEACH_YELLOW
+	sign.Material = Enum.Material.Wood
+	sign.Parent = shack
+
+	-- DAMAGE EFFECTS
+	if isBrokenWindows then
+		-- Broken window shutter hanging
+		local brokenShutter = Instance.new("Part")
+		brokenShutter.Name = "BrokenShutter"
+		brokenShutter.Anchored = true
+		brokenShutter.Size = Vector3.new(0.2, 3, 2)
+		brokenShutter.Position = Vector3.new(width / 2 + 0.2, floorHeight + wallHeight / 2, -depth / 4)
+		brokenShutter.Color = COLORS.BEACH_BLUE
+		brokenShutter.Material = Enum.Material.Wood
+		brokenShutter.Rotation = Vector3.new(0, 0, 25)
+		brokenShutter.Parent = shack
+		CollectionService:AddTag(brokenShutter, "DamageEffect")
+	end
+
+	if hasDebris then
+		local random = Random.new()
+		-- Wood debris
+		for i = 1, 6 do
+			local debris = Instance.new("Part")
+			debris.Name = "Debris_" .. i
+			debris.Anchored = true
+			debris.Size =
+				Vector3.new(random:NextNumber(0.3, 1.5), random:NextNumber(0.2, 0.5), random:NextNumber(0.3, 1.5))
+			debris.Position = Vector3.new(
+				random:NextNumber(-width / 2 - 3, width / 2 + 3),
+				debris.Size.Y / 2,
+				random:NextNumber(-depth / 2 - 3, depth / 2 + 3)
+			)
+			debris.Color = COLORS.WEATHERED_WOOD
+			debris.Material = Enum.Material.Wood
+			debris.Rotation =
+				Vector3.new(random:NextNumber(-10, 10), random:NextNumber(0, 360), random:NextNumber(-10, 10))
+			debris.Parent = shack
+			CollectionService:AddTag(debris, "Debris")
+		end
+	end
+
+	-- Set primary part
+	shack.PrimaryPart = floor
+
+	-- Tags and attributes
+	CollectionService:AddTag(shack, "Building")
+	CollectionService:AddTag(shack, "BeachShack")
+	CollectionService:AddTag(shack, "Enterable")
+	shack:SetAttribute("BuildingType", "BeachShack")
+	shack:SetAttribute("DamageLevel", def.damageLevel)
+
+	return shack
+end
+
 -- ==========================================
 -- PUBLIC API
 -- ==========================================
@@ -2391,6 +3022,10 @@ function BuildingService:CreateBuilding(def: BuildingDef): Model?
 		flattenRadius = 35 -- Convenience stores with gas pumps
 	elseif def.buildingType == "Diner" then
 		flattenRadius = 30 -- Diners are medium-sized
+	elseif def.buildingType == "SpanishHouse" then
+		flattenRadius = 38 -- Spanish houses are larger with courtyard
+	elseif def.buildingType == "BeachShack" then
+		flattenRadius = 15 -- Beach shacks are small
 	end
 
 	if Heightmap.FlattenArea then
@@ -2407,6 +3042,10 @@ function BuildingService:CreateBuilding(def: BuildingDef): Model?
 		building = createMotel(def)
 	elseif def.buildingType == "Diner" then
 		building = createDiner(def)
+	elseif def.buildingType == "SpanishHouse" then
+		building = createSpanishHouse(def)
+	elseif def.buildingType == "BeachShack" then
+		building = createBeachShack(def)
 	else
 		warn("[BuildingService] Unknown building type: " .. def.buildingType)
 		return nil
