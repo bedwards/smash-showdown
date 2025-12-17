@@ -109,6 +109,23 @@ local COLORS = {
 	BEDSHEET_WHITE = Color3.fromRGB(240, 235, 230),
 	TV_BLACK = Color3.fromRGB(30, 30, 35),
 	RAILING_METAL = Color3.fromRGB(140, 140, 145),
+
+	-- Diner
+	DINER_CHROME = Color3.fromRGB(200, 205, 210),
+	DINER_RED = Color3.fromRGB(180, 50, 50),
+	DINER_CREAM = Color3.fromRGB(250, 245, 235),
+	DINER_CHECKERED_BLACK = Color3.fromRGB(30, 30, 30),
+	DINER_CHECKERED_WHITE = Color3.fromRGB(245, 245, 245),
+	BOOTH_RED = Color3.fromRGB(160, 40, 40),
+	BOOTH_CREAM = Color3.fromRGB(240, 235, 220),
+	COUNTER_CHROME = Color3.fromRGB(180, 185, 190),
+	STOOL_RED = Color3.fromRGB(170, 45, 45),
+	STOOL_CHROME = Color3.fromRGB(190, 195, 200),
+	KITCHEN_STEEL = Color3.fromRGB(170, 175, 180),
+	PIE_CASE_GLASS = Color3.fromRGB(200, 230, 255),
+	JUKEBOX_WOOD = Color3.fromRGB(100, 60, 40),
+	JUKEBOX_CHROME = Color3.fromRGB(210, 215, 220),
+	NEON_YELLOW = Color3.fromRGB(255, 240, 100),
 }
 
 -- Building placements (where to spawn buildings)
@@ -195,6 +212,22 @@ local BUILDING_PLACEMENTS: { BuildingDef } = {
 		buildingType = "Motel",
 		position = Vector3.new(-450, 0, 150),
 		rotation = 90,
+		damageLevel = "MODERATE",
+	},
+
+	-- Diners
+	{
+		name = "Diner_Coastal_1",
+		buildingType = "Diner",
+		position = Vector3.new(100, 0, -900),
+		rotation = -5,
+		damageLevel = "INTACT",
+	},
+	{
+		name = "Diner_Beach_1",
+		buildingType = "Diner",
+		position = Vector3.new(-200, 0, -1000),
+		rotation = 180,
 		damageLevel = "MODERATE",
 	},
 }
@@ -1756,6 +1789,591 @@ local function createMotel(def: BuildingDef): Model
 	return motel
 end
 
+-- Create California roadside diner
+local function createDiner(def: BuildingDef): Model
+	local diner = Instance.new("Model")
+	diner.Name = def.name
+
+	-- Dimensions
+	local width = 45 -- studs
+	local depth = 25
+	local wallHeight = 12
+	local wallThickness = 0.8
+	local counterDepth = 3
+	local kitchenDepth = 8
+
+	-- Determine damage effects
+	local isBrokenWindows = def.damageLevel == "MODERATE" or def.damageLevel == "SEVERE"
+	local hasCracks = def.damageLevel ~= "INTACT"
+	local hasDebris = def.damageLevel == "SEVERE"
+
+	-- ==========================================
+	-- FLOOR (checkered pattern)
+	-- ==========================================
+
+	local floor = Instance.new("Part")
+	floor.Name = "Floor"
+	floor.Anchored = true
+	floor.Size = Vector3.new(width, 0.5, depth)
+	floor.Position = Vector3.new(0, 0.25, 0)
+	floor.Color = COLORS.DINER_CHECKERED_WHITE
+	floor.Material = Enum.Material.SmoothPlastic
+	floor.Parent = diner
+
+	-- Checkered pattern (simplified with stripes)
+	for i = 0, 8 do
+		local stripe = Instance.new("Part")
+		stripe.Name = "FloorStripe_" .. i
+		stripe.Anchored = true
+		stripe.CanCollide = false
+		stripe.Size = Vector3.new(width, 0.02, 2.5)
+		stripe.Position = Vector3.new(0, 0.51, -depth / 2 + 1.25 + i * 2.5)
+		stripe.Color = i % 2 == 0 and COLORS.DINER_CHECKERED_BLACK or COLORS.DINER_CHECKERED_WHITE
+		stripe.Material = Enum.Material.SmoothPlastic
+		stripe.Parent = diner
+	end
+
+	-- ==========================================
+	-- EXTERIOR WALLS (chrome trim)
+	-- ==========================================
+
+	-- Front wall (large windows)
+	local frontWallLeft = Instance.new("Part")
+	frontWallLeft.Name = "FrontWallLeft"
+	frontWallLeft.Anchored = true
+	frontWallLeft.Size = Vector3.new(width * 0.15, wallHeight, wallThickness)
+	frontWallLeft.Position = Vector3.new(-width / 2 + width * 0.075, wallHeight / 2, -depth / 2)
+	frontWallLeft.Color = COLORS.DINER_CREAM
+	frontWallLeft.Material = Enum.Material.SmoothPlastic
+	frontWallLeft.Parent = diner
+
+	local frontWallRight = Instance.new("Part")
+	frontWallRight.Name = "FrontWallRight"
+	frontWallRight.Anchored = true
+	frontWallRight.Size = Vector3.new(width * 0.15, wallHeight, wallThickness)
+	frontWallRight.Position = Vector3.new(width / 2 - width * 0.075, wallHeight / 2, -depth / 2)
+	frontWallRight.Color = COLORS.DINER_CREAM
+	frontWallRight.Material = Enum.Material.SmoothPlastic
+	frontWallRight.Parent = diner
+
+	-- Large front windows
+	local frontGlass = Instance.new("Part")
+	frontGlass.Name = "FrontGlass"
+	frontGlass.Anchored = true
+	frontGlass.CanCollide = true
+	frontGlass.Size = Vector3.new(width * 0.7, wallHeight * 0.75, wallThickness * 0.5)
+	frontGlass.Position = Vector3.new(0, wallHeight * 0.4, -depth / 2)
+	frontGlass.Transparency = isBrokenWindows and 0.9 or 0.2
+	frontGlass.Color = isBrokenWindows and COLORS.CRACK_DARK or COLORS.STORE_GLASS
+	frontGlass.Material = Enum.Material.Glass
+	frontGlass.Parent = diner
+
+	if isBrokenWindows then
+		CollectionService:AddTag(frontGlass, "BrokenWindow")
+	end
+
+	-- Back wall (kitchen wall)
+	local backWall = Instance.new("Part")
+	backWall.Name = "BackWall"
+	backWall.Anchored = true
+	backWall.Size = Vector3.new(width, wallHeight, wallThickness)
+	backWall.Position = Vector3.new(0, wallHeight / 2, depth / 2)
+	backWall.Color = COLORS.DINER_CREAM
+	backWall.Material = Enum.Material.SmoothPlastic
+	backWall.Parent = diner
+
+	-- Side walls
+	local leftWall = Instance.new("Part")
+	leftWall.Name = "LeftWall"
+	leftWall.Anchored = true
+	leftWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	leftWall.Position = Vector3.new(-width / 2, wallHeight / 2, 0)
+	leftWall.Color = COLORS.DINER_CREAM
+	leftWall.Material = Enum.Material.SmoothPlastic
+	leftWall.Parent = diner
+
+	local rightWall = Instance.new("Part")
+	rightWall.Name = "RightWall"
+	rightWall.Anchored = true
+	rightWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	rightWall.Position = Vector3.new(width / 2, wallHeight / 2, 0)
+	rightWall.Color = COLORS.DINER_CREAM
+	rightWall.Material = Enum.Material.SmoothPlastic
+	rightWall.Parent = diner
+
+	-- Chrome trim band
+	local chromeTrim = Instance.new("Part")
+	chromeTrim.Name = "ChromeTrim"
+	chromeTrim.Anchored = true
+	chromeTrim.Size = Vector3.new(width + 2, 1, depth + 2)
+	chromeTrim.Position = Vector3.new(0, wallHeight - 0.5, 0)
+	chromeTrim.Color = COLORS.DINER_CHROME
+	chromeTrim.Material = Enum.Material.Metal
+	chromeTrim.Reflectance = 0.3
+	chromeTrim.Parent = diner
+
+	-- ==========================================
+	-- ROOF
+	-- ==========================================
+
+	local roof = Instance.new("Part")
+	roof.Name = "Roof"
+	roof.Anchored = true
+	roof.Size = Vector3.new(width + 2, 1, depth + 2)
+	roof.Position = Vector3.new(0, wallHeight + 0.5, 0)
+	roof.Color = COLORS.DINER_RED
+	roof.Material = Enum.Material.SmoothPlastic
+	roof.Parent = diner
+
+	-- ==========================================
+	-- FRONT DOOR
+	-- ==========================================
+
+	local doorPos = Vector3.new(0, 4, -depth / 2 - wallThickness / 2)
+	createDoor(diner, doorPos, Vector3.new(5, 8, wallThickness), "FrontDoor")
+
+	-- ==========================================
+	-- NEON SIGN
+	-- ==========================================
+
+	local signBoard = Instance.new("Part")
+	signBoard.Name = "SignBoard"
+	signBoard.Anchored = true
+	signBoard.Size = Vector3.new(15, 4, 0.5)
+	signBoard.Position = Vector3.new(0, wallHeight + 3, -depth / 2 - 1)
+	signBoard.Color = Color3.fromRGB(40, 40, 45)
+	signBoard.Material = Enum.Material.SmoothPlastic
+	signBoard.Parent = diner
+
+	-- Neon "OPEN 24 HRS" text
+	local neonText = Instance.new("Part")
+	neonText.Name = "NeonOpen"
+	neonText.Anchored = true
+	neonText.Size = Vector3.new(13, 2, 0.2)
+	neonText.Position = Vector3.new(0, wallHeight + 3, -depth / 2 - 1.4)
+	neonText.Color = COLORS.NEON_YELLOW
+	neonText.Material = Enum.Material.Neon
+	neonText.Parent = diner
+
+	local neonLight = Instance.new("PointLight")
+	neonLight.Brightness = 2
+	neonLight.Range = 25
+	neonLight.Color = COLORS.NEON_YELLOW
+	neonLight.Parent = neonText
+
+	-- Flickering effect
+	task.spawn(function()
+		local flickerRandom = Random.new()
+		while diner.Parent do
+			if flickerRandom:NextNumber() < 0.12 then
+				local originalBrightness = neonLight.Brightness
+				neonLight.Brightness = 0
+				neonText.Material = Enum.Material.SmoothPlastic
+				task.wait(flickerRandom:NextNumber(0.04, 0.15))
+				neonLight.Brightness = originalBrightness
+				neonText.Material = Enum.Material.Neon
+				if flickerRandom:NextNumber() < 0.35 then
+					task.wait(flickerRandom:NextNumber(0.02, 0.08))
+					neonLight.Brightness = 0
+					neonText.Material = Enum.Material.SmoothPlastic
+					task.wait(flickerRandom:NextNumber(0.04, 0.12))
+					neonLight.Brightness = originalBrightness
+					neonText.Material = Enum.Material.Neon
+				end
+			end
+			task.wait(flickerRandom:NextNumber(0.4, 1.8))
+		end
+	end)
+
+	-- ==========================================
+	-- COUNTER WITH STOOLS
+	-- ==========================================
+
+	-- Main counter
+	local counter = Instance.new("Part")
+	counter.Name = "Counter"
+	counter.Anchored = true
+	counter.Size = Vector3.new(width * 0.7, 3.5, counterDepth)
+	counter.Position = Vector3.new(0, 1.75, depth / 2 - kitchenDepth - counterDepth / 2)
+	counter.Color = COLORS.COUNTER_CHROME
+	counter.Material = Enum.Material.Metal
+	counter.Reflectance = 0.2
+	counter.Parent = diner
+
+	-- Counter top
+	local counterTop = Instance.new("Part")
+	counterTop.Name = "CounterTop"
+	counterTop.Anchored = true
+	counterTop.Size = Vector3.new(width * 0.7 + 1, 0.2, counterDepth + 0.5)
+	counterTop.Position = Vector3.new(0, 3.6, depth / 2 - kitchenDepth - counterDepth / 2)
+	counterTop.Color = COLORS.DINER_CREAM
+	counterTop.Material = Enum.Material.Marble
+	counterTop.Parent = diner
+
+	-- Counter stools
+	local numStools = 8
+	for i = 1, numStools do
+		local stoolX = -width * 0.3 + (i - 1) * (width * 0.6 / (numStools - 1))
+
+		-- Stool base
+		local stoolBase = Instance.new("Part")
+		stoolBase.Name = "StoolBase_" .. i
+		stoolBase.Anchored = true
+		stoolBase.Size = Vector3.new(1.5, 0.3, 1.5)
+		stoolBase.Position = Vector3.new(stoolX, 0.4, depth / 2 - kitchenDepth - counterDepth - 2)
+		stoolBase.Color = COLORS.STOOL_CHROME
+		stoolBase.Material = Enum.Material.Metal
+		stoolBase.Shape = Enum.PartType.Cylinder
+		stoolBase.Parent = diner
+
+		-- Stool pole
+		local stoolPole = Instance.new("Part")
+		stoolPole.Name = "StoolPole_" .. i
+		stoolPole.Anchored = true
+		stoolPole.Size = Vector3.new(0.4, 2, 0.4)
+		stoolPole.Position = Vector3.new(stoolX, 1.5, depth / 2 - kitchenDepth - counterDepth - 2)
+		stoolPole.Color = COLORS.STOOL_CHROME
+		stoolPole.Material = Enum.Material.Metal
+		stoolPole.Parent = diner
+
+		-- Stool seat
+		local stoolSeat = Instance.new("Part")
+		stoolSeat.Name = "StoolSeat_" .. i
+		stoolSeat.Anchored = true
+		stoolSeat.Size = Vector3.new(1.8, 0.5, 1.8)
+		stoolSeat.Position = Vector3.new(stoolX, 2.75, depth / 2 - kitchenDepth - counterDepth - 2)
+		stoolSeat.Color = COLORS.STOOL_RED
+		stoolSeat.Material = Enum.Material.Fabric
+		stoolSeat.Shape = Enum.PartType.Cylinder
+		stoolSeat.Parent = diner
+	end
+
+	-- Under counter storage (searchable)
+	createContainer(
+		diner,
+		Vector3.new(-width / 4, 1.5, depth / 2 - kitchenDepth - counterDepth / 2),
+		Vector3.new(4, 3, 2),
+		"UnderCounterStorage",
+		"Cabinet",
+		COLORS.COUNTER_CHROME
+	)
+
+	-- ==========================================
+	-- BOOTH SEATING (along front windows)
+	-- ==========================================
+
+	local numBooths = 4
+	local boothWidth = 8
+	for i = 1, numBooths do
+		local boothX = -width / 2 + 6 + (i - 1) * (boothWidth + 2)
+
+		-- Booth back (against window)
+		local boothBack = Instance.new("Part")
+		boothBack.Name = "BoothBack_" .. i
+		boothBack.Anchored = true
+		boothBack.Size = Vector3.new(boothWidth, 4, 1)
+		boothBack.Position = Vector3.new(boothX, 2.5, -depth / 2 + 2)
+		boothBack.Color = COLORS.BOOTH_RED
+		boothBack.Material = Enum.Material.Fabric
+		boothBack.Parent = diner
+
+		-- Booth seat
+		local boothSeat = Instance.new("Part")
+		boothSeat.Name = "BoothSeat_" .. i
+		boothSeat.Anchored = true
+		boothSeat.Size = Vector3.new(boothWidth, 1.5, 3)
+		boothSeat.Position = Vector3.new(boothX, 1, -depth / 2 + 4)
+		boothSeat.Color = COLORS.BOOTH_RED
+		boothSeat.Material = Enum.Material.Fabric
+		boothSeat.Parent = diner
+
+		-- Booth table
+		local boothTable = Instance.new("Part")
+		boothTable.Name = "BoothTable_" .. i
+		boothTable.Anchored = true
+		boothTable.Size = Vector3.new(boothWidth - 1, 0.15, 3)
+		boothTable.Position = Vector3.new(boothX, 2.5, -depth / 2 + 6.5)
+		boothTable.Color = COLORS.DINER_CREAM
+		boothTable.Material = Enum.Material.Marble
+		boothTable.Parent = diner
+
+		-- Table leg
+		local tableLeg = Instance.new("Part")
+		tableLeg.Name = "TableLeg_" .. i
+		tableLeg.Anchored = true
+		tableLeg.Size = Vector3.new(0.8, 2, 0.8)
+		tableLeg.Position = Vector3.new(boothX, 1.25, -depth / 2 + 6.5)
+		tableLeg.Color = COLORS.STOOL_CHROME
+		tableLeg.Material = Enum.Material.Metal
+		tableLeg.Parent = diner
+	end
+
+	-- ==========================================
+	-- KITCHEN AREA
+	-- ==========================================
+
+	-- Kitchen divider wall (partial)
+	local kitchenWall = Instance.new("Part")
+	kitchenWall.Name = "KitchenWall"
+	kitchenWall.Anchored = true
+	kitchenWall.Size = Vector3.new(wallThickness, wallHeight * 0.7, kitchenDepth)
+	kitchenWall.Position = Vector3.new(-width / 3, wallHeight * 0.35, depth / 2 - kitchenDepth / 2)
+	kitchenWall.Color = COLORS.DINER_CREAM
+	kitchenWall.Material = Enum.Material.SmoothPlastic
+	kitchenWall.Parent = diner
+
+	-- Commercial refrigerator (large, searchable)
+	local kitchenFridge = createContainer(
+		diner,
+		Vector3.new(width / 3, 4, depth / 2 - 2),
+		Vector3.new(6, 8, 3),
+		"KitchenRefrigerator",
+		"Refrigerator",
+		COLORS.KITCHEN_STEEL
+	)
+	kitchenFridge:SetAttribute("FoodAmount", math.random(4, 8))
+	kitchenFridge.Material = Enum.Material.Metal
+	kitchenFridge.Reflectance = 0.2
+
+	-- Stove/grill
+	local stove = Instance.new("Part")
+	stove.Name = "Stove"
+	stove.Anchored = true
+	stove.Size = Vector3.new(6, 3, 3)
+	stove.Position = Vector3.new(0, 1.5, depth / 2 - 2)
+	stove.Color = COLORS.KITCHEN_STEEL
+	stove.Material = Enum.Material.Metal
+	stove.Reflectance = 0.15
+	stove.Parent = diner
+
+	-- Grill top
+	local grillTop = Instance.new("Part")
+	grillTop.Name = "GrillTop"
+	grillTop.Anchored = true
+	grillTop.Size = Vector3.new(5, 0.1, 2.5)
+	grillTop.Position = Vector3.new(0, 3.1, depth / 2 - 2)
+	grillTop.Color = Color3.fromRGB(50, 50, 55)
+	grillTop.Material = Enum.Material.Metal
+	grillTop.Parent = diner
+
+	-- Pantry shelving (searchable)
+	local pantry = createContainer(
+		diner,
+		Vector3.new(-width / 4, 4, depth / 2 - 2),
+		Vector3.new(4, 8, 2),
+		"DinerPantry",
+		"Pantry",
+		COLORS.KITCHEN_STEEL
+	)
+	pantry:SetAttribute("FoodAmount", math.random(3, 6))
+
+	-- ==========================================
+	-- PIE DISPLAY CASE
+	-- ==========================================
+
+	local pieCase = Instance.new("Part")
+	pieCase.Name = "PieCase"
+	pieCase.Anchored = true
+	pieCase.Size = Vector3.new(4, 3, 2)
+	pieCase.Position = Vector3.new(width / 4, 5, depth / 2 - kitchenDepth - counterDepth / 2)
+	pieCase.Color = COLORS.PIE_CASE_GLASS
+	pieCase.Material = Enum.Material.Glass
+	pieCase.Transparency = 0.3
+	pieCase.Parent = diner
+
+	-- Make pie case searchable (rare desserts)
+	local pieCasePrompt = Instance.new("ProximityPrompt")
+	pieCasePrompt.ActionText = "Search"
+	pieCasePrompt.ObjectText = "Pie Case"
+	pieCasePrompt.HoldDuration = 1.5
+	pieCasePrompt.MaxActivationDistance = 6
+	pieCasePrompt.RequiresLineOfSight = true
+	pieCasePrompt.Parent = pieCase
+
+	pieCase:SetAttribute("ContainerType", "PieCase")
+	pieCase:SetAttribute("Searched", false)
+	pieCase:SetAttribute("FoodAmount", math.random(2, 4))
+
+	pieCasePrompt.Triggered:Connect(function(player)
+		if pieCase:GetAttribute("Searched") then
+			return
+		end
+
+		local foodAmount = pieCase:GetAttribute("FoodAmount")
+		pieCase:SetAttribute("Searched", true)
+		pieCasePrompt.Enabled = false
+
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		if remotes then
+			local hungerRemote = remotes:FindFirstChild("HungerUpdate")
+			if hungerRemote and hungerRemote:IsA("RemoteEvent") then
+				local foodValue = foodAmount * 20 -- Pie is premium food
+				hungerRemote:FireClient(player, "add", foodValue)
+			end
+		end
+
+		pieCase.Transparency = 0.7
+	end)
+
+	CollectionService:AddTag(pieCase, "SearchableContainer")
+	CollectionService:AddTag(pieCase, "PieCase")
+
+	-- ==========================================
+	-- JUKEBOX
+	-- ==========================================
+
+	local jukebox = Instance.new("Part")
+	jukebox.Name = "Jukebox"
+	jukebox.Anchored = true
+	jukebox.Size = Vector3.new(3, 5, 2)
+	jukebox.Position = Vector3.new(width / 2 - 3, 2.5, -depth / 4)
+	jukebox.Color = COLORS.JUKEBOX_WOOD
+	jukebox.Material = Enum.Material.Wood
+	jukebox.Parent = diner
+
+	-- Jukebox chrome trim
+	local jukeboxChrome = Instance.new("Part")
+	jukeboxChrome.Name = "JukeboxChrome"
+	jukeboxChrome.Anchored = true
+	jukeboxChrome.Size = Vector3.new(3.2, 1, 2.2)
+	jukeboxChrome.Position = Vector3.new(width / 2 - 3, 5.5, -depth / 4)
+	jukeboxChrome.Color = COLORS.JUKEBOX_CHROME
+	jukeboxChrome.Material = Enum.Material.Metal
+	jukeboxChrome.Reflectance = 0.3
+	jukeboxChrome.Parent = diner
+
+	-- Jukebox glow
+	local jukeboxGlow = Instance.new("Part")
+	jukeboxGlow.Name = "JukeboxGlow"
+	jukeboxGlow.Anchored = true
+	jukeboxGlow.CanCollide = false
+	jukeboxGlow.Size = Vector3.new(2, 2, 0.1)
+	jukeboxGlow.Position = Vector3.new(width / 2 - 3, 3.5, -depth / 4 - 1.1)
+	jukeboxGlow.Color = COLORS.NEON_RED
+	jukeboxGlow.Material = Enum.Material.Neon
+	jukeboxGlow.Parent = diner
+
+	-- ==========================================
+	-- CASH REGISTER
+	-- ==========================================
+
+	local cashRegister = Instance.new("Part")
+	cashRegister.Name = "CashRegister"
+	cashRegister.Anchored = true
+	cashRegister.Size = Vector3.new(2, 1.5, 1.5)
+	cashRegister.Position = Vector3.new(width / 4 - 2, 4.5, depth / 2 - kitchenDepth - counterDepth / 2)
+	cashRegister.Color = COLORS.STORE_METAL
+	cashRegister.Material = Enum.Material.Metal
+	cashRegister.Parent = diner
+
+	-- ==========================================
+	-- ATMOSPHERE - HALF-EATEN FOOD
+	-- ==========================================
+
+	-- Coffee cups on counter
+	local random = Random.new(def.position.X + def.position.Z)
+	for i = 1, 4 do
+		local cup = Instance.new("Part")
+		cup.Name = "CoffeeCup_" .. i
+		cup.Anchored = true
+		cup.Size = Vector3.new(0.5, 0.6, 0.5)
+		cup.Position = Vector3.new(
+			random:NextNumber(-width / 4, width / 4),
+			3.8,
+			depth / 2 - kitchenDepth - counterDepth / 2 + random:NextNumber(-1, 1)
+		)
+		cup.Color = Color3.fromRGB(250, 250, 250)
+		cup.Material = Enum.Material.SmoothPlastic
+		cup.Shape = Enum.PartType.Cylinder
+		cup.Parent = diner
+	end
+
+	-- Plates on booth tables
+	for i = 1, 3 do
+		local plate = Instance.new("Part")
+		plate.Name = "Plate_" .. i
+		plate.Anchored = true
+		plate.Size = Vector3.new(1.2, 0.1, 1.2)
+		local boothX = -width / 2 + 6 + (i - 1) * 10
+		plate.Position = Vector3.new(boothX, 2.65, -depth / 2 + 6.5)
+		plate.Color = Color3.fromRGB(250, 250, 250)
+		plate.Material = Enum.Material.SmoothPlastic
+		plate.Shape = Enum.PartType.Cylinder
+		plate.Parent = diner
+	end
+
+	-- ==========================================
+	-- DAMAGE EFFECTS
+	-- ==========================================
+
+	if hasCracks then
+		local crackPositions = {
+			Vector3.new(width / 3, wallHeight / 2, depth / 2 + 0.5),
+			Vector3.new(-width / 4, wallHeight / 3, -depth / 2 + 0.5),
+		}
+		for i, pos in ipairs(crackPositions) do
+			local crack = Instance.new("Part")
+			crack.Name = "WallCrack_" .. i
+			crack.Anchored = true
+			crack.CanCollide = false
+			crack.Size = Vector3.new(0.2, wallHeight * 0.35, 0.3)
+			crack.Position = pos
+			crack.Color = COLORS.CRACK_DARK
+			crack.Material = Enum.Material.Slate
+			crack.Transparency = 0.3
+			crack.Rotation = Vector3.new(0, 0, random:NextNumber(-12, 12))
+			crack.Parent = diner
+			CollectionService:AddTag(crack, "DamageEffect")
+		end
+	end
+
+	if hasDebris then
+		-- Scatter debris
+		for i = 1, 10 do
+			local debris = Instance.new("Part")
+			debris.Name = "Debris_" .. i
+			debris.Anchored = true
+			debris.Size = Vector3.new(random:NextNumber(0.5, 2), random:NextNumber(0.3, 1), random:NextNumber(0.5, 2))
+			debris.Position = Vector3.new(
+				random:NextNumber(-width / 3, width / 3),
+				debris.Size.Y / 2,
+				random:NextNumber(-depth / 3, depth / 3)
+			)
+			debris.Color = COLORS.DEBRIS_GRAY
+			debris.Material = Enum.Material.Rock
+			debris.Rotation =
+				Vector3.new(random:NextNumber(-20, 20), random:NextNumber(0, 360), random:NextNumber(-20, 20))
+			debris.Parent = diner
+			CollectionService:AddTag(debris, "Debris")
+		end
+
+		-- Toppled stool
+		local toppledStool = Instance.new("Part")
+		toppledStool.Name = "ToppledStool"
+		toppledStool.Anchored = true
+		toppledStool.Size = Vector3.new(1.8, 0.5, 1.8)
+		toppledStool.Position =
+			Vector3.new(random:NextNumber(-width / 4, width / 4), 0.5, depth / 2 - kitchenDepth - counterDepth - 4)
+		toppledStool.Color = COLORS.STOOL_RED
+		toppledStool.Material = Enum.Material.Fabric
+		toppledStool.Rotation = Vector3.new(80, random:NextNumber(0, 360), 0)
+		toppledStool.Parent = diner
+		CollectionService:AddTag(toppledStool, "Debris")
+	end
+
+	-- Set primary part
+	diner.PrimaryPart = floor
+
+	-- Tags and attributes
+	CollectionService:AddTag(diner, "Building")
+	CollectionService:AddTag(diner, "Diner")
+	CollectionService:AddTag(diner, "Enterable")
+	diner:SetAttribute("BuildingType", "Diner")
+	diner:SetAttribute("DamageLevel", def.damageLevel)
+
+	return diner
+end
+
 -- ==========================================
 -- PUBLIC API
 -- ==========================================
@@ -1771,6 +2389,8 @@ function BuildingService:CreateBuilding(def: BuildingDef): Model?
 		flattenRadius = 50 -- Motels are larger
 	elseif def.buildingType == "ConvenienceStore" then
 		flattenRadius = 35 -- Convenience stores with gas pumps
+	elseif def.buildingType == "Diner" then
+		flattenRadius = 30 -- Diners are medium-sized
 	end
 
 	if Heightmap.FlattenArea then
@@ -1785,6 +2405,8 @@ function BuildingService:CreateBuilding(def: BuildingDef): Model?
 		building = createConvenienceStore(def)
 	elseif def.buildingType == "Motel" then
 		building = createMotel(def)
+	elseif def.buildingType == "Diner" then
+		building = createDiner(def)
 	else
 		warn("[BuildingService] Unknown building type: " .. def.buildingType)
 		return nil
