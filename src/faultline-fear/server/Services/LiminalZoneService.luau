@@ -30,6 +30,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local _Config = Shared.Config
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local LiminalZoneService = {}
 
@@ -434,7 +435,10 @@ local function spawnLiminalZone(def: LiminalZoneDef): Model
 	local assetName = def.name
 	local model = AssetManifest:CloneAsset(assetName)
 
-	if not model then
+	if model then
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, assetName)
+	else
 		model = createPlaceholderZone(def)
 	end
 

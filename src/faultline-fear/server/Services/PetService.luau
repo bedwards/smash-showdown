@@ -27,6 +27,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local _Config = Shared.Config -- May be used for pet behavior tuning
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local PetService = {}
 
@@ -125,7 +126,10 @@ local function createPetModel(): Model
 	-- Try to get imported model first
 	local model = AssetManifest:CloneAsset("PetCompanion")
 
-	if not model then
+	if model then
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, "PetCompanion")
+	else
 		-- Create placeholder pet
 		model = Instance.new("Model")
 		model.Name = "Pet"

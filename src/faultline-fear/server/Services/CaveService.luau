@@ -25,6 +25,7 @@ local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local _Config = Shared.Config
 local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local CaveService = {}
 
@@ -132,7 +133,10 @@ local function spawnCave(def: CaveDef): Model
 	local assetName = "CaveEntrance_" .. def.size:sub(1, 1):upper() .. def.size:sub(2)
 	local model = AssetManifest:CloneAsset(assetName)
 
-	if not model then
+	if model then
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, assetName)
+	else
 		model = createPlaceholderCave(def)
 	end
 

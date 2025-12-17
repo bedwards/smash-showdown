@@ -29,6 +29,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 local AssetManifest = Shared.AssetManifest
+local AssetColors = Shared.AssetColors
 
 local CreatureService = {}
 
@@ -207,7 +208,9 @@ local function createCreatureModel(creatureType: string, position: Vector3): Mod
 	if importedModel then
 		model = importedModel
 		prepareImportedModel(model, creatureType, config)
-		print(string.format("[CreatureService] Using imported model for %s", creatureType))
+		-- Apply colors to imported model (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(model, creatureType)
+		print(string.format("[CreatureService] Using imported model for %s (colors applied)", creatureType))
 	else
 		-- Fall back to placeholder
 		model = createPlaceholderModel(creatureType, config)
