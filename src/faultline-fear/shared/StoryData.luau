@@ -260,7 +260,7 @@ StoryData.Endings = {
 StoryData.Dialogue = {
 	first_survivor = {
 		id = "first_survivor",
-		name = "Marcus",
+		name = "Riley",
 		portrait = nil,
 		lines = {
 			"Hey! Over here!",
@@ -275,7 +275,7 @@ StoryData.Dialogue = {
 
 	generator_part_found = {
 		id = "generator_part_found",
-		name = "Marcus",
+		name = "Riley",
 		portrait = nil,
 		lines = {
 			"That's a generator part! We need six total to get that radio tower running.",
@@ -287,7 +287,7 @@ StoryData.Dialogue = {
 
 	fault_line_warning = {
 		id = "fault_line_warning",
-		name = "Marcus",
+		name = "Riley",
 		portrait = nil,
 		lines = {
 			"This is it. The fault line.",
@@ -299,7 +299,7 @@ StoryData.Dialogue = {
 
 	big_one_aftermath = {
 		id = "big_one_aftermath",
-		name = "Marcus",
+		name = "Riley",
 		portrait = nil,
 		lines = {
 			"Is everyone okay?!",
@@ -311,7 +311,7 @@ StoryData.Dialogue = {
 
 	final_ascent = {
 		id = "final_ascent",
-		name = "Marcus",
+		name = "Riley",
 		portrait = nil,
 		lines = {
 			"This is it. The radio tower is just ahead.",

@@ -41,8 +41,8 @@ local MAX_FOLLOW_DISTANCE = 50 -- Teleport if too far
 -- Survivor definitions - 10 unique NPCs
 local SURVIVOR_DATA = {
 	{
-		id = "marcus",
-		name = "Marcus",
+		id = "riley",
+		name = "Riley",
 		description = "A former park ranger who knows the island well",
 		personality = "Leader, calm under pressure",
 		zone = "COASTAL",
@@ -160,8 +160,8 @@ local SURVIVOR_DATA = {
 		},
 	},
 	{
-		id = "chen",
-		name = "Chen",
+		id = "jordan",
+		name = "Jordan",
 		description = "A chef from the coastal resort",
 		personality = "Practical, strong",
 		zone = "COASTAL",
