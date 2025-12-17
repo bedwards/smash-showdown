@@ -710,26 +710,42 @@ Plugins are just Lua scripts. Put them in `plugins/` folder, copy to `~/Document
 
 **Step 1: Generate Assets**
 ```bash
-python tools/generate-all-assets.py
-# Creates: assets/models/combined_all_assets.fbx
+# Run all Blender create scripts to generate individual FBX files
+blender --background --python tools/blender/create_structures.py
+blender --background --python tools/blender/create_animals.py
+blender --background --python tools/blender/create_creatures.py
+blender --background --python tools/blender/create_caves.py
+blender --background --python tools/blender/create_npcs.py
+blender --background --python tools/blender/create_signs.py
+blender --background --python tools/blender/create_liminal_spaces.py
+blender --background --python tools/blender/create_terrain_assets.py
+
+# Combine all into one FBX
+blender --background --python tools/blender/combine_all_fbx.py
+# Creates: assets/models/combined_all_assets.fbx (96 meshes)
 ```
 
-**Step 2: Import and Organize**
-1. Build place: `rojo build faultline-fear.project.json -o faultline-fear.rbxl`
-2. Open in Studio
-3. File → Import 3D → combined_all_assets.fbx
-4. Click "Move to Storage" in toolbar
-5. **SAVE (Ctrl+S)** ← This persists everything!
+**Step 2: Import and Organize in Studio**
 
-**Why ServerStorage?**
-- ServerStorage is **NOT replicated** to clients (saves bandwidth)
-- Objects in Workspace are **VISIBLE and COLLIDABLE** - they block players!
-- Hiding templates in Workspace is a hack; storage is the proper pattern
+Plugin: `tools/plugins/FF_AssetOrganizer.lua`
 
-**AssetManifest (already configured):**
-1. Looks in `ServerStorage.AssetTemplates`
-2. Wraps MeshParts in Models when cloning (for PrimaryPart support)
-3. Returns Models ready for use
+1. Install plugin: `cp tools/plugins/FF_AssetOrganizer.lua ~/Documents/Roblox/Plugins/`
+2. Restart Studio
+3. Click **"1. Clear Assets"** (deletes old imports)
+4. **File → Import 3D** → select `combined_all_assets.fbx`
+5. Click **"2. Organize"** (extracts meshes, applies colors, moves to ReplicatedStorage)
+6. **SAVE (Ctrl+S)** ← Critical! Persists everything!
+
+**CRITICAL: FBX Import Behavior**
+- Roblox imports combined FBX as **one Model** containing all MeshParts
+- Plugin detects this and extracts individual meshes
+- Roblox does NOT import FBX colors/materials - plugin applies colors via `COLORS` table
+- Each mesh gets named based on pattern matching (e.g., "house" → "AbandonedHouse")
+
+**Why ReplicatedStorage.Assets?**
+- Assets are cloned at runtime by services (StructureSpawner, NPCService, etc.)
+- ReplicatedStorage is accessible to both server and client
+- AssetManifest:CloneAsset() looks here for models
 
 **Blender scripts:**
 ```
