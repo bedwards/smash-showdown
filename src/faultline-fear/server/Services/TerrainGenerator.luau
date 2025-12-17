@@ -145,24 +145,35 @@ end
 
 --[[
 	Generate a single chunk of visual terrain from heightmap.
+
+	CRITICAL: Y dimension must extend to MOUNTAIN_MAX_HEIGHT, not just chunk size!
+	Previous bug: terrain only went to Y=64, causing mountains to be flat
+	and objects at higher elevations to appear "floating in sky".
 ]]
 function TerrainGenerator:GenerateVisualChunk(startX: number, startZ: number, size: number, voxelSize: number)
 	local terrain = Workspace.Terrain
-	local voxelsPerAxis = math.floor(size / voxelSize)
+	local voxelsPerAxisXZ = math.floor(size / voxelSize)
 
-	-- Pre-allocate 3D arrays
+	-- Y dimension needs to accommodate full height range
+	-- Include buffer below sea level for ocean floor and above for safety
+	local minY = -50 -- Below sea level for ocean floor
+	local maxY = Config.MOUNTAIN_MAX_HEIGHT + 50 -- Above max mountains for safety
+	local heightRange = maxY - minY
+	local voxelsPerAxisY = math.ceil(heightRange / voxelSize)
+
+	-- Pre-allocate 3D arrays with correct Y dimension
 	local materials: { { { Enum.Material } } } = {}
 	local occupancy: { { { number } } } = {}
 
-	for xi = 1, voxelsPerAxis do
+	for xi = 1, voxelsPerAxisXZ do
 		materials[xi] = {}
 		occupancy[xi] = {}
 
-		for yi = 1, voxelsPerAxis do
+		for yi = 1, voxelsPerAxisY do
 			materials[xi][yi] = {}
 			occupancy[xi][yi] = {}
 
-			for zi = 1, voxelsPerAxis do
+			for zi = 1, voxelsPerAxisXZ do
 				materials[xi][yi][zi] = Enum.Material.Air
 				occupancy[xi][yi][zi] = 0
 			end
@@ -170,10 +181,10 @@ function TerrainGenerator:GenerateVisualChunk(startX: number, startZ: number, si
 	end
 
 	-- Fill from heightmap
-	for xi = 1, voxelsPerAxis do
+	for xi = 1, voxelsPerAxisXZ do
 		local worldX = startX + (xi - 0.5) * voxelSize
 
-		for zi = 1, voxelsPerAxis do
+		for zi = 1, voxelsPerAxisXZ do
 			local worldZ = startZ + (zi - 0.5) * voxelSize
 
 			-- Query heightmap (O(1) lookup!)
@@ -181,8 +192,8 @@ function TerrainGenerator:GenerateVisualChunk(startX: number, startZ: number, si
 			local material = Heightmap:GetMaterial(worldX, worldZ)
 
 			-- Fill voxels up to height
-			for yi = 1, voxelsPerAxis do
-				local worldY = (yi - 0.5) * voxelSize
+			for yi = 1, voxelsPerAxisY do
+				local worldY = minY + (yi - 0.5) * voxelSize
 
 				if worldY <= height then
 					materials[xi][yi][zi] = material
@@ -197,8 +208,8 @@ function TerrainGenerator:GenerateVisualChunk(startX: number, startZ: number, si
 		end
 	end
 
-	-- Write to terrain
-	local region = Region3.new(Vector3.new(startX, 0, startZ), Vector3.new(startX + size, size, startZ + size))
+	-- Write to terrain - Y region spans full height range
+	local region = Region3.new(Vector3.new(startX, minY, startZ), Vector3.new(startX + size, maxY, startZ + size))
 		:ExpandToGrid(voxelSize)
 
 	terrain:WriteVoxels(region, voxelSize, materials, occupancy)
