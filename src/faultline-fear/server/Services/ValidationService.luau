@@ -231,6 +231,71 @@ local function checkPlayerSpawn(): boolean
 	return true
 end
 
+local function checkInvisibleColliders(): boolean
+	-- Scan all workspace parts for invisible colliders (Issue #86)
+	local invisibleColliders: { string } = {}
+
+	local function scanModel(model: Instance, prefix: string)
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and part.CanCollide then
+				local isInvisible = false
+				local reason = ""
+
+				-- Check transparency
+				if part.Transparency >= 0.9 then
+					isInvisible = true
+					reason = "Transparency"
+				end
+
+				-- Check MeshParts with no mesh
+				if part:IsA("MeshPart") and part.MeshId == "" then
+					isInvisible = true
+					reason = "NoMesh"
+				end
+
+				if isInvisible then
+					table.insert(invisibleColliders, string.format("%s/%s (%s)", prefix, part.Name, reason))
+				end
+			end
+		end
+	end
+
+	-- Check Structures folder
+	local structures = Workspace:FindFirstChild("Structures")
+	if structures then
+		scanModel(structures, "Structures")
+	end
+
+	-- Check TerrainAssets folder
+	local terrainAssets = Workspace:FindFirstChild("TerrainAssets")
+	if terrainAssets then
+		scanModel(terrainAssets, "TerrainAssets")
+	end
+
+	-- Check Signs folder
+	local signs = Workspace:FindFirstChild("Signs")
+	if signs then
+		scanModel(signs, "Signs")
+	end
+
+	if #invisibleColliders > 0 then
+		local message = string.format("Found %d invisible collider(s) that may block player:", #invisibleColliders)
+		for i, collider in ipairs(invisibleColliders) do
+			if i <= 5 then
+				message = message .. "\n  - " .. collider
+			end
+		end
+		if #invisibleColliders > 5 then
+			message = message .. string.format("\n  ... and %d more", #invisibleColliders - 5)
+		end
+		addResult("InvisibleColliders", false, message, "warning")
+		return false
+	end
+
+	addResult("InvisibleColliders", true, "No invisible colliders detected", "info")
+	return true
+end
+
 -- ==========================================
 -- REPORT GENERATION
 -- ==========================================
@@ -320,6 +385,7 @@ function ValidationService:RunValidation(): { ValidationResult }
 	checkRemotes()
 	checkWorkspaceFolders()
 	checkPlayerSpawn()
+	checkInvisibleColliders()
 
 	hasRun = true
 

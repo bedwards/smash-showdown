@@ -160,6 +160,55 @@ local STRUCTURE_DEFS: { StructureDef } = {
 }
 
 -- ==========================================
+-- COLLISION AUDIT (Fix for Issue #86)
+-- ==========================================
+
+--[[
+	Audit a model for invisible colliders and fix them.
+	A part is considered an "invisible collider" if:
+	- It has CanCollide = true
+	- AND (Transparency >= 0.9 OR it's a MeshPart with no visible mesh)
+
+	This prevents invisible walls blocking player movement.
+]]
+local function auditAndFixInvisibleColliders(model: Model): number
+	local fixed = 0
+
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.CanCollide then
+			local shouldDisableCollision = false
+			local reason = ""
+
+			-- Check for high transparency
+			if part.Transparency >= 0.9 then
+				shouldDisableCollision = true
+				reason = "Transparency >= 0.9"
+			end
+
+			-- Check for MeshParts with no mesh loaded
+			if part:IsA("MeshPart") then
+				-- If MeshId is empty or mesh failed to load, it's invisible
+				if part.MeshId == "" then
+					shouldDisableCollision = true
+					reason = "MeshPart with no MeshId"
+				end
+			end
+
+			if shouldDisableCollision then
+				part.CanCollide = false
+				fixed += 1
+				warn(string.format(
+					"[StructureSpawner] Disabled collision on invisible part '%s' in '%s' (%s)",
+					part.Name, model.Name, reason
+				))
+			end
+		end
+	end
+
+	return fixed
+end
+
+-- ==========================================
 -- PLACEHOLDER CREATION
 -- ==========================================
 
@@ -289,6 +338,12 @@ local function spawnStructure(def: StructureDef): Model?
 
 	-- Parent to folder
 	model.Parent = structuresFolder
+
+	-- Audit for invisible colliders (Fix for Issue #86)
+	local fixedCount = auditAndFixInvisibleColliders(model)
+	if fixedCount > 0 then
+		print(string.format("[StructureSpawner] Fixed %d invisible colliders in %s", fixedCount, def.name))
+	end
 
 	return model
 end
