@@ -305,6 +305,20 @@ local function spawnAsset(placement: AssetPlacement): Model?
 
 	model.Parent = terrainFolder
 
+	-- Audit for invisible colliders
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.CanCollide then
+			-- Disable collision on invisible parts
+			if part.Transparency >= 0.9 then
+				part.CanCollide = false
+			end
+			-- Disable collision on MeshParts with no mesh
+			if part:IsA("MeshPart") and part.MeshId == "" then
+				part.CanCollide = false
+			end
+		end
+	end
+
 	return model
 end
 
