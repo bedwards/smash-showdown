@@ -35,13 +35,18 @@ local ChangeHistoryService = game:GetService("ChangeHistoryService")
 
 -- Create toolbar and buttons
 local toolbar = plugin:CreateToolbar("Faultline Fear")
+local clearButton = toolbar:CreateButton(
+	"1. Clear Assets",
+	"Delete all assets from ReplicatedStorage.Assets (do this before re-importing)",
+	"rbxassetid://6031075931" -- Trash icon
+)
 local organizeButton = toolbar:CreateButton(
-	"Organize Assets",
+	"2. Organize",
 	"Move imported meshes to ReplicatedStorage and apply colors",
 	"rbxassetid://6031075938" -- Folder icon
 )
 local applyColorsButton = toolbar:CreateButton(
-	"Apply Colors",
+	"3. Recolor",
 	"Re-apply colors to all assets in ReplicatedStorage.Assets",
 	"rbxassetid://6031075929" -- Paint icon
 )
@@ -355,8 +360,58 @@ local function reapplyColors()
 end
 
 -- ==========================================
+-- CLEAR FUNCTION
+-- ==========================================
+
+local function clearAssets()
+	local assetsFolder = game.ReplicatedStorage:FindFirstChild("Assets")
+	if not assetsFolder then
+		print("[AssetOrganizer] No Assets folder found - nothing to clear")
+		return
+	end
+
+	ChangeHistoryService:SetWaypoint("Before Clear Assets")
+
+	local count = 0
+	for _, categoryFolder in assetsFolder:GetChildren() do
+		if categoryFolder:IsA("Folder") then
+			for _, asset in categoryFolder:GetChildren() do
+				asset:Destroy()
+				count = count + 1
+			end
+		end
+	end
+
+	-- Also clear any meshes left in Workspace from previous imports
+	local workspaceCount = 0
+	for _, obj in game.Workspace:GetChildren() do
+		if obj:IsA("MeshPart") or (obj:IsA("Model") and obj:FindFirstChildOfClass("MeshPart")) then
+			-- Skip player characters
+			if not obj:FindFirstChild("Humanoid") then
+				obj:Destroy()
+				workspaceCount = workspaceCount + 1
+			end
+		end
+	end
+
+	ChangeHistoryService:SetWaypoint("After Clear Assets")
+
+	print("========================================")
+	print("[AssetOrganizer] CLEARED")
+	print("  Deleted from ReplicatedStorage.Assets:", count)
+	print("  Deleted from Workspace:", workspaceCount)
+	print("========================================")
+	print("Now do: File → Import 3D → select combined_all_assets.fbx")
+end
+
+-- ==========================================
 -- BUTTON HANDLERS
 -- ==========================================
+
+clearButton.Click:Connect(function()
+	print("[AssetOrganizer] Clearing old assets...")
+	clearAssets()
+end)
 
 organizeButton.Click:Connect(function()
 	print("[AssetOrganizer] Starting asset organization...")
@@ -369,5 +424,8 @@ applyColorsButton.Click:Connect(function()
 end)
 
 print("[FF_AssetOrganizer] Plugin loaded!")
-print("[FF_AssetOrganizer] 1. Bulk import FBX files into Workspace")
-print("[FF_AssetOrganizer] 2. Click 'Organize Assets' in Faultline Fear toolbar")
+print("[FF_AssetOrganizer] Workflow:")
+print("[FF_AssetOrganizer]   1. Click 'Clear Assets' (if re-importing)")
+print("[FF_AssetOrganizer]   2. File → Import 3D → combined_all_assets.fbx")
+print("[FF_AssetOrganizer]   3. Click 'Organize' to move & color assets")
+print("[FF_AssetOrganizer]   4. Save the place!")
