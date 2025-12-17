@@ -30,26 +30,26 @@ local musicGroup: SoundGroup = nil :: any
 local currentSound: Sound? = nil
 local _nextSound: Sound? = nil -- Reserved for future crossfade optimization
 
--- Station sound IDs (placeholder - replace with real asset IDs)
--- These would be uploaded audio assets
+-- Station sound IDs - Roblox Creator Marketplace ambient sounds
+-- Sources: robloxsong.com, musiccoder.com, robloxmusicids.com
 local StationSounds: { [Station]: string } = {
-	Coastal = "rbxassetid://0", -- Beach/surf vibes
-	Mountain = "rbxassetid://0", -- Alpine ambient
-	Town = "rbxassetid://0", -- Urban radio feel
-	Wilderness = "rbxassetid://0", -- Forest/nature ambient
-	Eerie = "rbxassetid://0", -- Liminal space droning
-	Emergency = "rbxassetid://0", -- Emergency broadcast alert
+	Coastal = "rbxassetid://898059911", -- Sea Ambience
+	Mountain = "rbxassetid://169736440", -- [Nature] Forest Sounds (alpine feel)
+	Town = "rbxassetid://7262900392", -- Ambient Music (calm urban)
+	Wilderness = "rbxassetid://728506251", -- Nature sounds for Forest
+	Eerie = "rbxassetid://5595380425", -- Dark Scary Eerie Horror Ambient
+	Emergency = "rbxassetid://5743541225", -- Red Alert Alarm / Siren (looped)
 }
 
--- Fallback: Silent placeholders (Roblox audio privacy requires permission)
--- TODO: Upload custom audio or use Roblox Creator Marketplace sounds
+-- Fallback sound IDs (alternative tracks if primary fails)
+-- Note: Roblox audio privacy may restrict some tracks
 local FallbackSounds: { [Station]: number } = {
-	Coastal = 0, -- Silent placeholder
-	Mountain = 0, -- Silent placeholder
-	Town = 0, -- Silent placeholder
-	Wilderness = 0, -- Silent placeholder
-	Eerie = 0, -- Silent placeholder
-	Emergency = 0, -- Silent placeholder
+	Coastal = 959532448, -- Ocean waves
+	Mountain = 138089070, -- Forest Ambience (Night)
+	Town = 169736440, -- Forest sounds as fallback
+	Wilderness = 169736440, -- [Nature] Forest Sounds
+	Eerie = 7524653769, -- Creepy Ambience
+	Emergency = 428391167, -- Tornado Warning Siren
 }
 
 -- ==========================================
