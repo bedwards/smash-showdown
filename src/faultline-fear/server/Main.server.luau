@@ -231,6 +231,7 @@ local SignService = require(script.Parent.Services.SignService)
 local StoryZoneManager = require(script.Parent.Services.StoryZoneManager)
 local StructureSpawner = require(script.Parent.Services.StructureSpawner)
 local TerrainAssetSpawner = require(script.Parent.Services.TerrainAssetSpawner)
+local BuildingService = require(script.Parent.Services.BuildingService)
 
 CaveService:Initialize()
 LiminalZoneService:Initialize()
@@ -238,6 +239,7 @@ SignService:Initialize()
 StoryZoneManager:Initialize()
 StructureSpawner:Initialize()
 TerrainAssetSpawner:Initialize()
+BuildingService:Initialize()
 
 logStage(3, "Structures and terrain assets spawned")
 
