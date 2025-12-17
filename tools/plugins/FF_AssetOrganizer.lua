@@ -74,11 +74,17 @@ local NAME_PATTERNS = {
 	{ pattern = "squirrel", name = "Squirrel", category = "Animals" },
 	{ pattern = "fish", name = "Fish", category = "Animals" },
 	{ pattern = "crab", name = "Crab", category = "Animals" },
+	{ pattern = "coyote", name = "Coyote", category = "Animals" },
+	{ pattern = "wolf", name = "Wolf", category = "Animals" },
+	{ pattern = "mountainlion", name = "MountainLion", category = "Animals" },
+	{ pattern = "lion", name = "MountainLion", category = "Animals" },
 
 	-- Creatures
 	{ pattern = "stalker", name = "Stalker", category = "Creatures" },
 	{ pattern = "gloom", name = "GloomWraith", category = "Creatures" },
 	{ pattern = "tremor", name = "TremorWorm", category = "Creatures" },
+	{ pattern = "fissure", name = "FissureDweller", category = "Creatures" },
+	{ pattern = "dweller", name = "FissureDweller", category = "Creatures" },
 
 	-- Terrain
 	{ pattern = "rock", name = "Rock", category = "Terrain" },
@@ -88,6 +94,13 @@ local NAME_PATTERNS = {
 	{ pattern = "grass", name = "GrassClump", category = "Terrain" },
 	{ pattern = "log", name = "FallenLog", category = "Terrain" },
 	{ pattern = "stump", name = "TreeStump", category = "Terrain" },
+	{ pattern = "cliff_coastal", name = "CliffCoastal", category = "Terrain" },
+	{ pattern = "cliff_mountain", name = "CliffMountain", category = "Terrain" },
+	{ pattern = "cliff", name = "Cliff", category = "Terrain" },
+	{ pattern = "faultedge", name = "FaultEdge", category = "Terrain" },
+	{ pattern = "fault", name = "FaultEdge", category = "Terrain" },
+	{ pattern = "steamvent", name = "SteamVent", category = "Terrain" },
+	{ pattern = "steam", name = "SteamVent", category = "Terrain" },
 
 	-- NPCs
 	{ pattern = "survivor", name = "Survivor", category = "NPCs" },
@@ -173,7 +186,48 @@ local COLORS = {
 			Lens = Color3.new(1.0, 0.95, 0.8),
 		},
 	},
-	-- Add more as needed...
+	-- Creatures
+	FissureDweller = {
+		primary = Color3.new(0.25, 0.2, 0.3),
+		patterns = {
+			Eye = Color3.new(0.8, 0.2, 0.1),
+			Claw = Color3.new(0.15, 0.1, 0.1),
+		},
+	},
+	-- Terrain
+	CliffCoastal = {
+		primary = Color3.new(0.65, 0.6, 0.55),
+	},
+	CliffMountain = {
+		primary = Color3.new(0.5, 0.45, 0.4),
+	},
+	Cliff = {
+		primary = Color3.new(0.55, 0.5, 0.45),
+	},
+	FaultEdge = {
+		primary = Color3.new(0.35, 0.3, 0.25),
+		patterns = {
+			Crack = Color3.new(0.2, 0.15, 0.1),
+			Edge = Color3.new(0.4, 0.35, 0.3),
+		},
+	},
+	SteamVent = {
+		primary = Color3.new(0.4, 0.4, 0.45),
+		patterns = {
+			Vent = Color3.new(0.3, 0.3, 0.35),
+			Steam = Color3.new(0.9, 0.9, 0.95),
+		},
+	},
+	-- Animals
+	Coyote = {
+		primary = Color3.new(0.6, 0.5, 0.35),
+	},
+	Wolf = {
+		primary = Color3.new(0.4, 0.4, 0.45),
+	},
+	MountainLion = {
+		primary = Color3.new(0.7, 0.55, 0.35),
+	},
 }
 
 -- Default colors for categories without specific definitions
