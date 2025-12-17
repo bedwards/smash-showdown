@@ -545,7 +545,8 @@ local function updateLightFlicker(dt: number)
 				flicker = math.random() * 0.3
 			else
 				-- Use instance address from tostring as unique offset (GetHashCode doesn't exist in Luau)
-				local lightId = tonumber(tostring(light):match("%x+$"), 16) or 0
+				local addressMatch = tostring(light):match("%x+$")
+				local lightId = addressMatch and tonumber(addressMatch, 16) or 0
 				flicker = 0.8 + math.sin(flickerTime * 10 + lightId * 0.0001) * 0.2
 			end
 

@@ -2,28 +2,43 @@
 --[[
 	Faultline Fear: Server Entry Point
 
-	LOADING SEQUENCE (critical for correct height queries):
-	1. Create remote events (needed by services)
-	2. Generate Heightmap (BLOCKING - all systems need this)
-	3. Initialize services (can now query heights)
-	4. Generate visual terrain (background, non-blocking)
-	5. Server ready for players
+	LOADING STAGES (controlled by Config.LOAD_LEVEL):
+	0 = Heightmap only
+	1 = + Visual terrain
+	2 = + Core services (hunger, day/night, earthquake)
+	3 = + Structures and terrain assets
+	4 = + NPCs and collectibles
+	5 = Full load (story system, validation)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+
+-- Disable auto character loading - we'll load manually when world is ready
+Players.CharacterAutoLoads = false
+
+-- Track total load time
+local SERVER_START = tick()
+
+local function logStage(stage: number, name: string)
+	local elapsed = tick() - SERVER_START
+	print(string.format("[LOAD] Stage %d complete: %s (%.2fs total)", stage, name, elapsed))
+end
 
 -- Wait for shared modules
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
 local Heightmap = Shared.Heightmap
 
+local LOAD_LEVEL = Config.LOAD_LEVEL or 5
+
+print("[FaultlineFear] ================================")
 print("[FaultlineFear] Server starting...")
-print("[FaultlineFear] Config loaded:", Config.WORLD_SIZE, "stud world")
+print("[FaultlineFear] LOAD_LEVEL:", LOAD_LEVEL)
+print("[FaultlineFear] ================================")
 
 -- ==========================================
--- STEP 1: CREATE REMOTE EVENTS
--- Must exist before services initialize
+-- REMOTES (always needed)
 -- ==========================================
 
 local function createRemotes()
@@ -31,112 +46,149 @@ local function createRemotes()
 	remotes.Name = "Remotes"
 	remotes.Parent = ReplicatedStorage
 
-	-- Hunger
-	local hungerUpdate = Instance.new("RemoteEvent")
-	hungerUpdate.Name = "HungerUpdate"
-	hungerUpdate.Parent = remotes
+	local events = {
+		"HungerUpdate", "EarthquakeEvent", "TimeUpdate",
+		"ObjectiveUpdate", "StoryEvent", "DialogueEvent", "HeightmapReady", "WorldReady", "LiminalEvent"
+	}
+	for _, name in events do
+		local event = Instance.new("RemoteEvent")
+		event.Name = name
+		event.Parent = remotes
+	end
 
-	-- Earthquake
-	local earthquakeEvent = Instance.new("RemoteEvent")
-	earthquakeEvent.Name = "EarthquakeEvent"
-	earthquakeEvent.Parent = remotes
-
-	-- Day/Night
-	local timeUpdate = Instance.new("RemoteEvent")
-	timeUpdate.Name = "TimeUpdate"
-	timeUpdate.Parent = remotes
-
-	-- Objectives
-	local objectiveUpdate = Instance.new("RemoteEvent")
-	objectiveUpdate.Name = "ObjectiveUpdate"
-	objectiveUpdate.Parent = remotes
-
-	-- Story events (for dialogue, credits, etc.)
-	local storyEvent = Instance.new("RemoteEvent")
-	storyEvent.Name = "StoryEvent"
-	storyEvent.Parent = remotes
-
-	-- Dialogue
-	local dialogueEvent = Instance.new("RemoteEvent")
-	dialogueEvent.Name = "DialogueEvent"
-	dialogueEvent.Parent = remotes
-
-	-- Interact
 	local interactRequest = Instance.new("RemoteFunction")
 	interactRequest.Name = "InteractRequest"
 	interactRequest.Parent = remotes
 
-	-- Heightmap ready signal
-	local heightmapReady = Instance.new("RemoteEvent")
-	heightmapReady.Name = "HeightmapReady"
-	heightmapReady.Parent = remotes
-
-	print("[FaultlineFear] Remote events created")
 	return remotes
 end
 
 local Remotes = createRemotes()
+local WorldReady = Remotes:FindFirstChild("WorldReady") :: RemoteEvent
+
+-- Track if world is ready for player spawning
+local worldIsReady = false
+
+-- Spawn a player's character on terrain
+local function spawnPlayerOnTerrain(player: Player)
+	if not Heightmap:IsGenerated() then
+		warn("[FaultlineFear] Cannot spawn player - heightmap not ready")
+		return
+	end
+
+	-- Load character if not loaded
+	if not player.Character then
+		player:LoadCharacter()
+	end
+
+	-- Wait for character to load
+	local character = player.Character or player.CharacterAdded:Wait()
+	local rootPart = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+
+	if rootPart then
+		-- Position on terrain near spawn (0, 0)
+		local spawnX, spawnZ = 0, 0
+		local terrainHeight = Heightmap:GetHeight(spawnX, spawnZ)
+		rootPart.CFrame = CFrame.new(spawnX, terrainHeight + 5, spawnZ)
+		print(string.format("[FaultlineFear] Spawned %s at height %.1f", player.Name, terrainHeight + 5))
+	end
+end
+
+-- Called when world loading reaches a stopping point
+local function onWorldReady()
+	worldIsReady = true
+	WorldReady:FireAllClients()
+	print("[FaultlineFear] World ready - spawning players")
+
+	-- Spawn all waiting players
+	for _, player in Players:GetPlayers() do
+		task.spawn(spawnPlayerOnTerrain, player)
+	end
+end
+
+-- Handle new players joining
+local function onPlayerAdded(player: Player)
+	print("[FaultlineFear] Player joined:", player.Name)
+
+	if Heightmap:IsGenerated() then
+		local HeightmapReady = Remotes:FindFirstChild("HeightmapReady") :: RemoteEvent
+		HeightmapReady:FireClient(player)
+	end
+
+	if worldIsReady then
+		-- World already ready, spawn immediately
+		task.spawn(spawnPlayerOnTerrain, player)
+		WorldReady:FireClient(player)
+	end
+	-- Otherwise they'll be spawned when onWorldReady() is called
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(function(player)
+	print("[FaultlineFear] Player left:", player.Name)
+end)
 
 -- ==========================================
--- STEP 2: GENERATE HEIGHTMAP (BLOCKING)
--- This MUST complete before any gameplay systems start
--- All height queries depend on this data
+-- STAGE 0: HEIGHTMAP
 -- ==========================================
 
-print("[FaultlineFear] CRITICAL: Generating heightmap (all systems depend on this)...")
-local heightmapStart = tick()
-
+print("[LOAD] Stage 0: Generating heightmap...")
 Heightmap:Generate(Config.TERRAIN_SEED)
 
-local heightmapTime = tick() - heightmapStart
-print(string.format("[FaultlineFear] Heightmap ready in %.2f seconds", heightmapTime))
-
--- Notify any waiting clients
 local HeightmapReady = Remotes:FindFirstChild("HeightmapReady") :: RemoteEvent
 HeightmapReady:FireAllClients()
 
+logStage(0, "Heightmap generated")
+
+if LOAD_LEVEL == 0 then
+	print("[LOAD] ✅ STOPPED at LOAD_LEVEL 0 (heightmap only)")
+	print("[LOAD] You should see: Empty world, player spawns and falls")
+	onWorldReady()
+	return
+end
+
 -- ==========================================
--- STEP 3: LOAD SERVICES
--- Services can now safely query terrain heights
+-- STAGE 1: VISUAL TERRAIN
 -- ==========================================
 
-print("[FaultlineFear] Loading services...")
-
--- Phase 1: Foundation services
+print("[LOAD] Stage 1: Generating visual terrain...")
 local TerrainGenerator = require(script.Parent.Services.TerrainGenerator)
+TerrainGenerator:Initialize()
+TerrainGenerator:GenerateVisualTerrain()
+
+logStage(1, "Visual terrain generated")
+
+if LOAD_LEVEL == 1 then
+	print("[LOAD] ✅ STOPPED at LOAD_LEVEL 1 (heightmap + terrain)")
+	print("[LOAD] You should see: Terrain with grass/rock/sand, ocean water")
+	onWorldReady()
+	return
+end
+
+-- ==========================================
+-- STAGE 2: CORE SERVICES
+-- ==========================================
+
+print("[LOAD] Stage 2: Initializing core services...")
 local HungerService = require(script.Parent.Services.HungerService)
 local DayNightService = require(script.Parent.Services.DayNightService)
 local PlayerDataService = require(script.Parent.Services.PlayerDataService)
-
--- Phase 2: Core Gameplay services
 local EarthquakeService = require(script.Parent.Services.EarthquakeService)
 local MusicService = require(script.Parent.Services.MusicService)
 local NarrativeService = require(script.Parent.Services.NarrativeService)
-local StoryBeatProcessor = require(script.Parent.Services.StoryBeatProcessor)
-local StoryZoneManager = require(script.Parent.Services.StoryZoneManager)
-local CollectibleSpawner = require(script.Parent.Services.CollectibleSpawner)
-local NPCService = require(script.Parent.Services.NPCService)
 local CreatureService = require(script.Parent.Services.CreatureService)
-local StructureSpawner = require(script.Parent.Services.StructureSpawner)
 local PetService = require(script.Parent.Services.PetService)
-local TerrainAssetSpawner = require(script.Parent.Services.TerrainAssetSpawner)
 local AnimalService = require(script.Parent.Services.AnimalService)
 local FlashlightService = require(script.Parent.Services.FlashlightService)
-local CaveService = require(script.Parent.Services.CaveService)
-local LiminalZoneService = require(script.Parent.Services.LiminalZoneService)
-local SignService = require(script.Parent.Services.SignService)
-local ValidationService = require(script.Parent.Services.ValidationService)
 
--- Initialize all services
-TerrainGenerator:Initialize()
 HungerService:Initialize()
 DayNightService:Initialize()
 NarrativeService:Initialize()
-PlayerDataService:Initialize() -- After NarrativeService (needs to sync)
+PlayerDataService:Initialize()
 EarthquakeService:Initialize()
 MusicService:Initialize()
 
--- Connect services that need cross-references
+-- Connect cross-references
 EarthquakeService:SetMusicService(MusicService)
 NarrativeService:SetEarthquakeService(EarthquakeService)
 PlayerDataService:SetNarrativeService(NarrativeService)
@@ -146,118 +198,100 @@ PetService:SetEarthquakeService(EarthquakeService)
 AnimalService:SetDayNightService(DayNightService)
 FlashlightService:SetCreatureService(CreatureService)
 
--- Initialize creature spawning (after DayNightService connection)
 CreatureService:Initialize()
-
--- Initialize pet companion (after creature service for danger detection)
 PetService:Initialize()
-
--- Initialize wildlife (after DayNightService connection)
 AnimalService:Initialize()
-
--- Initialize flashlight system
 FlashlightService:Initialize()
 
--- Initialize cave system (safe zones, secrets)
+logStage(2, "Core services initialized")
+
+if LOAD_LEVEL == 2 then
+	print("[LOAD] ✅ STOPPED at LOAD_LEVEL 2 (terrain + core services)")
+	print("[LOAD] You should see: Terrain, hunger bar, day/night cycle working")
+	onWorldReady()
+	return
+end
+
+-- ==========================================
+-- STAGE 3: STRUCTURES AND TERRAIN ASSETS
+-- ==========================================
+
+print("[LOAD] Stage 3: Spawning structures and terrain assets...")
+local CaveService = require(script.Parent.Services.CaveService)
+local LiminalZoneService = require(script.Parent.Services.LiminalZoneService)
+local SignService = require(script.Parent.Services.SignService)
+local StoryZoneManager = require(script.Parent.Services.StoryZoneManager)
+local StructureSpawner = require(script.Parent.Services.StructureSpawner)
+local TerrainAssetSpawner = require(script.Parent.Services.TerrainAssetSpawner)
+
 CaveService:Initialize()
-
--- Initialize liminal space zones (eerie atmosphere, music muting)
 LiminalZoneService:Initialize()
-
--- Initialize signage system (player guidance)
 SignService:Initialize()
-
--- Initialize validation (runs checks and reports issues)
-ValidationService:Initialize()
-
--- Initialize story zones BEFORE StoryBeatProcessor (it listens for StoryZone tags)
 StoryZoneManager:Initialize()
-
--- Spawn structures (landmarks, beacons, buildings)
 StructureSpawner:Initialize()
-
--- Spawn terrain assets (boulders, fault line edges, steam vents, cliffs)
 TerrainAssetSpawner:Initialize()
 
--- Spawn collectibles BEFORE StoryBeatProcessor (it listens for collectible tags)
-CollectibleSpawner:Initialize()
+logStage(3, "Structures and terrain assets spawned")
 
--- Spawn survivor NPCs BEFORE StoryBeatProcessor (it listens for Rescuable tags)
+if LOAD_LEVEL == 3 then
+	print("[LOAD] ✅ STOPPED at LOAD_LEVEL 3 (+ structures)")
+	print("[LOAD] You should see: Terrain + buildings/signs/caves/liminal zones")
+	onWorldReady()
+	return
+end
+
+-- ==========================================
+-- STAGE 4: NPCs AND COLLECTIBLES
+-- ==========================================
+
+print("[LOAD] Stage 4: Spawning NPCs and collectibles...")
+local CollectibleSpawner = require(script.Parent.Services.CollectibleSpawner)
+local NPCService = require(script.Parent.Services.NPCService)
+
+CollectibleSpawner:Initialize()
 NPCService:Initialize()
 
--- Initialize story system (after NarrativeService, zones, collectibles, and NPCs)
+logStage(4, "NPCs and collectibles spawned")
+
+if LOAD_LEVEL == 4 then
+	print("[LOAD] ✅ STOPPED at LOAD_LEVEL 4 (+ NPCs/collectibles)")
+	print("[LOAD] You should see: Terrain + structures + survivors + food/parts")
+	onWorldReady()
+	return
+end
+
+-- ==========================================
+-- STAGE 5: FULL LOAD (STORY SYSTEM)
+-- ==========================================
+
+print("[LOAD] Stage 5: Initializing story system...")
+local StoryBeatProcessor = require(script.Parent.Services.StoryBeatProcessor)
+local ValidationService = require(script.Parent.Services.ValidationService)
+
 StoryBeatProcessor:SetNarrativeService(NarrativeService)
 StoryBeatProcessor:Initialize()
+ValidationService:Initialize()
 
-print("[FaultlineFear] Services initialized")
+logStage(5, "Full load complete")
 
--- ==========================================
--- STEP 4: GENERATE VISUAL TERRAIN (BACKGROUND)
--- This can run async - gameplay doesn't depend on visuals
--- ==========================================
+print("[LOAD] ✅ LOAD_LEVEL 5: Full game loaded")
 
-task.spawn(function()
-	print("[FaultlineFear] Generating visual terrain in background...")
-	local visualStart = tick()
-
-	TerrainGenerator:GenerateVisualTerrain()
-
-	local visualTime = tick() - visualStart
-	print(string.format("[FaultlineFear] Visual terrain complete in %.2f seconds", visualTime))
-end)
-
--- ==========================================
--- PLAYER HANDLING
--- ==========================================
-
-local function onPlayerAdded(player: Player)
-	print("[FaultlineFear] Player joined:", player.Name)
-
-	-- Ensure player knows heightmap is ready (in case they joined during load)
-	if Heightmap:IsGenerated() then
-		HeightmapReady:FireClient(player)
-	end
-
-	-- Position player on terrain when character loads
-	player.CharacterAdded:Connect(function(character)
-		task.wait(0.1) -- Brief wait for character to fully load
-		local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if rootPart and Heightmap:IsGenerated() then
-			-- Get terrain height at spawn position
-			local pos = rootPart.Position
-			local terrainHeight = Heightmap:GetHeight(pos.X, pos.Z)
-			-- Position player 5 studs above terrain
-			rootPart.CFrame = CFrame.new(pos.X, terrainHeight + 5, pos.Z)
-			print(string.format("[FaultlineFear] Positioned %s at height %.1f", player.Name, terrainHeight + 5))
-		end
-	end)
-
-	-- Fire GAME_START event for story system (after character loads)
+-- Fire GAME_START for each player after they spawn (Level 5 only)
+Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Once(function()
-		task.delay(2, function() -- Give a moment for UI to load
+		task.delay(2, function()
 			StoryBeatProcessor:FireEvent("GAME_START", player)
 		end)
 	end)
-end
+end)
 
-local function onPlayerRemoving(player: Player)
-	print("[FaultlineFear] Player left:", player.Name)
-end
-
-Players.PlayerAdded:Connect(onPlayerAdded)
-Players.PlayerRemoving:Connect(onPlayerRemoving)
-
--- Handle players already in game (Studio testing)
-for _, player in Players:GetPlayers() do
-	task.spawn(onPlayerAdded, player)
-end
+onWorldReady()
 
 -- ==========================================
--- INITIALIZATION COMPLETE
+-- DONE
 -- ==========================================
 
+local totalTime = tick() - SERVER_START
 print("[FaultlineFear] ================================")
-print("[FaultlineFear] Server ready!")
-print("[FaultlineFear] Heightmap: READY (O(1) height queries)")
-print("[FaultlineFear] Visual terrain: LOADING in background")
+print(string.format("[FaultlineFear] Server ready in %.2f seconds", totalTime))
 print("[FaultlineFear] ================================")

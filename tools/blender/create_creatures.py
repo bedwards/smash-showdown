@@ -131,33 +131,42 @@ def create_fissure_dweller():
 
     Design: Worm-like segmented body, emerges vertically.
     Aesthetic: Rocky texture, glowing cracks.
+    LOW POLY version for Roblox import (<10k triangles).
     """
     clear_scene()
     parts = []
 
-    # Segmented body (stack of cylinders)
-    num_segments = 8
-    segment_height = 0.3
+    # Segmented body - REDUCED segments
+    num_segments = 5  # Reduced from 8
+    segment_height = 0.4  # Slightly taller to compensate
 
     rock_mat = create_material("RockBody", (0.2, 0.18, 0.15))
     crack_mat = create_material("CrackGlow", (1.0, 0.5, 0.1), emission=3.0)
 
     for i in range(num_segments):
-        radius = 0.3 - (i * 0.02)  # Taper toward top
+        radius = 0.3 - (i * 0.03)  # Taper toward top
         z = i * segment_height
 
-        bpy.ops.mesh.primitive_cylinder_add(radius=radius, depth=segment_height, location=(0, 0, z))
+        # LOW POLY cylinder
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=radius,
+            depth=segment_height,
+            vertices=8,  # Reduced from default 32
+            location=(0, 0, z)
+        )
         segment = bpy.context.active_object
         segment.name = f"Segment_{i}"
         apply_material(segment, rock_mat)
         smooth_shade(segment)
         parts.append(segment)
 
-        # Add glowing cracks between segments
+        # Add glowing cracks between segments - LOW POLY torus
         if i > 0:
             bpy.ops.mesh.primitive_torus_add(
                 major_radius=radius + 0.02,
                 minor_radius=0.02,
+                major_segments=12,  # Reduced from default 48
+                minor_segments=4,   # Reduced from default 12
                 location=(0, 0, z - segment_height/2)
             )
             crack = bpy.context.active_object
@@ -165,9 +174,14 @@ def create_fissure_dweller():
             apply_material(crack, crack_mat)
             parts.append(crack)
 
-    # Head (top segment with mouth)
+    # Head - LOW POLY sphere
     head_z = num_segments * segment_height
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.25, location=(0, 0, head_z))
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        radius=0.25,
+        segments=12,  # Reduced from default 32
+        ring_count=6,  # Reduced from default 16
+        location=(0, 0, head_z)
+    )
     head = bpy.context.active_object
     head.name = "Head"
     head.scale = (1, 1, 0.6)
@@ -176,13 +190,18 @@ def create_fissure_dweller():
     smooth_shade(head)
     parts.append(head)
 
-    # Eyes (multiple, around head)
+    # Eyes - REDUCED count and LOW POLY
     eye_mat = create_material("DwellerEyes", (0.8, 1.0, 0.3), emission=4.0)
-    for angle in [0, 72, 144, 216, 288]:
+    for angle in [0, 120, 240]:  # Reduced from 5 to 3 eyes
         rad = math.radians(angle)
         x = math.cos(rad) * 0.2
         y = math.sin(rad) * 0.2
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.04, location=(x, y, head_z + 0.1))
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            radius=0.04,
+            segments=6,  # Minimal
+            ring_count=4,
+            location=(x, y, head_z + 0.1)
+        )
         eye = bpy.context.active_object
         apply_material(eye, eye_mat)
         parts.append(eye)

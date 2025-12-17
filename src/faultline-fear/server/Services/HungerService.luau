@@ -22,9 +22,13 @@ local HungerService = {}
 -- Player hunger state
 local playerHunger: { [Player]: number } = {}
 local playerStates: { [Player]: { sprinting: boolean, swimming: boolean } } = {}
+local lastHungerUpdate: { [Player]: number } = {} -- Track last update time to throttle
 
 -- Remote events (set during initialization)
 local HungerUpdate: RemoteEvent = nil :: any
+
+-- Throttle updates to once per second to avoid flooding client
+local UPDATE_INTERVAL = 1.0
 
 -- ==========================================
 -- CORE FUNCTIONS
@@ -39,8 +43,8 @@ function HungerService:InitPlayer(player: Player)
 
 	print("[HungerService] Initialized player:", player.Name, "Hunger:", Config.HUNGER.MAX)
 
-	-- Send initial hunger to client
-	self:SendHungerUpdate(player)
+	-- Send initial hunger to client (force immediate)
+	self:SendHungerUpdate(player, true)
 end
 
 --[[
@@ -49,6 +53,7 @@ end
 function HungerService:CleanupPlayer(player: Player)
 	playerHunger[player] = nil
 	playerStates[player] = nil
+	lastHungerUpdate[player] = nil
 	print("[HungerService] Cleaned up player:", player.Name)
 end
 
@@ -245,17 +250,28 @@ end
 function HungerService:OnPlayerRespawned(player: Player)
 	playerHunger[player] = Config.HUNGER.RESPAWN_HUNGER
 	print("[HungerService] Player respawned with hunger:", Config.HUNGER.RESPAWN_HUNGER)
-	self:SendHungerUpdate(player)
+	self:SendHungerUpdate(player, true) -- Force immediate update on respawn
 end
 
 -- ==========================================
 -- CLIENT COMMUNICATION
 -- ==========================================
 
-function HungerService:SendHungerUpdate(player: Player)
-	if HungerUpdate then
-		HungerUpdate:FireClient(player, self:GetHungerData(player))
+function HungerService:SendHungerUpdate(player: Player, force: boolean?)
+	if not HungerUpdate then
+		return
 	end
+
+	local now = tick()
+	local lastUpdate = lastHungerUpdate[player] or 0
+
+	-- Throttle updates unless forced (respawn, eating, etc.)
+	if not force and (now - lastUpdate) < UPDATE_INTERVAL then
+		return
+	end
+
+	lastHungerUpdate[player] = now
+	HungerUpdate:FireClient(player, self:GetHungerData(player))
 end
 
 -- ==========================================

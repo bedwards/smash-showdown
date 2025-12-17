@@ -82,7 +82,8 @@ end
 	This can run async while gameplay starts.
 ]]
 function TerrainGenerator:GenerateVisualTerrain()
-	if not isHeightmapReady then
+	-- Check the actual Heightmap module, not just internal flag
+	if not Heightmap:IsGenerated() then
 		error("[TerrainGenerator] Cannot generate visual terrain - heightmap not ready!")
 	end
 
@@ -212,14 +213,15 @@ function TerrainGenerator:GenerateOcean()
 	local terrain = Workspace.Terrain
 	local halfWorld = Config.WORLD_SIZE / 2
 	local zones = Config.ZONES
+	local voxelSize = 4
 
 	local oceanDepth = 30
 	local oceanRegion = Region3.new(
 		Vector3.new(-halfWorld, Config.OCEAN_LEVEL - oceanDepth, zones.OCEAN.zMin),
 		Vector3.new(halfWorld, Config.OCEAN_LEVEL, zones.BEACH.zMax)
-	)
+	):ExpandToGrid(voxelSize)
 
-	terrain:FillRegion(oceanRegion, 4, Enum.Material.Water)
+	terrain:FillRegion(oceanRegion, voxelSize, Enum.Material.Water)
 end
 
 --[[
@@ -244,7 +246,7 @@ function TerrainGenerator:PrepareBuilding(
 	radius: number,
 	targetHeight: number?
 ): number
-	if not isHeightmapReady then
+	if not Heightmap:IsGenerated() then
 		error("[TerrainGenerator] Cannot prepare building - heightmap not ready!")
 	end
 
@@ -283,7 +285,7 @@ end
 	This updates the Roblox Terrain voxels to match the modified heightmap.
 ]]
 function TerrainGenerator:RegenerateFaultLineArea()
-	if not isHeightmapReady then
+	if not Heightmap:IsGenerated() then
 		warn("[TerrainGenerator] Cannot regenerate - heightmap not ready!")
 		return
 	end
@@ -340,7 +342,7 @@ end
 	Prints instructions and returns PGM data.
 ]]
 function TerrainGenerator:ExportForBlender(): string
-	if not isHeightmapReady then
+	if not Heightmap:IsGenerated() then
 		error("[TerrainGenerator] Cannot export - heightmap not ready!")
 	end
 

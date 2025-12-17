@@ -6,6 +6,18 @@ export type Config = typeof(Config)
 
 local Config = {
 	-- ==========================================
+	-- DEBUG / LOADING CONTROL
+	-- ==========================================
+	-- LOAD_LEVEL controls how far the game loads (for debugging)
+	-- 0 = Heightmap only (no visual terrain)
+	-- 1 = + Visual terrain
+	-- 2 = + Core services (hunger, day/night, earthquake)
+	-- 3 = + Structures and terrain assets
+	-- 4 = + NPCs and collectibles
+	-- 5 = Full load (everything)
+	LOAD_LEVEL = 5, -- Set to lower number to debug loading stages
+
+	-- ==========================================
 	-- WORLD DIMENSIONS
 	-- ==========================================
 	WORLD_SIZE = 4000, -- Total world size in studs

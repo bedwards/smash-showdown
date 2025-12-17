@@ -41,14 +41,15 @@ local StationSounds: { [Station]: string } = {
 	Emergency = "rbxassetid://0", -- Emergency broadcast alert
 }
 
--- Fallback: Use built-in Roblox sounds for testing
+-- Fallback: Silent placeholders (Roblox audio privacy requires permission)
+-- TODO: Upload custom audio or use Roblox Creator Marketplace sounds
 local FallbackSounds: { [Station]: number } = {
-	Coastal = 9043887091, -- Ocean waves
-	Mountain = 9043836498, -- Wind
-	Town = 9043836498, -- Wind (placeholder)
-	Wilderness = 9043836498, -- Wind (placeholder)
-	Eerie = 9043836498, -- Wind (placeholder)
-	Emergency = 9043887091, -- Alert tone (placeholder)
+	Coastal = 0, -- Silent placeholder
+	Mountain = 0, -- Silent placeholder
+	Town = 0, -- Silent placeholder
+	Wilderness = 0, -- Silent placeholder
+	Eerie = 0, -- Silent placeholder
+	Emergency = 0, -- Silent placeholder
 }
 
 -- ==========================================
@@ -63,18 +64,30 @@ local function createSoundGroup(): SoundGroup
 	return group
 end
 
-local function createSound(station: Station): Sound
+local function createSound(station: Station): Sound?
+	-- Check if we have a valid sound ID (DRY - use shared utility)
+	local soundId = StationSounds[station]
+	local fallbackId = FallbackSounds[station]
+
+	local hasValidPrimary = Shared.isValidSoundId(soundId)
+	local hasValidFallback = Shared.isValidSoundId(fallbackId)
+
+	-- Skip sound creation entirely if no valid audio
+	-- (prevents "Failed to load sound" errors)
+	if not hasValidPrimary and not hasValidFallback then
+		return nil
+	end
+
 	local sound = Instance.new("Sound")
 	sound.Name = station .. "Music"
 	sound.Looped = true
 	sound.Volume = 0 -- Start silent for crossfade
 
-	-- Use fallback sounds for testing
-	local soundId = StationSounds[station]
-	if soundId == "rbxassetid://0" then
-		sound.SoundId = "rbxassetid://" .. tostring(FallbackSounds[station])
-	else
+	-- Use primary or fallback sound ID
+	if hasValidPrimary then
 		sound.SoundId = soundId
+	else
+		sound.SoundId = "rbxassetid://" .. tostring(fallbackId)
 	end
 
 	sound.SoundGroup = musicGroup
@@ -96,15 +109,8 @@ local function crossfadeTo(newStation: Station)
 
 	local fadeTime = Config.MUSIC.CROSSFADE_DURATION
 
-	-- Create new sound
+	-- Create new sound (may be nil if no valid audio)
 	local newSound = createSound(newStation)
-	newSound:Play()
-
-	-- Fade in new sound
-	local fadeInTween = TweenService:Create(newSound, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
-		Volume = masterVolume,
-	})
-	fadeInTween:Play()
 
 	-- Fade out and destroy old sound
 	if currentSound then
@@ -116,6 +122,17 @@ local function crossfadeTo(newStation: Station)
 		fadeOutTween.Completed:Connect(function()
 			oldSound:Destroy()
 		end)
+	end
+
+	-- Only play if we have a valid sound
+	if newSound then
+		newSound:Play()
+
+		-- Fade in new sound
+		local fadeInTween = TweenService:Create(newSound, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
+			Volume = masterVolume,
+		})
+		fadeInTween:Play()
 	end
 
 	currentSound = newSound

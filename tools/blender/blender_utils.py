@@ -33,7 +33,7 @@ def create_material(name: str, color: tuple, emission: float = 0.0) -> bpy.types
 
     Args:
         name: Material name
-        color: RGB tuple (0-1 range)
+        color: RGB or RGBA tuple (0-1 range)
         emission: Emission strength (0 = no glow)
     """
     mat = bpy.data.materials.new(name=name)
@@ -51,10 +51,17 @@ def create_material(name: str, color: tuple, emission: float = 0.0) -> bpy.types
 
     principled = nodes.new('ShaderNodeBsdfPrincipled')
     principled.location = (0, 0)
-    principled.inputs['Base Color'].default_value = (*color, 1.0)
+
+    # Handle both RGB (3 values) and RGBA (4 values)
+    if len(color) == 3:
+        rgba = (*color, 1.0)
+    else:
+        rgba = color[:4]  # Take first 4 values
+
+    principled.inputs['Base Color'].default_value = rgba
 
     if emission > 0:
-        principled.inputs['Emission Color'].default_value = (*color, 1.0)
+        principled.inputs['Emission Color'].default_value = rgba
         principled.inputs['Emission Strength'].default_value = emission
 
     links.new(principled.outputs['BSDF'], output.inputs['Surface'])
@@ -70,8 +77,8 @@ def apply_material(obj: bpy.types.Object, material: bpy.types.Material):
         obj.data.materials.append(material)
 
 
-def join_objects(objects: list) -> bpy.types.Object:
-    """Join multiple objects into one."""
+def join_objects(objects: list, name: str = None) -> bpy.types.Object:
+    """Join multiple objects into one, optionally renaming the result."""
     if not objects:
         return None
 
@@ -83,7 +90,11 @@ def join_objects(objects: list) -> bpy.types.Object:
     bpy.context.view_layer.objects.active = objects[0]
     bpy.ops.object.join()
 
-    return bpy.context.active_object
+    result = bpy.context.active_object
+    if name:
+        result.name = name
+
+    return result
 
 
 def export_fbx(filepath: str, scale: float = 1.0):
@@ -166,6 +177,60 @@ def subdivide(obj: bpy.types.Object, levels: int = 1):
     mod = obj.modifiers.new(name='Subdivision', type='SUBSURF')
     mod.levels = levels
     mod.render_levels = levels
+
+
+def setup_fbx_export():
+    """Setup FBX export settings. Called once at start of script."""
+    # No-op - settings are passed directly to export_fbx
+    pass
+
+
+def create_export_directory(path: str):
+    """Create export directory if it doesn't exist."""
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def export_model(model_or_filepath, filepath: str = None, scale: float = 0.01):
+    """
+    Export current scene to FBX (wrapper for export_fbx).
+    Default scale 0.01 for Roblox.
+
+    Args:
+        model_or_filepath: Either a model object (ignored) or filepath string
+        filepath: If model_or_filepath is an object, this is the filepath
+        scale: Export scale (default 0.01 for Roblox)
+    """
+    # Handle both call styles: export_model(filepath) and export_model(model, filepath)
+    if filepath is None:
+        # Called as export_model(filepath)
+        actual_filepath = model_or_filepath
+    else:
+        # Called as export_model(model, filepath)
+        actual_filepath = filepath
+
+    export_fbx(actual_filepath, scale)
+
+
+def set_origin_to_bottom(obj: bpy.types.Object):
+    """Set object origin to the bottom center of its bounding box."""
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+
+    # Get bounding box in world coordinates
+    bbox = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+    min_z = min(v.z for v in bbox)
+    center_x = sum(v.x for v in bbox) / 8
+    center_y = sum(v.y for v in bbox) / 8
+
+    # Set 3D cursor to bottom center
+    bpy.context.scene.cursor.location = (center_x, center_y, min_z)
+
+    # Set origin to cursor
+    bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+
+    # Reset cursor
+    bpy.context.scene.cursor.location = (0, 0, 0)
 
 
 if __name__ == "__main__":

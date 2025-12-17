@@ -2,6 +2,12 @@
 
 This file instructs Claude instances working on this project. Read it completely before starting any task.
 
+## Important Context
+
+**Current Year: 2025** (soon to be 2026). When searching the web, always use 2025 in your queries for recent information. Do not use 2024.
+
+**Name Restrictions:** Never use the names "Marcus" or "Chen" in any generated content, code, comments, or examples.
+
 ## Core Philosophy
 
 **You are a vibe coder.** You describe what you want, you build it. No wrestling with syntax, no googling error messages, no debugging for hours. Vision in, working code out.
@@ -330,6 +336,166 @@ local id = tonumber(tostring(light):match("%x+$"), 16) or 0
 
 **Tests:** `luau_patterns_tests.luau` scans for .NET patterns.
 
+### Ambiguous Syntax with Method Chains (CRITICAL)
+
+Luau can't tell if `(` after a method call starts a new statement or continues the call:
+
+**WRONG:**
+```lua
+TweenService:Create(...):Play()
+(someElement :: TextLabel).Visible = true  -- Ambiguous!
+```
+
+**CORRECT:**
+```lua
+TweenService:Create(...):Play()
+;(someElement :: TextLabel).Visible = true  -- Semicolon disambiguates
+```
+
+The error message is: `Ambiguous syntax: this looks like an argument list for a function call`
+
+**Tests:** `luau_patterns_tests.luau` catches `:Play()(` patterns.
+
+### Use Module APIs, Not Internal State Flags (CRITICAL)
+
+When checking if a module has completed initialization, use the module's public API, not internal flags from the calling code:
+
+**WRONG:**
+```lua
+-- TerrainGenerator has its own isHeightmapReady flag
+-- But Main.server.luau calls Heightmap:Generate() directly
+-- So the internal flag is never set!
+if not isHeightmapReady then
+    error("heightmap not ready")
+end
+```
+
+**CORRECT:**
+```lua
+-- Check the actual Heightmap module's state
+if not Heightmap:IsGenerated() then
+    error("heightmap not ready")
+end
+```
+
+Rule: Always check the source of truth module, not a local copy of state.
+
+### Player Spawn Timing (CRITICAL)
+
+Players must not spawn until the world is ready. Otherwise they fall through ungenerated terrain.
+
+**Solution:**
+```lua
+-- At startup
+Players.CharacterAutoLoads = false
+
+-- When world is ready
+player:LoadCharacter()
+-- Then position on terrain
+local height = Heightmap:GetHeight(x, z)
+rootPart.CFrame = CFrame.new(x, height + 5, z)
+```
+
+Use a `WorldReady` RemoteEvent to signal clients when it's safe to show the game.
+
+### Region3 Must Be Grid-Aligned (CRITICAL)
+
+`Terrain:FillRegion()` requires the Region3 to be aligned to the voxel grid:
+
+**WRONG:**
+```lua
+local region = Region3.new(min, max)
+terrain:FillRegion(region, 4, Enum.Material.Water)  -- Error!
+```
+
+**CORRECT:**
+```lua
+local region = Region3.new(min, max):ExpandToGrid(4)
+terrain:FillRegion(region, 4, Enum.Material.Water)
+```
+
+The error message is: `Region has to be aligned to the grid (use Region3:ExpandToGrid with authoring resolution)`
+
+**Tests:** `luau_patterns_tests.luau` catches inline Region3.new in FillRegion calls.
+
+### Throttle RemoteEvent Updates (CRITICAL)
+
+Sending RemoteEvents every frame floods the client queue:
+
+**WRONG:**
+```lua
+-- In Heartbeat (60fps)
+RunService.Heartbeat:Connect(function()
+    HungerUpdate:FireClient(player, data)  -- 60 events/second!
+end)
+```
+
+**CORRECT:**
+```lua
+local lastUpdate = {}
+local UPDATE_INTERVAL = 1.0  -- Once per second
+
+function Service:SendUpdate(player, force)
+    local now = tick()
+    if not force and (now - (lastUpdate[player] or 0)) < UPDATE_INTERVAL then
+        return
+    end
+    lastUpdate[player] = now
+    RemoteEvent:FireClient(player, data)
+end
+```
+
+The error message is: `Remote event invocation queue exhausted; did you forget to implement OnClientEvent?`
+
+### Roblox Audio Privacy (CRITICAL)
+
+Due to Roblox's audio privacy update, most third-party sounds require explicit permission. Random asset IDs will fail. Even `rbxassetid://0` causes errors.
+
+**The Solution:** Don't create Sound objects at all if there's no valid audio.
+
+**WRONG:**
+```lua
+sound.SoundId = "rbxassetid://0"  -- Still causes errors!
+sound:Play()
+```
+
+**CORRECT:**
+```lua
+local function createSound(station): Sound?
+    if soundId == "rbxassetid://0" and fallbackId == 0 then
+        return nil  -- Don't create sound at all
+    end
+    -- ... create sound only if valid ID
+end
+
+-- Handle nil in usage
+local sound = createSound(station)
+if sound then
+    sound:Play()
+end
+```
+
+**To get valid audio:**
+1. Upload your own audio to Roblox
+2. Use Roblox Creator Marketplace with proper licensing
+3. Search Toolbox in Studio for "ambient" sounds
+
+The error message is: `Failed to load sound rbxassetid://X: Request asset was not found`
+
+Source: [Roblox DevForum - Silencing Audio Errors](https://devforum.roblox.com/t/silencing-audio-errors-generated-by-the-engine/1748737)
+
+### Warn Once for Missing Resources
+
+Repeated warnings spam the console. Use a flag:
+
+```lua
+local warned = false
+if not resource and not warned then
+    warned = true
+    warn("[Service] Resource not found (this warning shows once)")
+end
+```
+
 ---
 
 ## FAULTLINE FEAR: Current Project
@@ -466,15 +632,112 @@ building:PivotTo(CFrame.new(x, buildingHeight, z))
 - `server/Services/TerrainGenerator.luau` - Visual terrain from heightmap
 - `docs/faultline-fear/TERRAIN_ARCHITECTURE.md` - Full documentation
 
-### Blender to Roblox Workflow
+### Blender to Roblox Asset Pipeline
+
+**CRITICAL UNDERSTANDING: Rojo = Code, Import = Assets**
+
+Rojo syncs SOURCE CODE from files to Studio. It does NOT handle imported 3D assets.
+- `rojo build` → creates place file from project.json (code only, no assets)
+- `File > Import 3D` → adds assets to place file (must be saved to persist)
+
+**One-Time Asset Setup Workflow:**
 
 ```
-1. Create in Blender at 0.01 scale
-2. Apply transforms (Ctrl+A > All Transforms)
-3. Export FBX with scale 0.01
-4. Import via Roblox Asset Manager
-5. Use Tarmac for textures
+1. rojo build faultline-fear.project.json -o faultline-fear.rbxl
+2. Open faultline-fear.rbxl in Studio
+3. File → Import 3D → select combined_all_assets.fbx
+4. Click "Move to Storage" in "Faultline Import Tools" toolbar
+5. **SAVE THE PLACE FILE (Ctrl+S)**
+6. Done! Assets now persist in the place file.
 ```
+
+**After Initial Setup:**
+- Open the SAVED place file (not `rojo build`)
+- For code changes: use `rojo serve` to sync code into the open place file
+- Assets stay in ServerStorage.AssetTemplates where the plugin moved them
+
+**Plugin: FaultlineFear_MoveToStorage_v2.lua**
+
+Located in `plugins/` folder. Install by copying to Roblox plugins folder:
+- macOS: `~/Documents/Roblox/Plugins/`
+- Windows: `%LOCALAPPDATA%/Roblox/Plugins/`
+
+Two buttons in "Faultline Import Tools" toolbar:
+- **Move to Storage**: Moves all `Category_AssetName` items from Workspace to ServerStorage.AssetTemplates
+- **Diagnose Spawn**: Shows what's blocking spawn area
+
+**Plugin Caching Fix (CRITICAL):**
+
+Roblox Studio aggressively caches plugins. If you update a plugin and it doesn't reflect changes:
+
+1. **Clear the cache:**
+   ```bash
+   rm -f ~/Library/Caches/com.Roblox.RobloxStudio/Cache.db*
+   ```
+
+2. **Rename the plugin file** (increment version number):
+   ```bash
+   mv Plugin_v1.lua Plugin_v2.lua
+   ```
+
+3. **Update PLUGIN_ID inside the file** to match
+
+4. **Restart Studio**
+
+This forces Studio to treat it as a brand new plugin.
+
+### Write Plugins. Script Everything.
+
+**Claude CAN and SHOULD write Roblox Studio plugins.** Don't do things manually in Studio - automate them:
+
+- Asset organization → Plugin
+- Bulk operations → Plugin
+- Diagnostics → Plugin
+- Repetitive tasks → Plugin
+
+Plugins are just Lua scripts. Put them in `plugins/` folder, copy to `~/Documents/Roblox/Plugins/`. They have full access to game services and can automate anything you'd do manually in Studio.
+
+**Philosophy: If you're clicking around in Studio, you should be writing a plugin instead.**
+
+**Step 1: Generate Assets**
+```bash
+python tools/generate-all-assets.py
+# Creates: assets/models/combined_all_assets.fbx
+```
+
+**Step 2: Import and Organize**
+1. Build place: `rojo build faultline-fear.project.json -o faultline-fear.rbxl`
+2. Open in Studio
+3. File → Import 3D → combined_all_assets.fbx
+4. Click "Move to Storage" in toolbar
+5. **SAVE (Ctrl+S)** ← This persists everything!
+
+**Why ServerStorage?**
+- ServerStorage is **NOT replicated** to clients (saves bandwidth)
+- Objects in Workspace are **VISIBLE and COLLIDABLE** - they block players!
+- Hiding templates in Workspace is a hack; storage is the proper pattern
+
+**AssetManifest (already configured):**
+1. Looks in `ServerStorage.AssetTemplates`
+2. Wraps MeshParts in Models when cloning (for PrimaryPart support)
+3. Returns Models ready for use
+
+**Blender scripts:**
+```
+tools/blender/
+├── blender_utils.py          # Common utilities
+├── combine_all_fbx.py        # Combines FBX files
+├── create_animals.py         # Deer, Wolf, MountainLion, etc.
+├── create_caves.py           # Cave entrances, chambers
+├── create_creatures.py       # ShadowStalker, FissureDweller
+├── create_liminal_spaces.py  # Abandoned mall, hotel, school
+├── create_npcs.py            # Survivor, PetCompanion
+├── create_signs.py           # Directional, warning signs
+├── create_structures.py      # FerrisWheel, RadioTower, Bridge
+└── create_terrain_assets.py  # Boulders, rock clusters
+```
+
+**Output:** `assets/models/combined_all_assets.fbx`
 
 ### GitHub Labels for Faultline Fear
 
@@ -539,27 +802,17 @@ type StoryBeat = {
 
 ### Blender Headless Mode (WORKING)
 
-**Claude CAN create 3D assets programmatically.** Blender 5.0.0 is installed and headless mode works.
+**Claude CAN create 3D assets programmatically.** Blender 5.0.0 is installed.
 
 ```bash
 # Test headless mode
 blender --background --python-expr "import bpy; print('Works!')"
 
-# Run asset generation scripts
-blender --background --python tools/blender/create_creatures.py
+# Run all asset generation
+python tools/generate-all-assets.py
 ```
 
-**Existing Scripts:**
-- `tools/blender/blender_utils.py` - Common utilities (materials, export, primitives)
-- `tools/blender/create_creatures.py` - Generates creature FBX models
-
-**Output:** FBX files in `assets/models/` (tracked in git)
-
-**To create new assets:**
-1. Create Python script in `tools/blender/`
-2. Use `blender_utils.py` helpers
-3. Export to `assets/models/<category>/`
-4. Run: `blender --background --python tools/blender/your_script.py`
+See "Blender to Roblox Asset Pipeline" section above for full workflow.
 
 ### Full Tool Stack (aftman.toml)
 

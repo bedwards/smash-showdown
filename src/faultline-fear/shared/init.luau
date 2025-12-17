@@ -27,4 +27,16 @@ Shared.snapToTerrain = function(position: Vector3, offset: number?): Vector3
 	return Shared.Heightmap:SnapToTerrain(position, offset)
 end
 
+-- Audio utility: Check if a sound ID is valid (not a placeholder)
+-- Use this before creating Sound objects to avoid "Failed to load sound" errors
+Shared.isValidSoundId = function(soundId: string | number): boolean
+	if type(soundId) == "number" then
+		return soundId > 0
+	end
+	if type(soundId) == "string" then
+		return soundId ~= "" and soundId ~= "rbxassetid://0" and soundId ~= "rbxassetid://"
+	end
+	return false
+end
+
 return Shared

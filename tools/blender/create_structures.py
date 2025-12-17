@@ -55,10 +55,12 @@ def create_ferris_wheel():
     num_spokes = 12
     num_gondolas = 8
 
-    # Main wheel rim (torus)
+    # Main wheel rim (torus) - LOW POLY for Roblox import
     bpy.ops.mesh.primitive_torus_add(
         major_radius=wheel_radius,
         minor_radius=0.05,
+        major_segments=16,  # Reduced from default 48
+        minor_segments=6,   # Reduced from default 12
         location=(0, 0, 2.2)
     )
     rim = bpy.context.active_object
@@ -66,20 +68,23 @@ def create_ferris_wheel():
     apply_material(rim, metal_mat)
     parts.append(rim)
 
-    # Inner rim
+    # Inner rim - LOW POLY
     bpy.ops.mesh.primitive_torus_add(
         major_radius=wheel_radius * 0.7,
         minor_radius=0.03,
+        major_segments=16,
+        minor_segments=6,
         location=(0, 0, 2.2)
     )
     inner_rim = bpy.context.active_object
     apply_material(inner_rim, metal_mat)
     parts.append(inner_rim)
 
-    # Hub
+    # Hub - LOW POLY
     bpy.ops.mesh.primitive_cylinder_add(
         radius=0.15,
         depth=0.3,
+        vertices=8,  # Reduced from default 32
         location=(0, 0, 2.2)
     )
     hub = bpy.context.active_object
@@ -87,14 +92,16 @@ def create_ferris_wheel():
     apply_material(hub, metal_mat)
     parts.append(hub)
 
-    # Spokes
+    # Spokes - reduced count and LOW POLY
+    num_spokes = 8  # Reduced from 12
     for i in range(num_spokes):
         angle = (2 * math.pi * i) / num_spokes
 
-        # Outer spoke
+        # Outer spoke - LOW POLY
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.02,
             depth=wheel_radius,
+            vertices=6,  # Reduced
             location=(0, 0, 2.2)
         )
         spoke = bpy.context.active_object
@@ -108,13 +115,14 @@ def create_ferris_wheel():
         apply_material(spoke, metal_mat)
         parts.append(spoke)
 
-    # Gondolas
+    # Gondolas - reduced count
+    num_gondolas = 6  # Reduced from 8
     for i in range(num_gondolas):
         angle = (2 * math.pi * i) / num_gondolas
         x = math.cos(angle) * wheel_radius
         z = 2.2 + math.sin(angle) * wheel_radius
 
-        # Gondola body
+        # Gondola body (cube is already low poly)
         bpy.ops.mesh.primitive_cube_add(
             size=0.3,
             location=(x, 0, z - 0.2)
@@ -125,21 +133,24 @@ def create_ferris_wheel():
         apply_material(gondola, gondola_mat)
         parts.append(gondola)
 
-        # Light on gondola
+        # Light on gondola - LOW POLY sphere
         bpy.ops.mesh.primitive_uv_sphere_add(
             radius=0.04,
+            segments=8,  # Reduced from default 32
+            ring_count=4,  # Reduced from default 16
             location=(x, 0, z - 0.05)
         )
         light = bpy.context.active_object
         apply_material(light, light_mat)
         parts.append(light)
 
-    # Support structure - A-frame
+    # Support structure - A-frame - LOW POLY
     for side in [-1, 1]:
         # Main support leg
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.08,
             depth=3.0,
+            vertices=8,
             location=(side * 0.8, 0, 1.1)
         )
         leg = bpy.context.active_object
@@ -151,6 +162,7 @@ def create_ferris_wheel():
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.04,
             depth=1.8,
+            vertices=6,
             location=(side * 0.4, 0, 0.8)
         )
         brace = bpy.context.active_object
@@ -505,8 +517,8 @@ def create_bridge():
         apply_material(beam, steel_mat)
         parts.append(beam)
 
-    # Main cables (catenary shape approximation)
-    cable_points = 20
+    # Main cables (catenary shape approximation) - REDUCED for low poly
+    cable_points = 8  # Reduced from 20
     for side in [-1, 1]:
         for i in range(cable_points - 1):
             t1 = i / (cable_points - 1)
@@ -521,13 +533,14 @@ def create_bridge():
 
             y = side * bridge_width/2 * 0.7
 
-            # Cable segment
+            # Cable segment - LOW POLY
             length = math.sqrt((x2-x1)**2 + (sag2-sag1)**2)
             angle = math.atan2(sag2-sag1, x2-x1)
 
             bpy.ops.mesh.primitive_cylinder_add(
                 radius=0.015,
                 depth=length,
+                vertices=4,  # Minimal
                 location=((x1+x2)/2, y, (sag1+sag2)/2)
             )
             cable = bpy.context.active_object
@@ -535,8 +548,8 @@ def create_bridge():
             apply_material(cable, cable_mat)
             parts.append(cable)
 
-    # Vertical suspenders
-    num_suspenders = 10
+    # Vertical suspenders - REDUCED
+    num_suspenders = 5  # Reduced from 10
     for i in range(num_suspenders):
         t = i / (num_suspenders - 1)
         x = -bridge_length/2 + t * bridge_length
@@ -548,18 +561,20 @@ def create_bridge():
             bpy.ops.mesh.primitive_cylinder_add(
                 radius=0.008,
                 depth=height,
+                vertices=4,  # Minimal
                 location=(x, side * bridge_width/2 * 0.7, height/2 + 0.05)
             )
             suspender = bpy.context.active_object
             apply_material(suspender, cable_mat)
             parts.append(suspender)
 
-    # Railings
+    # Railings - LOW POLY
     for side in [-1, 1]:
         # Horizontal rail
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.02,
             depth=bridge_length,
+            vertices=6,
             location=(0, side * bridge_width/2 * 0.95, 0.15)
         )
         rail = bpy.context.active_object
@@ -567,12 +582,13 @@ def create_bridge():
         apply_material(rail, rust_mat)
         parts.append(rail)
 
-        # Vertical posts
-        for i in range(12):
-            x = -bridge_length/2 + 0.2 + i * (bridge_length - 0.4) / 11
+        # Vertical posts - REDUCED count
+        for i in range(6):  # Reduced from 12
+            x = -bridge_length/2 + 0.2 + i * (bridge_length - 0.4) / 5
             bpy.ops.mesh.primitive_cylinder_add(
                 radius=0.015,
                 depth=0.2,
+                vertices=4,  # Minimal
                 location=(x, side * bridge_width/2 * 0.95, 0.1)
             )
             post = bpy.context.active_object

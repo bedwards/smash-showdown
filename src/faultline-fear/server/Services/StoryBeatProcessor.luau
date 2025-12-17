@@ -279,14 +279,19 @@ local function setupCollectibleTrigger(collectible: BasePart)
 			collectible:Destroy()
 		end)
 	else
-		-- Fallback to touch
-		collectible.Touched:Connect(function(hit)
-			local player = Players:GetPlayerFromCharacter(hit.Parent)
-			if player then
-				StoryBeatProcessor:ProcessTrigger("object_collect", { objectTag = objectTag }, player)
-				collectible:Destroy()
-			end
-		end)
+		-- Fallback to touch - need to find a BasePart since Models don't have Touched
+		local touchPart = collectible:FindFirstChildWhichIsA("BasePart")
+		if touchPart then
+			touchPart.Touched:Connect(function(hit)
+				local player = Players:GetPlayerFromCharacter(hit.Parent)
+				if player then
+					StoryBeatProcessor:ProcessTrigger("object_collect", { objectTag = objectTag }, player)
+					collectible:Destroy()
+				end
+			end)
+		else
+			warn(string.format("[StoryBeatProcessor] Collectible %s has no BasePart for touch", collectible.Name))
+		end
 	end
 
 	print(string.format("[StoryBeatProcessor] Collectible trigger setup: %s", collectible.Name))

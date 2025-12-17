@@ -33,26 +33,27 @@ local musicMuted: boolean = false
 -- Audio Controller reference (set during init)
 local AudioController: any = nil
 
--- Ambient sound configurations
+-- Ambient sound configurations (silent placeholders - Roblox audio privacy)
+-- TODO: Upload custom audio or use Roblox Creator Marketplace sounds
 local AMBIENT_CONFIGS: { [string]: { soundId: string, volume: number } } = {
 	fluorescent_hum = {
-		soundId = "rbxassetid://9043836498", -- Electrical hum placeholder
+		soundId = "rbxassetid://0", -- Silent placeholder
 		volume = 0.4,
 	},
 	elevator_music = {
-		soundId = "rbxassetid://9043887091", -- Muzak placeholder
+		soundId = "rbxassetid://0", -- Silent placeholder
 		volume = 0.2,
 	},
 	hvac_drone = {
-		soundId = "rbxassetid://9043836498", -- HVAC drone placeholder
+		soundId = "rbxassetid://0", -- Silent placeholder
 		volume = 0.3,
 	},
 	beeping_equipment = {
-		soundId = "rbxassetid://9043887091", -- Medical beeps placeholder
+		soundId = "rbxassetid://0", -- Silent placeholder
 		volume = 0.25,
 	},
 	distant_traffic = {
-		soundId = "rbxassetid://9043836498", -- Traffic echo placeholder
+		soundId = "rbxassetid://0", -- Silent placeholder
 		volume = 0.35,
 	},
 }
@@ -61,10 +62,16 @@ local AMBIENT_CONFIGS: { [string]: { soundId: string, volume: number } } = {
 -- AUDIO MANAGEMENT
 -- ==========================================
 
-local function createAmbientSound(ambientType: string): Sound
+local function createAmbientSound(ambientType: string): Sound?
 	local config = AMBIENT_CONFIGS[ambientType]
 	if not config then
 		config = AMBIENT_CONFIGS.hvac_drone -- Default
+	end
+
+	-- Skip sound creation if no valid audio (DRY - use shared utility)
+	-- Prevents "Failed to load sound" errors
+	if not Shared.isValidSoundId(config.soundId) then
+		return nil
 	end
 
 	local sound = Instance.new("Sound")
@@ -78,12 +85,22 @@ local function createAmbientSound(ambientType: string): Sound
 end
 
 local function fadeInAmbient(ambientType: string)
-	-- Create or get sound
-	if not ambientSounds[ambientType] then
-		ambientSounds[ambientType] = createAmbientSound(ambientType)
+	-- Create or get sound (may be nil if no valid audio)
+	if ambientSounds[ambientType] == nil then
+		local newSound = createAmbientSound(ambientType)
+		if newSound then
+			ambientSounds[ambientType] = newSound
+		else
+			-- No valid audio, just track that we tried
+			return
+		end
 	end
 
 	local sound = ambientSounds[ambientType]
+	if not sound then
+		return -- No valid audio available
+	end
+
 	local config = AMBIENT_CONFIGS[ambientType] or AMBIENT_CONFIGS.hvac_drone
 
 	-- Stop any current ambient

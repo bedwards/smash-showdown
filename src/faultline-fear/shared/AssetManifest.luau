@@ -5,16 +5,15 @@
 	Documents all Blender-created assets and provides loading helpers.
 
 	WORKFLOW:
-	1. Run Blender script: blender --background --python tools/blender/create_X.py
-	2. Import FBX into Roblox Studio via Asset Manager
-	3. Place in ReplicatedStorage.Assets.<Category>.<AssetName>
-	4. Code uses AssetManifest:GetAsset() to load
+	1. Run: python tools/generate-all-assets.py (creates FBX files)
+	2. In Roblox Studio: Asset Manager → Bulk Import → select all FBX
+	3. In Asset Manager: Meshes → Select all → Right-click → Insert
+	4. Assets appear in Workspace.Meshes as Category_AssetName
+	5. Code uses AssetManifest:CloneAsset("AssetName") to spawn
 
 	Assets are NOT synced via Rojo (binary files).
 	This manifest ensures code and assets stay in sync.
 ]]
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AssetManifest = {}
 
@@ -389,91 +388,180 @@ local ASSETS: { [string]: AssetEntry } = {
 -- ASSET LOADING
 -- ==========================================
 
-local assetsFolder: Folder? = nil
+local ServerStorage = game:GetService("ServerStorage")
+local RunService = game:GetService("RunService")
 
-local function getAssetsFolder(): Folder?
-	if assetsFolder then
-		return assetsFolder
+local missingAssetWarnings: { [string]: boolean } = {}
+local assetCache: { [string]: Instance } = {}
+local templatesFolder: Folder? = nil
+local templatesFolderChecked = false
+
+--[[
+	Get the AssetTemplates folder from ServerStorage.
+	This is where imported FBX assets should be stored (NOT Workspace).
+]]
+local function getTemplatesFolder(): Folder?
+	if templatesFolderChecked then
+		return templatesFolder
+	end
+	templatesFolderChecked = true
+
+	-- Only server can access ServerStorage
+	if not RunService:IsServer() then
+		return nil
 	end
 
-	assetsFolder = ReplicatedStorage:FindFirstChild("Assets") :: Folder?
-	return assetsFolder
+	templatesFolder = ServerStorage:FindFirstChild("AssetTemplates") :: Folder?
+
+	if not templatesFolder then
+		warn("[AssetManifest] ServerStorage.AssetTemplates not found!")
+		warn("[AssetManifest] After importing FBX, move MeshParts to ServerStorage.AssetTemplates")
+	else
+		print(string.format("[AssetManifest] Found %d templates in ServerStorage.AssetTemplates", #templatesFolder:GetChildren()))
+	end
+
+	return templatesFolder
 end
 
 --[[
-	Get an asset Model by name.
-	Returns nil if not found (asset not imported yet).
+	Find a template by its full name (Category_AssetName) in the templates folder.
 ]]
-function AssetManifest:GetAsset(assetName: string): Model?
+local function findTemplate(fullName: string): Instance?
+	-- Check cache first
+	if assetCache[fullName] then
+		return assetCache[fullName]
+	end
+
+	local folder = getTemplatesFolder()
+	if not folder then
+		return nil
+	end
+
+	-- Search direct children
+	local template = folder:FindFirstChild(fullName)
+	if template then
+		assetCache[fullName] = template
+		return template
+	end
+
+	-- Search one level deep (in case of subfolders)
+	for _, child in folder:GetChildren() do
+		if child:IsA("Folder") then
+			local found = child:FindFirstChild(fullName)
+			if found then
+				assetCache[fullName] = found
+				return found
+			end
+		end
+	end
+
+	return nil
+end
+
+--[[
+	Wrap a MeshPart in a Model with PrimaryPart set.
+	Services expect Models with PrimaryPart, but FBX imports create MeshParts.
+]]
+local function wrapInModel(meshPart: MeshPart): Model
+	local model = Instance.new("Model")
+	model.Name = meshPart.Name
+
+	-- Clone the MeshPart into the Model
+	local clonedPart = meshPart:Clone()
+	clonedPart.Parent = model
+
+	-- Set PrimaryPart so services can use Model:PivotTo(), etc.
+	model.PrimaryPart = clonedPart
+
+	return model
+end
+
+--[[
+	Get an asset template by name.
+	Looks in ServerStorage.AssetTemplates for Category_AssetName format.
+	Returns the template (do NOT parent to Workspace - use CloneAsset instead).
+]]
+function AssetManifest:GetAsset(assetName: string): Instance?
 	local entry = ASSETS[assetName]
 	if not entry then
 		warn("[AssetManifest] Unknown asset:", assetName)
 		return nil
 	end
 
-	local folder = getAssetsFolder()
-	if not folder then
-		warn("[AssetManifest] Assets folder not found in ReplicatedStorage")
+	-- Asset imports use Category_AssetName format
+	local fullName = entry.category .. "_" .. entry.name
+
+	local template = findTemplate(fullName)
+
+	if not template then
+		-- Only warn once per asset to avoid log spam
+		if not missingAssetWarnings[assetName] then
+			missingAssetWarnings[assetName] = true
+			warn(string.format("[AssetManifest] Asset '%s' not found. Expected: ServerStorage.AssetTemplates.%s", assetName, fullName))
+		end
 		return nil
 	end
 
-	local categoryFolder = folder:FindFirstChild(entry.category)
-	if not categoryFolder then
-		warn("[AssetManifest] Category folder not found:", entry.category)
-		return nil
-	end
-
-	local asset = categoryFolder:FindFirstChild(entry.name)
-	if not asset then
-		warn(
-			string.format(
-				"[AssetManifest] Asset '%s' not found. Run: %s",
-				entry.name,
-				entry.blenderScript or "unknown script"
-			)
-		)
-		return nil
-	end
-
-	return asset :: Model
+	return template
 end
 
 --[[
 	Clone an asset for spawning.
-	Returns a clone of the asset, or nil if not found.
+	Returns a Model with PrimaryPart set (wraps MeshParts automatically).
+	This is the main function services should use.
 ]]
 function AssetManifest:CloneAsset(assetName: string): Model?
-	local asset = self:GetAsset(assetName)
-	if asset then
-		return asset:Clone()
+	local template = self:GetAsset(assetName)
+	if not template then
+		return nil
 	end
-	return nil
+
+	-- If template is already a Model, just clone it
+	if template:IsA("Model") then
+		return template:Clone()
+	end
+
+	-- If template is a MeshPart, wrap it in a Model
+	if template:IsA("MeshPart") then
+		return wrapInModel(template)
+	end
+
+	-- For other BaseParts, also wrap in Model
+	if template:IsA("BasePart") then
+		local model = Instance.new("Model")
+		model.Name = template.Name
+		local clonedPart = template:Clone()
+		clonedPart.Parent = model
+		model.PrimaryPart = clonedPart
+		return model
+	end
+
+	-- Fallback: just clone whatever it is
+	warn(string.format("[AssetManifest] Unexpected template type for '%s': %s", assetName, template.ClassName))
+	return template:Clone() :: Model
 end
 
 --[[
-	Check if an asset exists.
+	Check if an asset exists in ServerStorage.AssetTemplates.
 ]]
 function AssetManifest:HasAsset(assetName: string): boolean
 	return self:GetAsset(assetName) ~= nil
 end
 
 --[[
-	Get all assets in a category.
+	Get all templates in a category from ServerStorage.AssetTemplates.
 ]]
-function AssetManifest:GetAssetsInCategory(category: string): { Model }
-	local results = {}
-	local folder = getAssetsFolder()
+function AssetManifest:GetAssetsInCategory(category: string): { Instance }
+	local folder = getTemplatesFolder()
 	if not folder then
-		return results
+		return {}
 	end
 
-	local categoryFolder = folder:FindFirstChild(category)
-	if not categoryFolder then
-		return results
-	end
+	local results = {}
+	local prefix = category .. "_"
 
-	for _, child in categoryFolder:GetChildren() do
-		if child:IsA("Model") then
+	for _, child in folder:GetChildren() do
+		if string.sub(child.Name, 1, #prefix) == prefix then
 			table.insert(results, child)
 		end
 	end
@@ -520,6 +608,7 @@ end
 ]]
 function AssetManifest:PrintStatus()
 	print("=== ASSET MANIFEST STATUS ===")
+	print("Looking in: ServerStorage.AssetTemplates for Category_AssetName")
 
 	local categories: { [string]: { present: number, missing: number } } = {}
 

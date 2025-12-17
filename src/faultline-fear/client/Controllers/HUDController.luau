@@ -728,21 +728,18 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 				Position = UDim2.new(0.5, -75, 0, 5),
 			})
 			:Play()
-			-- Hide zone name, show only time icon on small
-			(elements.zoneName :: TextLabel)
-			.Visible =
-			false;
-		(elements.timeDisplay :: TextLabel).TextSize = 10
+		-- Hide zone name, show only time icon on small
+		;(elements.zoneName :: TextLabel).Visible = false
+		;(elements.timeDisplay :: TextLabel).TextSize = 10
 
 		-- Bottom left: compact objective
 		TweenService:Create(bottomLeft, tweenInfo, {
 			Size = UDim2.new(0, 200, 0, 50),
 			Position = UDim2.new(0, 10, 1, -60),
-		})
-			:Play()(elements.objectiveTitle :: TextLabel).Visible =
-			false;
-		(elements.objectiveText :: TextLabel).TextSize = 12;
-		(elements.objectiveStep :: TextLabel).Visible = false
+		}):Play()
+		;(elements.objectiveTitle :: TextLabel).Visible = false
+		;(elements.objectiveText :: TextLabel).TextSize = 12
+		;(elements.objectiveStep :: TextLabel).Visible = false
 
 		-- Hide bottom right progress (available in expand panel)
 		bottomRight.Visible = false
@@ -789,32 +786,29 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 		TweenService:Create(topCenter, tweenInfo, {
 			Size = UDim2.new(0, 200, 0, 50),
 			Position = UDim2.new(0.5, -100, 0, 8),
-		})
-			:Play()(elements.zoneName :: TextLabel).Visible =
-			true;
-		(elements.zoneName :: TextLabel).TextSize = 14;
-		(elements.timeDisplay :: TextLabel).TextSize = 12
+		}):Play()
+		;(elements.zoneName :: TextLabel).Visible = true
+		;(elements.zoneName :: TextLabel).TextSize = 14
+		;(elements.timeDisplay :: TextLabel).TextSize = 12
 
 		-- Bottom left: moderate
 		TweenService:Create(bottomLeft, tweenInfo, {
 			Size = UDim2.new(0, 280, 0, 60),
 			Position = UDim2.new(0, 15, 1, -75),
-		})
-			:Play()(elements.objectiveTitle :: TextLabel).Visible =
-			false;
-		(elements.objectiveText :: TextLabel).TextSize = 14;
-		(elements.objectiveStep :: TextLabel).Visible = true;
-		(elements.objectiveStep :: TextLabel).TextSize = 10
+		}):Play()
+		;(elements.objectiveTitle :: TextLabel).Visible = false
+		;(elements.objectiveText :: TextLabel).TextSize = 14
+		;(elements.objectiveStep :: TextLabel).Visible = true
+		;(elements.objectiveStep :: TextLabel).TextSize = 10
 
 		-- Show bottom right but compact
 		bottomRight.Visible = true
 		TweenService:Create(bottomRight, tweenInfo, {
 			Size = UDim2.new(0, 150, 0, 50),
 			Position = UDim2.new(1, -165, 1, -65),
-		})
-			:Play()(elements.generatorProgress :: TextLabel).TextSize =
-			12;
-		(elements.survivorProgress :: TextLabel).TextSize = 12
+		}):Play()
+		;(elements.generatorProgress :: TextLabel).TextSize = 12
+		;(elements.survivorProgress :: TextLabel).TextSize = 12
 
 		-- Hide expand button
 		expandButton.Visible = false
@@ -861,32 +855,29 @@ function HUDController:ApplyLayout(screenSize: "Small" | "Medium" | "Large")
 		TweenService:Create(topCenter, tweenInfo, {
 			Size = UDim2.new(0, 300, 0, 60),
 			Position = UDim2.new(0.5, -150, 0, 10),
-		})
-			:Play()(elements.zoneName :: TextLabel).Visible =
-			true;
-		(elements.zoneName :: TextLabel).TextSize = 18;
-		(elements.timeDisplay :: TextLabel).TextSize = 14
+		}):Play()
+		;(elements.zoneName :: TextLabel).Visible = true
+		;(elements.zoneName :: TextLabel).TextSize = 18
+		;(elements.timeDisplay :: TextLabel).TextSize = 14
 
 		-- Bottom left: full objective
 		TweenService:Create(bottomLeft, tweenInfo, {
 			Size = UDim2.new(0, 350, 0, 80),
 			Position = UDim2.new(0, 20, 1, -100),
-		})
-			:Play()(elements.objectiveTitle :: TextLabel).Visible =
-			true;
-		(elements.objectiveText :: TextLabel).TextSize = 16;
-		(elements.objectiveStep :: TextLabel).Visible = true;
-		(elements.objectiveStep :: TextLabel).TextSize = 11
+		}):Play()
+		;(elements.objectiveTitle :: TextLabel).Visible = true
+		;(elements.objectiveText :: TextLabel).TextSize = 16
+		;(elements.objectiveStep :: TextLabel).Visible = true
+		;(elements.objectiveStep :: TextLabel).TextSize = 11
 
 		-- Bottom right: full progress
 		bottomRight.Visible = true
 		TweenService:Create(bottomRight, tweenInfo, {
 			Size = UDim2.new(0, 200, 0, 60),
 			Position = UDim2.new(1, -220, 1, -80),
-		})
-			:Play()(elements.generatorProgress :: TextLabel).TextSize =
-			14;
-		(elements.survivorProgress :: TextLabel).TextSize = 14
+		}):Play()
+		;(elements.generatorProgress :: TextLabel).TextSize = 14
+		;(elements.survivorProgress :: TextLabel).TextSize = 14
 
 		-- Hide expand button
 		expandButton.Visible = false

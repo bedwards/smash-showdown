@@ -3,6 +3,13 @@
   "tree": {
     "$className": "DataModel",
 
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "AssetTemplates": {
+        "$className": "Folder"
+      }
+    },
+
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": {
@@ -38,7 +45,7 @@
       "SpawnLocation": {
         "$className": "SpawnLocation",
         "$properties": {
-          "Position": [0, 50, 0],
+          "Position": [0, 10, -1000],
           "Size": [10, 1, 10],
           "Anchored": true,
           "Transparency": 1,
