@@ -81,6 +81,18 @@ local COLORS = {
 	-- Damage
 	CRACK_DARK = Color3.fromRGB(40, 35, 30),
 	DEBRIS_GRAY = Color3.fromRGB(100, 95, 88),
+
+	-- Convenience Store
+	STORE_CONCRETE = Color3.fromRGB(200, 195, 190),
+	STORE_METAL = Color3.fromRGB(160, 165, 170),
+	STORE_GLASS = Color3.fromRGB(180, 220, 255),
+	STORE_SHELF = Color3.fromRGB(80, 80, 85),
+	GAS_PUMP_RED = Color3.fromRGB(180, 40, 40),
+	GAS_PUMP_WHITE = Color3.fromRGB(245, 245, 245),
+	NEON_BLUE = Color3.fromRGB(100, 180, 255),
+	NEON_RED = Color3.fromRGB(255, 80, 80),
+	LINOLEUM_FLOOR = Color3.fromRGB(180, 175, 165),
+	COUNTER_TOP = Color3.fromRGB(50, 50, 55),
 }
 
 -- Building placements (where to spawn buildings)
@@ -128,6 +140,29 @@ local BUILDING_PLACEMENTS: { BuildingDef } = {
 		buildingType = "RanchHouse",
 		position = Vector3.new(50, 0, -700),
 		rotation = 90,
+		damageLevel = "SEVERE",
+	},
+
+	-- Convenience Stores
+	{
+		name = "ConvenienceStore_Valley_1",
+		buildingType = "ConvenienceStore",
+		position = Vector3.new(300, 0, 50),
+		rotation = 0,
+		damageLevel = "INTACT",
+	},
+	{
+		name = "ConvenienceStore_Coastal_1",
+		buildingType = "ConvenienceStore",
+		position = Vector3.new(-350, 0, -450),
+		rotation = -15,
+		damageLevel = "MODERATE",
+	},
+	{
+		name = "GasStation_Valley_1",
+		buildingType = "ConvenienceStore",
+		position = Vector3.new(-300, 0, 280),
+		rotation = 45,
 		damageLevel = "SEVERE",
 	},
 }
@@ -529,6 +564,551 @@ local function createRanchHouse(def: BuildingDef): Model
 	return house
 end
 
+-- Create a gas pump
+local function createGasPump(parent: Model, position: Vector3, rotation: number): Model
+	local pump = Instance.new("Model")
+	pump.Name = "GasPump"
+
+	-- Main body
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Anchored = true
+	body.Size = Vector3.new(2.5, 6, 1.5)
+	body.Position = position + Vector3.new(0, 3, 0)
+	body.Color = COLORS.GAS_PUMP_WHITE
+	body.Material = Enum.Material.SmoothPlastic
+	body.Parent = pump
+
+	-- Red top stripe
+	local stripe = Instance.new("Part")
+	stripe.Name = "TopStripe"
+	stripe.Anchored = true
+	stripe.Size = Vector3.new(2.6, 1, 1.6)
+	stripe.Position = position + Vector3.new(0, 5.5, 0)
+	stripe.Color = COLORS.GAS_PUMP_RED
+	stripe.Material = Enum.Material.SmoothPlastic
+	stripe.Parent = pump
+
+	-- Nozzle holder
+	local nozzle = Instance.new("Part")
+	nozzle.Name = "NozzleHolder"
+	nozzle.Anchored = true
+	nozzle.Size = Vector3.new(0.8, 1.5, 0.3)
+	nozzle.Position = position + Vector3.new(0, 3.5, -0.9)
+	nozzle.Color = COLORS.STORE_METAL
+	nozzle.Material = Enum.Material.Metal
+	nozzle.Parent = pump
+
+	-- Display screen
+	local display = Instance.new("Part")
+	display.Name = "Display"
+	display.Anchored = true
+	display.Size = Vector3.new(1.8, 1, 0.1)
+	display.Position = position + Vector3.new(0, 4.5, -0.8)
+	display.Color = Color3.fromRGB(20, 40, 20)
+	display.Material = Enum.Material.Neon
+	display.Parent = pump
+
+	pump.PrimaryPart = body
+
+	-- Rotate pump
+	pump:PivotTo(CFrame.new(position) * CFrame.Angles(0, math.rad(rotation), 0) + Vector3.new(0, 0, 0))
+
+	pump.Parent = parent
+	CollectionService:AddTag(pump, "GasPump")
+	return pump
+end
+
+-- Create a store shelf
+local function createShelf(parent: Model, position: Vector3, size: Vector3, name: string, hasFood: boolean): Part
+	local shelf = Instance.new("Part")
+	shelf.Name = name
+	shelf.Anchored = true
+	shelf.CanCollide = true
+	shelf.Size = size
+	shelf.Position = position
+	shelf.Color = COLORS.STORE_SHELF
+	shelf.Material = Enum.Material.Metal
+	shelf.Parent = parent
+
+	-- Add shelving lines (visual detail)
+	local numShelves = math.floor(size.Y / 2)
+	for i = 1, numShelves do
+		local shelfLine = Instance.new("Part")
+		shelfLine.Name = "ShelfLine_" .. i
+		shelfLine.Anchored = true
+		shelfLine.CanCollide = false
+		shelfLine.Size = Vector3.new(size.X + 0.1, 0.1, size.Z + 0.1)
+		shelfLine.Position = position + Vector3.new(0, -size.Y / 2 + i * (size.Y / (numShelves + 1)), 0)
+		shelfLine.Color = COLORS.STORE_METAL
+		shelfLine.Material = Enum.Material.Metal
+		shelfLine.Parent = parent
+	end
+
+	if hasFood then
+		-- Make this a searchable container
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = "Search"
+		prompt.ObjectText = "Store Shelf"
+		prompt.HoldDuration = 1.5
+		prompt.MaxActivationDistance = 6
+		prompt.RequiresLineOfSight = true
+		prompt.Parent = shelf
+
+		shelf:SetAttribute("ContainerType", "StoreShelf")
+		shelf:SetAttribute("Searched", false)
+		shelf:SetAttribute("FoodAmount", math.random(2, 5))
+
+		prompt.Triggered:Connect(function(player)
+			if shelf:GetAttribute("Searched") then
+				return
+			end
+
+			local foodAmount = shelf:GetAttribute("FoodAmount")
+			shelf:SetAttribute("Searched", true)
+			prompt.Enabled = false
+
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			if remotes then
+				local hungerRemote = remotes:FindFirstChild("HungerUpdate")
+				if hungerRemote and hungerRemote:IsA("RemoteEvent") then
+					local foodValue = foodAmount * 8
+					hungerRemote:FireClient(player, "add", foodValue)
+				end
+			end
+
+			shelf.Color = Color3.fromRGB(60, 60, 65)
+		end)
+
+		CollectionService:AddTag(shelf, "SearchableContainer")
+		CollectionService:AddTag(shelf, "StoreShelf")
+	end
+
+	return shelf
+end
+
+-- Create California convenience store / gas station
+local function createConvenienceStore(def: BuildingDef): Model
+	local store = Instance.new("Model")
+	store.Name = def.name
+
+	-- Base dimensions (larger than ranch house)
+	local width = 50
+	local depth = 40
+	local wallHeight = 14
+	local wallThickness = 0.8
+
+	-- Determine damage effects
+	local isBrokenWindows = def.damageLevel == "MODERATE" or def.damageLevel == "SEVERE"
+	local hasCracks = def.damageLevel ~= "INTACT"
+	local hasDebris = def.damageLevel == "SEVERE"
+	local roofSag = def.damageLevel == "SEVERE" and 2 or 0
+
+	-- FOUNDATION / FLOOR
+	local floor = Instance.new("Part")
+	floor.Name = "Floor"
+	floor.Anchored = true
+	floor.Size = Vector3.new(width, 0.5, depth)
+	floor.Position = Vector3.new(0, 0.25, 0)
+	floor.Color = COLORS.LINOLEUM_FLOOR
+	floor.Material = Enum.Material.SmoothPlastic
+	floor.Parent = store
+
+	-- EXTERIOR WALLS
+	-- Front wall (large glass storefront)
+	local frontWallLeft = Instance.new("Part")
+	frontWallLeft.Name = "FrontWallLeft"
+	frontWallLeft.Anchored = true
+	frontWallLeft.Size = Vector3.new(width * 0.15, wallHeight, wallThickness)
+	frontWallLeft.Position = Vector3.new(-width / 2 + width * 0.075, wallHeight / 2, -depth / 2)
+	frontWallLeft.Color = COLORS.STORE_CONCRETE
+	frontWallLeft.Material = Enum.Material.Concrete
+	frontWallLeft.Parent = store
+
+	local frontWallRight = Instance.new("Part")
+	frontWallRight.Name = "FrontWallRight"
+	frontWallRight.Anchored = true
+	frontWallRight.Size = Vector3.new(width * 0.15, wallHeight, wallThickness)
+	frontWallRight.Position = Vector3.new(width / 2 - width * 0.075, wallHeight / 2, -depth / 2)
+	frontWallRight.Color = COLORS.STORE_CONCRETE
+	frontWallRight.Material = Enum.Material.Concrete
+	frontWallRight.Parent = store
+
+	-- Large glass windows (storefront)
+	local glassWidth = width * 0.7
+	local glassWindow = Instance.new("Part")
+	glassWindow.Name = "StorefrontGlass"
+	glassWindow.Anchored = true
+	glassWindow.CanCollide = true
+	glassWindow.Size = Vector3.new(glassWidth, wallHeight * 0.8, wallThickness * 0.5)
+	glassWindow.Position = Vector3.new(0, wallHeight * 0.45, -depth / 2)
+	glassWindow.Transparency = isBrokenWindows and 0.9 or 0.3
+	glassWindow.Color = isBrokenWindows and COLORS.CRACK_DARK or COLORS.STORE_GLASS
+	glassWindow.Material = Enum.Material.Glass
+	glassWindow.Parent = store
+
+	if isBrokenWindows then
+		CollectionService:AddTag(glassWindow, "BrokenWindow")
+	end
+
+	-- Back wall
+	local backWall = Instance.new("Part")
+	backWall.Name = "BackWall"
+	backWall.Anchored = true
+	backWall.Size = Vector3.new(width, wallHeight, wallThickness)
+	backWall.Position = Vector3.new(0, wallHeight / 2, depth / 2)
+	backWall.Color = COLORS.STORE_CONCRETE
+	backWall.Material = Enum.Material.Concrete
+	backWall.Parent = store
+
+	-- Side walls
+	local leftWall = Instance.new("Part")
+	leftWall.Name = "LeftWall"
+	leftWall.Anchored = true
+	leftWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	leftWall.Position = Vector3.new(-width / 2, wallHeight / 2, 0)
+	leftWall.Color = COLORS.STORE_CONCRETE
+	leftWall.Material = Enum.Material.Concrete
+	leftWall.Parent = store
+
+	local rightWall = Instance.new("Part")
+	rightWall.Name = "RightWall"
+	rightWall.Anchored = true
+	rightWall.Size = Vector3.new(wallThickness, wallHeight, depth)
+	rightWall.Position = Vector3.new(width / 2, wallHeight / 2, 0)
+	rightWall.Color = COLORS.STORE_CONCRETE
+	rightWall.Material = Enum.Material.Concrete
+	rightWall.Parent = store
+
+	-- ROOF (flat commercial)
+	local roof = Instance.new("Part")
+	roof.Name = "Roof"
+	roof.Anchored = true
+	roof.Size = Vector3.new(width + 2, 1, depth + 2)
+	roof.Position = Vector3.new(0, wallHeight + 0.5 - roofSag / 2, 0)
+	roof.Color = COLORS.ASPHALT_GRAY
+	roof.Material = Enum.Material.Asphalt
+	roof.Parent = store
+
+	if roofSag > 0 then
+		roof.CFrame = roof.CFrame * CFrame.Angles(math.rad(roofSag), 0, math.rad(roofSag / 2))
+	end
+
+	-- FRONT DOOR (automatic glass door style)
+	local doorWidth = 6
+	local doorHeight = 10
+	local doorPos = Vector3.new(0, doorHeight / 2, -depth / 2 - wallThickness / 2)
+	createDoor(store, doorPos, Vector3.new(doorWidth, doorHeight, wallThickness), "FrontDoor")
+
+	-- STORE SIGN (on front)
+	local sign = Instance.new("Part")
+	sign.Name = "StoreSign"
+	sign.Anchored = true
+	sign.Size = Vector3.new(20, 3, 0.5)
+	sign.Position = Vector3.new(0, wallHeight - 1, -depth / 2 - 0.5)
+	sign.Color = COLORS.NEON_BLUE
+	sign.Material = Enum.Material.Neon
+	sign.Parent = store
+
+	-- Sign light (neon effect)
+	local signLight = Instance.new("PointLight")
+	signLight.Brightness = 2
+	signLight.Range = 20
+	signLight.Color = COLORS.NEON_BLUE
+	signLight.Parent = sign
+
+	-- ==========================================
+	-- INTERIOR - STORE AISLES
+	-- ==========================================
+
+	-- Aisle 1 (left side - snacks/chips)
+	createShelf(store, Vector3.new(-width / 4, 3, -depth / 6), Vector3.new(1.5, 6, 12), "Aisle1_Left", true)
+	createShelf(store, Vector3.new(-width / 4 + 4, 3, -depth / 6), Vector3.new(1.5, 6, 12), "Aisle1_Right", true)
+
+	-- Aisle 2 (center - canned goods)
+	createShelf(store, Vector3.new(0, 3, -depth / 6), Vector3.new(1.5, 6, 12), "Aisle2_Left", true)
+	createShelf(store, Vector3.new(4, 3, -depth / 6), Vector3.new(1.5, 6, 12), "Aisle2_Right", true)
+
+	-- Aisle 3 (right side - beverages)
+	createShelf(store, Vector3.new(width / 4, 3, -depth / 6), Vector3.new(1.5, 6, 12), "Aisle3_Left", true)
+
+	-- ==========================================
+	-- REFRIGERATED CASES (back wall)
+	-- ==========================================
+
+	local fridgeWidth = 8
+	for i = 0, 2 do
+		local fridgeX = -width / 3 + i * (fridgeWidth + 2)
+		local fridge = createContainer(
+			store,
+			Vector3.new(fridgeX, 4, depth / 2 - 2),
+			Vector3.new(fridgeWidth, 8, 2),
+			"RefrigeratedCase_" .. (i + 1),
+			"Refrigerator",
+			Color3.fromRGB(220, 240, 255)
+		)
+		fridge.Material = Enum.Material.Glass
+		fridge.Transparency = 0.4
+
+		-- Cold light
+		local coldLight = Instance.new("PointLight")
+		coldLight.Brightness = 1
+		coldLight.Range = 8
+		coldLight.Color = Color3.fromRGB(200, 220, 255)
+		coldLight.Parent = fridge
+	end
+
+	-- ==========================================
+	-- CHECKOUT COUNTER
+	-- ==========================================
+
+	local counter = Instance.new("Part")
+	counter.Name = "CheckoutCounter"
+	counter.Anchored = true
+	counter.Size = Vector3.new(12, 4, 3)
+	counter.Position = Vector3.new(width / 3, 2, -depth / 3)
+	counter.Color = COLORS.COUNTER_TOP
+	counter.Material = Enum.Material.Granite
+	counter.Parent = store
+
+	-- Cash register
+	local register = Instance.new("Part")
+	register.Name = "CashRegister"
+	register.Anchored = true
+	register.Size = Vector3.new(2, 1.5, 1.5)
+	register.Position = Vector3.new(width / 3, 4.75, -depth / 3)
+	register.Color = COLORS.STORE_METAL
+	register.Material = Enum.Material.Metal
+	register.Parent = store
+
+	-- Behind counter snacks (searchable)
+	createContainer(
+		store,
+		Vector3.new(width / 3 + 3, 4, -depth / 3 + 3),
+		Vector3.new(4, 5, 1.5),
+		"BehindCounterSnacks",
+		"Cabinet",
+		COLORS.STORE_SHELF
+	)
+
+	-- ==========================================
+	-- BACK ROOM / STORAGE
+	-- ==========================================
+
+	-- Back room wall
+	local backRoomWall = Instance.new("Part")
+	backRoomWall.Name = "BackRoomWall"
+	backRoomWall.Anchored = true
+	backRoomWall.Size = Vector3.new(width * 0.4, wallHeight * 0.9, wallThickness)
+	backRoomWall.Position = Vector3.new(width / 4, wallHeight * 0.45, depth / 4)
+	backRoomWall.Color = COLORS.STORE_CONCRETE
+	backRoomWall.Material = Enum.Material.Concrete
+	backRoomWall.Parent = store
+
+	-- Storage room door
+	createDoor(store, Vector3.new(width / 4 - 8, 4, depth / 4), Vector3.new(4, 8, wallThickness), "StorageRoomDoor")
+
+	-- Storage boxes (searchable)
+	createContainer(
+		store,
+		Vector3.new(width / 3, 2, depth / 3),
+		Vector3.new(4, 4, 4),
+		"StorageBox_1",
+		"Pantry",
+		Color3.fromRGB(139, 90, 43)
+	)
+
+	createContainer(
+		store,
+		Vector3.new(width / 3 + 6, 2, depth / 3),
+		Vector3.new(4, 4, 4),
+		"StorageBox_2",
+		"Pantry",
+		Color3.fromRGB(139, 90, 43)
+	)
+
+	-- ==========================================
+	-- GAS PUMPS (outside, in front)
+	-- ==========================================
+
+	-- Gas pump island
+	local pumpIsland = Instance.new("Part")
+	pumpIsland.Name = "PumpIsland"
+	pumpIsland.Anchored = true
+	pumpIsland.Size = Vector3.new(20, 0.5, 8)
+	pumpIsland.Position = Vector3.new(0, 0.25, -depth / 2 - 15)
+	pumpIsland.Color = COLORS.STORE_CONCRETE
+	pumpIsland.Material = Enum.Material.Concrete
+	pumpIsland.Parent = store
+
+	-- Gas pumps
+	createGasPump(store, Vector3.new(-6, 0.5, -depth / 2 - 15), 0)
+	createGasPump(store, Vector3.new(0, 0.5, -depth / 2 - 15), 0)
+	createGasPump(store, Vector3.new(6, 0.5, -depth / 2 - 15), 0)
+
+	-- Pump canopy
+	local canopy = Instance.new("Part")
+	canopy.Name = "PumpCanopy"
+	canopy.Anchored = true
+	canopy.Size = Vector3.new(24, 1, 12)
+	canopy.Position = Vector3.new(0, 12, -depth / 2 - 15)
+	canopy.Color = COLORS.GAS_PUMP_WHITE
+	canopy.Material = Enum.Material.SmoothPlastic
+	canopy.Parent = store
+
+	-- Canopy support pillars
+	for _, xPos in ipairs({ -10, 10 }) do
+		local pillar = Instance.new("Part")
+		pillar.Name = "CanopyPillar"
+		pillar.Anchored = true
+		pillar.Size = Vector3.new(1, 11.5, 1)
+		pillar.Position = Vector3.new(xPos, 6, -depth / 2 - 15)
+		pillar.Color = COLORS.STORE_METAL
+		pillar.Material = Enum.Material.Metal
+		pillar.Parent = store
+	end
+
+	-- Canopy lights
+	for _, xPos in ipairs({ -6, 0, 6 }) do
+		local canopyLight = Instance.new("Part")
+		canopyLight.Name = "CanopyLight"
+		canopyLight.Anchored = true
+		canopyLight.Size = Vector3.new(4, 0.3, 4)
+		canopyLight.Position = Vector3.new(xPos, 11.4, -depth / 2 - 15)
+		canopyLight.Color = Color3.fromRGB(255, 250, 240)
+		canopyLight.Material = Enum.Material.Neon
+		canopyLight.Parent = store
+
+		local light = Instance.new("PointLight")
+		light.Brightness = 3
+		light.Range = 25
+		light.Color = Color3.fromRGB(255, 250, 240)
+		light.Parent = canopyLight
+	end
+
+	-- ==========================================
+	-- FLICKERING LIGHT EFFECT
+	-- ==========================================
+
+	-- Interior ceiling lights with flicker
+	local flickerLights: { PointLight } = {}
+	for i = 0, 2 do
+		for j = 0, 1 do
+			local ceilingLight = Instance.new("Part")
+			ceilingLight.Name = "CeilingLight_" .. i .. "_" .. j
+			ceilingLight.Anchored = true
+			ceilingLight.Size = Vector3.new(4, 0.3, 2)
+			ceilingLight.Position =
+				Vector3.new(-width / 4 + i * (width / 4), wallHeight - 0.5, -depth / 4 + j * (depth / 3))
+			ceilingLight.Color = Color3.fromRGB(255, 255, 245)
+			ceilingLight.Material = Enum.Material.Neon
+			ceilingLight.Parent = store
+
+			local light = Instance.new("PointLight")
+			light.Brightness = 2
+			light.Range = 20
+			light.Color = Color3.fromRGB(255, 255, 245)
+			light.Parent = ceilingLight
+
+			table.insert(flickerLights, light)
+		end
+	end
+
+	-- Flicker effect coroutine (for damaged buildings)
+	if hasCracks then
+		task.spawn(function()
+			local random = Random.new()
+			while store.Parent do
+				for _, light in ipairs(flickerLights) do
+					if random:NextNumber() < 0.1 then
+						-- Flicker
+						local originalBrightness = light.Brightness
+						light.Brightness = 0
+						task.wait(random:NextNumber(0.05, 0.15))
+						light.Brightness = originalBrightness
+						if random:NextNumber() < 0.3 then
+							-- Double flicker
+							task.wait(random:NextNumber(0.02, 0.08))
+							light.Brightness = 0
+							task.wait(random:NextNumber(0.05, 0.1))
+							light.Brightness = originalBrightness
+						end
+					end
+				end
+				task.wait(random:NextNumber(0.5, 2))
+			end
+		end)
+	end
+
+	-- ==========================================
+	-- DAMAGE EFFECTS
+	-- ==========================================
+
+	if hasCracks then
+		-- Wall cracks
+		for _, wall in ipairs({ backWall, leftWall, rightWall }) do
+			local crack = Instance.new("Part")
+			crack.Name = "WallCrack"
+			crack.Anchored = true
+			crack.CanCollide = false
+			crack.Size = Vector3.new(0.2, wallHeight * 0.5, wallThickness + 0.1)
+			crack.CFrame = wall.CFrame * CFrame.new(wall.Size.X / 4, 0, 0)
+			crack.Color = COLORS.CRACK_DARK
+			crack.Material = Enum.Material.Slate
+			crack.Transparency = 0.3
+			crack.Parent = store
+			CollectionService:AddTag(crack, "DamageEffect")
+		end
+	end
+
+	if hasDebris then
+		-- Scatter debris
+		local random = Random.new()
+		for i = 1, 12 do
+			local debris = Instance.new("Part")
+			debris.Name = "Debris_" .. i
+			debris.Anchored = true
+			debris.Size =
+				Vector3.new(random:NextNumber(0.5, 2.5), random:NextNumber(0.3, 1.2), random:NextNumber(0.5, 2.5))
+			debris.Position = Vector3.new(
+				random:NextNumber(-width / 3, width / 3),
+				debris.Size.Y / 2,
+				random:NextNumber(-depth / 3, depth / 3)
+			)
+			debris.Color = COLORS.DEBRIS_GRAY
+			debris.Material = Enum.Material.Rock
+			debris.Rotation =
+				Vector3.new(random:NextNumber(-25, 25), random:NextNumber(0, 360), random:NextNumber(-25, 25))
+			debris.Parent = store
+			CollectionService:AddTag(debris, "Debris")
+		end
+
+		-- Fallen shelf
+		local fallenShelf = Instance.new("Part")
+		fallenShelf.Name = "FallenShelf"
+		fallenShelf.Anchored = true
+		fallenShelf.Size = Vector3.new(1.5, 6, 10)
+		fallenShelf.Position = Vector3.new(-width / 5, 3, 0)
+		fallenShelf.Rotation = Vector3.new(0, 15, 75)
+		fallenShelf.Color = COLORS.STORE_SHELF
+		fallenShelf.Material = Enum.Material.Metal
+		fallenShelf.Parent = store
+		CollectionService:AddTag(fallenShelf, "Debris")
+	end
+
+	-- Set primary part
+	store.PrimaryPart = floor
+
+	-- Tags and attributes
+	CollectionService:AddTag(store, "Building")
+	CollectionService:AddTag(store, "ConvenienceStore")
+	CollectionService:AddTag(store, "Enterable")
+	store:SetAttribute("BuildingType", "ConvenienceStore")
+	store:SetAttribute("DamageLevel", def.damageLevel)
+
+	return store
+end
+
 -- ==========================================
 -- PUBLIC API
 -- ==========================================
@@ -547,6 +1127,8 @@ function BuildingService:CreateBuilding(def: BuildingDef): Model?
 	local building: Model?
 	if def.buildingType == "RanchHouse" then
 		building = createRanchHouse(def)
+	elseif def.buildingType == "ConvenienceStore" then
+		building = createConvenienceStore(def)
 	else
 		warn("[BuildingService] Unknown building type: " .. def.buildingType)
 		return nil
