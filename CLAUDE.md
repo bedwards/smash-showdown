@@ -277,6 +277,59 @@ When user says "we are in production" or "don't change too much":
 - Don't refactor surrounding code
 - Keep a narrow scope
 
+### Rojo Path Structure (CRITICAL)
+
+In Rojo, when you have a folder structure like:
+```
+src/faultline-fear/server/
+├── Main.server.luau
+├── Services/
+│   └── TerrainGenerator.luau
+```
+
+The `Services` folder becomes a **sibling** of Main, not a child:
+```
+ServerScriptService.Server
+├── Main (Script)
+├── Services (Folder)
+```
+
+**WRONG:**
+```lua
+require(script.Services.TerrainGenerator)  -- Services is NOT a child of script!
+```
+
+**CORRECT:**
+```lua
+require(script.Parent.Services.TerrainGenerator)  -- Go up to parent, then into Services
+```
+
+This applies to both server (`script.Parent.Services`) and client (`script.Parent.Controllers`).
+
+**Tests:** `rojo_structure_tests.luau` catches this regression.
+
+### No .NET Methods in Luau (CRITICAL)
+
+Luau is NOT .NET. These methods **do not exist**:
+
+| .NET Method | Luau Alternative |
+|-------------|------------------|
+| `obj:GetHashCode()` | Use object reference directly, or `tostring(obj):match("%x+$")` for unique ID |
+| `obj:ToString()` | `tostring(obj)` |
+| `obj:Equals(other)` | `obj == other` |
+| `array.Length` | `#array` |
+
+**Example fix:**
+```lua
+-- WRONG: GetHashCode doesn't exist in Luau
+local id = light:GetHashCode()
+
+-- CORRECT: Use tostring to get unique instance ID
+local id = tonumber(tostring(light):match("%x+$"), 16) or 0
+```
+
+**Tests:** `luau_patterns_tests.luau` scans for .NET patterns.
+
 ---
 
 ## FAULTLINE FEAR: Current Project

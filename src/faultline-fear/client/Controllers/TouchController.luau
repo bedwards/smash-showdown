@@ -30,7 +30,7 @@ local elements: { [string]: GuiObject } = {}
 local joystickActive: boolean = false
 local joystickStartPosition: Vector2 = Vector2.zero
 local joystickCurrentPosition: Vector2 = Vector2.zero
-local joystickTouchId: number? = nil
+local joystickTouch: InputObject? = nil -- Store touch reference (GetHashCode doesn't exist in Luau)
 
 -- Gesture state
 local lastTapTime: number = 0
@@ -559,7 +559,7 @@ local function setupJoystickInput()
 	joystick.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			joystickActive = true
-			joystickTouchId = input:GetHashCode()
+			joystickTouch = input
 			joystickStartPosition = Vector2.new(input.Position.X, input.Position.Y)
 			joystickCurrentPosition = joystickStartPosition
 		end
@@ -567,14 +567,14 @@ local function setupJoystickInput()
 
 	-- Global touch tracking for joystick movement
 	UserInputService.TouchMoved:Connect(function(touch, _gameProcessed)
-		if joystickActive and touch:GetHashCode() == joystickTouchId then
+		if joystickActive and touch == joystickTouch then
 			joystickCurrentPosition = Vector2.new(touch.Position.X, touch.Position.Y)
 			updateJoystick()
 		end
 	end)
 
 	UserInputService.TouchEnded:Connect(function(touch, _gameProcessed)
-		if joystickActive and touch:GetHashCode() == joystickTouchId then
+		if joystickActive and touch == joystickTouch then
 			resetJoystick()
 		end
 	end)
