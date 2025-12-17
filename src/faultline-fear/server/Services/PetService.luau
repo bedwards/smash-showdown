@@ -258,6 +258,17 @@ local function createPetModel(): Model
 	model:SetAttribute("PetName", "Buddy")
 	model:SetAttribute("IsPet", true)
 
+	-- Add highlight effect so pet is always visible
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "PetHighlight"
+	highlight.FillTransparency = 0.8
+	highlight.OutlineTransparency = 0.3
+	highlight.FillColor = Color3.fromRGB(255, 220, 150) -- Warm glow
+	highlight.OutlineColor = Color3.fromRGB(255, 180, 100) -- Orange outline
+	highlight.Enabled = true
+	highlight.Parent = model
+
+	print("[PetService] Created pet model with highlight")
 	return model
 end
 
@@ -512,27 +523,38 @@ end
 -- ==========================================
 
 function PetService:SpawnPet(player: Player)
+	print(string.format("[PetService] SpawnPet called for %s", player.Name))
+
 	if pets[player] then
+		print("[PetService] Player already has pet, skipping")
 		return
-	end -- Already has pet
+	end
 
 	local character = player.Character
 	if not character then
+		warn("[PetService] Cannot spawn pet - no character for player:", player.Name)
 		return
 	end
 
 	local playerRoot = character:FindFirstChild("HumanoidRootPart")
 	if not playerRoot then
+		warn("[PetService] Cannot spawn pet - no HumanoidRootPart for player:", player.Name)
 		return
 	end
 
 	-- Create pet
 	local pet = createPetModel()
+	if not pet then
+		warn("[PetService] Failed to create pet model!")
+		return
+	end
 
-	-- Position behind player
+	-- Position behind player (use player height instead of terrain if player is higher)
 	local spawnPos = playerRoot.Position - playerRoot.CFrame.LookVector * FOLLOW_DISTANCE
 	local terrainY = Heightmap:GetHeight(spawnPos.X, spawnPos.Z)
-	pet:PivotTo(CFrame.new(spawnPos.X, terrainY + 0.5, spawnPos.Z))
+	-- Use whichever is higher: terrain or slightly below player (in case player is in air)
+	local petY = math.max(terrainY + 0.5, playerRoot.Position.Y - 2)
+	pet:PivotTo(CFrame.new(spawnPos.X, petY, spawnPos.Z))
 
 	-- Parent
 	pet.Parent = petsFolder
@@ -547,7 +569,22 @@ function PetService:SpawnPet(player: Player)
 		idleTime = 0,
 	}
 
-	print(string.format("[PetService] Spawned pet for %s", player.Name))
+	print(
+		string.format(
+			"[PetService] Spawned pet 'Buddy' for %s at (%.1f, %.1f, %.1f)",
+			player.Name,
+			spawnPos.X,
+			petY,
+			spawnPos.Z
+		)
+	)
+
+	-- Initial greeting
+	task.delay(0.5, function()
+		if pet.Parent then
+			showDialogue(player, "idle")
+		end
+	end)
 end
 
 function PetService:DespawnPet(player: Player)
@@ -614,16 +651,30 @@ function PetService:Initialize()
 
 	-- Spawn pet when character loads
 	local function onCharacterAdded(player: Player, character: Model)
+		print(string.format("[PetService] onCharacterAdded for %s", player.Name))
+
 		-- Wait for character to be fully loaded
 		local humanoid = character:WaitForChild("Humanoid", 5)
 		if not humanoid then
+			warn("[PetService] Character has no Humanoid after 5s:", player.Name)
 			return
 		end
 
+		-- Wait for HumanoidRootPart too (important!)
+		local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+		if not rootPart then
+			warn("[PetService] Character has no HumanoidRootPart after 5s:", player.Name)
+			return
+		end
+
+		print(string.format("[PetService] Character ready for %s, spawning pet in 1s", player.Name))
+
 		-- Small delay for everything to settle
 		task.delay(1, function()
-			if player.Parent then
+			if player.Parent and player.Character == character then
 				self:SpawnPet(player)
+			else
+				warn("[PetService] Player or character changed before pet spawn:", player.Name)
 			end
 		end)
 	end
