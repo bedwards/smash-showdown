@@ -313,9 +313,9 @@ SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPoint
 	-- Drop heights for comparison (tuned so water towers slowly crumble, not explode)
 	-- Tilt makes structures less stable, so lower drop heights needed
 	local LOW_DROP = 1     -- Drops from 1 stud - minor settling
-	local MED_DROP = 3     -- Drops from 3 studs - moderate crumbling
+	local MED_DROP = 3.5   -- Drops from 3.5 studs - moderate crumbling
 	local HIGH_DROP = 4    -- Drops from 4 studs - significant damage
-	local MED_TILT = 2     -- Slight tilt for off-balance landing
+	local MED_TILT = 2.5   -- Slight tilt for off-balance landing
 	local HIGH_TILT = 3    -- More tilt for dramatic landing
 
 	-- Spawn ANCHORED version (far left, reference - no damage)
