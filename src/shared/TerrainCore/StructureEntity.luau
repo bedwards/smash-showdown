@@ -23,6 +23,7 @@ local CollectionService = game:GetService("CollectionService")
 -- Import sibling modules
 local TerrainConfig = require(script.Parent.TerrainConfig)
 local Heightmap = require(script.Parent.Heightmap)
+local PlacementUtils = require(script.Parent.PlacementUtils)
 
 -- Cloud asset IDs (single source of truth)
 local CLOUD_ASSETS = {
@@ -61,6 +62,7 @@ export type SpawnOptions = {
 	anchored: boolean?,      -- Default true
 	dropHeight: number?,     -- Height above ground for drop (default 0)
 	rotation: number?,       -- Y rotation in degrees (default 0)
+	tilt: number?,           -- Tilt angle in degrees for drops (causes off-balance landing)
 	flattenRadius: number?,  -- Flatten terrain radius (default 0)
 	scale: number?,          -- Scale multiplier (default 1)
 	parent: Instance?,       -- Parent folder (required)
@@ -228,49 +230,65 @@ function StructureEntity:spawn(x: number, z: number, options: SpawnOptions): Mod
 		colors:ApplyColors(model, assetName)
 	end
 
-	-- Calculate terrain height
-	local terrainY: number
-	if flattenRadius > 0 then
-		terrainY = Heightmap:FlattenArea(x, z, flattenRadius)
-	else
-		terrainY = Heightmap:GetHeight(x, z)
-	end
-
-	-- Calculate model bottom offset
-	local minY = math.huge
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			local partBottom = part.Position.Y - part.Size.Y / 2
-			minY = math.min(minY, partBottom)
-		end
-	end
-
-	-- Calculate final Y position
-	local finalY = terrainY
-	if minY < math.huge then
-		finalY = terrainY - minY
-	elseif model.PrimaryPart then
-		finalY = terrainY + model.PrimaryPart.Size.Y / 2
-	end
-
-	-- Apply per-structure Y offset
-	finalY = finalY + config.yOffset
-
-	-- Apply drop height for unanchored structures
-	if not isAnchored then
-		finalY = finalY + actualDropHeight
-	end
-
-	-- Build rotation CFrame (user rotation + structure correction)
+	-- Apply rotation corrections FIRST (before placement calculation)
+	-- This ensures PlacementUtils sees the model in its final orientation
 	local rotX = config.rotationX or 0
 	local rotY = config.rotationY or 0
 	local rotZ = config.rotationZ or 0
 
-	local cframe = CFrame.new(x, finalY, z)
-		* CFrame.Angles(0, math.rad(rotation), 0)
-		* CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+	if rotX ~= 0 or rotY ~= 0 or rotZ ~= 0 then
+		local currentCFrame = model:GetPivot()
+		local rotationCFrame = CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+		model:PivotTo(CFrame.new(currentCFrame.Position) * rotationCFrame)
+		print(string.format("[StructureEntity] Applied rotation correction: X=%d Y=%d Z=%d", rotX, rotY, rotZ))
+	end
 
-	model:PivotTo(cframe)
+	-- Flatten terrain if needed
+	if flattenRadius > 0 then
+		Heightmap:FlattenArea(x, z, flattenRadius)
+	end
+
+	-- Use PlacementUtils for positioning (single source of truth for placement math)
+	-- Now model is in correct orientation, so bottom calculation is accurate
+	local placementResult
+	if isAnchored then
+		placementResult = PlacementUtils.placeOnGround(model, x, z, Heightmap)
+		print(string.format("[StructureEntity] ANCHORED placement: terrainY=%.1f, finalY=%.1f",
+			placementResult.terrainHeight, model:GetPivot().Position.Y))
+	else
+		placementResult = PlacementUtils.placeForDrop(model, x, z, Heightmap, actualDropHeight)
+		print(string.format("[StructureEntity] DROP placement: terrainY=%.1f, dropHeight=%.1f, finalY=%.1f (should be %.1f above terrain)",
+			placementResult.terrainHeight, actualDropHeight, model:GetPivot().Position.Y,
+			model:GetPivot().Position.Y - placementResult.terrainHeight))
+	end
+
+	-- Debug: show model bounds
+	local bottomOffset = PlacementUtils.getModelBottomOffset(model)
+	local modelHeight = PlacementUtils.getModelHeight(model)
+	print(string.format("[StructureEntity] Model bounds: bottomOffset=%.1f, height=%.1f", bottomOffset, modelHeight))
+
+	-- Apply per-structure Y offset if needed (e.g., FerrisWheel needs to be raised)
+	if config.yOffset ~= 0 then
+		local currentCFrame = model:GetPivot()
+		model:PivotTo(currentCFrame + Vector3.new(0, config.yOffset, 0))
+	end
+
+	-- Apply user rotation (Y-axis spin) after placement
+	if rotation ~= 0 then
+		local currentCFrame = model:GetPivot()
+		local rotationCFrame = CFrame.Angles(0, math.rad(rotation), 0)
+		model:PivotTo(CFrame.new(currentCFrame.Position) * rotationCFrame)
+	end
+
+	-- Apply tilt for drops (causes off-balance landing, more interesting physics)
+	local tilt = options.tilt or 0
+	if tilt ~= 0 and not isAnchored then
+		local currentCFrame = model:GetPivot()
+		-- Tilt on X axis (forward/back lean)
+		local tiltCFrame = CFrame.Angles(math.rad(tilt), 0, 0)
+		model:PivotTo(CFrame.new(currentCFrame.Position) * currentCFrame.Rotation * tiltCFrame)
+		print(string.format("[StructureEntity] Applied tilt: %d degrees", tilt))
+	end
 
 	-- Set name and attributes
 	local suffix = isAnchored and "_Anchored" or ("_Drop" .. string.format("%.0f", actualDropHeight))
@@ -302,8 +320,9 @@ function StructureEntity:spawn(x: number, z: number, options: SpawnOptions): Mod
 	-- Parent to folder
 	model.Parent = options.parent
 
+	local finalPos = model:GetPivot().Position
 	print(string.format("[StructureEntity] Spawned %s at (%.0f, %.0f, %.0f)",
-		model.Name, x, finalY, z))
+		model.Name, finalPos.X, finalPos.Y, finalPos.Z))
 
 	return model
 end

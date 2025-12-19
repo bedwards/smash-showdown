@@ -109,8 +109,8 @@ local TerrainConfig: TerrainConfig = {
 		-- Default values for structures not listed
 		DEFAULT = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
 
-		-- Water tower works perfectly - don't change
-		WaterTower = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+		-- Water tower: cloud model is sideways, needs rotation to stand upright
+		WaterTower = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 90, rotationY = 0, rotationZ = 0 },
 
 		-- Ferris wheel: buried when anchored, very fragile, needs rotation fix
 		FerrisWheel = { yOffset = 8, sensitivity = 0.3, dropMultiplier = 0.3, rotationX = 0, rotationY = 0, rotationZ = 90 },

@@ -103,6 +103,7 @@ end
 --[[
 	Calculates the CFrame to place a model perfectly on the ground.
 	The model's bottom will be exactly at terrain height.
+	PRESERVES the model's current rotation.
 
 	@param model The model to place
 	@param x World X coordinate
@@ -118,8 +119,11 @@ function PlacementUtils.getGroundPlacement(model: Model, x: number, z: number, h
 	-- Place pivot so that bottom of model sits on terrain
 	local finalY = terrainHeight + bottomOffset
 
+	-- Preserve model's current rotation
+	local currentRotation = model:GetPivot().Rotation
+
 	return {
-		cframe = CFrame.new(x, finalY, z),
+		cframe = CFrame.new(x, finalY, z) * currentRotation,
 		terrainHeight = terrainHeight,
 		modelHeight = modelHeight,
 	}
@@ -128,6 +132,7 @@ end
 --[[
 	Calculates the CFrame to drop a model from above.
 	Used for physics drop testing.
+	PRESERVES the model's current rotation.
 
 	@param model The model to drop
 	@param x World X coordinate
@@ -145,8 +150,11 @@ function PlacementUtils.getDropPlacement(model: Model, x: number, z: number, hei
 	-- Place so bottom is `height` studs above terrain
 	local finalY = terrainHeight + bottomOffset + height
 
+	-- Preserve model's current rotation
+	local currentRotation = model:GetPivot().Rotation
+
 	return {
-		cframe = CFrame.new(x, finalY, z),
+		cframe = CFrame.new(x, finalY, z) * currentRotation,
 		terrainHeight = terrainHeight,
 		modelHeight = modelHeight,
 	}

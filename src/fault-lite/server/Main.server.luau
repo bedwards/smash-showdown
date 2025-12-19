@@ -153,32 +153,45 @@ end
 	@return The spawned model, or nil on failure
 ]]
 local function spawnStructure(assetName: string, x: number, z: number, anchored: boolean, dropHeight: number?): Model?
-	print("[Fault-Lite] spawnStructure called:", assetName, "at", x, z, "anchored=", anchored)
-
 	-- Validate asset name
 	if not StructureEntity.isValidAsset(assetName) then
 		warn("[Fault-Lite] Unknown asset: " .. assetName)
 		return nil
 	end
-	print("[Fault-Lite] Asset validated, creating entity...")
 
-	-- Create entity and spawn
+	-- Create entity and spawn using PlacementUtils (single source of truth)
 	local entity = StructureEntity.new(assetName)
-	print("[Fault-Lite] Entity created, calling spawn...")
-
-	local model = entity:spawn(x, z, {
+	return entity:spawn(x, z, {
 		anchored = anchored,
-		dropHeight = dropHeight or 15,
+		dropHeight = dropHeight or 8,
 		parent = structuresFolder,
 	})
+end
 
-	if model then
-		print("[Fault-Lite] Spawn succeeded:", model.Name)
-	else
-		warn("[Fault-Lite] Spawn returned nil!")
+--[[
+	Spawns a structure with tilt for off-balance physics landing.
+	@param assetName The name of the asset to spawn
+	@param x World X coordinate
+	@param z World Z coordinate
+	@param dropHeight Height above ground to drop from
+	@param tilt Tilt angle in degrees (causes off-balance landing)
+	@return The spawned model, or nil on failure
+]]
+local function spawnStructureTilted(assetName: string, x: number, z: number, dropHeight: number, tilt: number): Model?
+	-- Validate asset name
+	if not StructureEntity.isValidAsset(assetName) then
+		warn("[Fault-Lite] Unknown asset: " .. assetName)
+		return nil
 	end
 
-	return model
+	-- Create entity and spawn with tilt
+	local entity = StructureEntity.new(assetName)
+	return entity:spawn(x, z, {
+		anchored = false,
+		dropHeight = dropHeight,
+		tilt = tilt,
+		parent = structuresFolder,
+	})
 end
 
 -- ==========================================
@@ -269,10 +282,7 @@ end
 	4. HIGH DROP - Dropped from high up (far right)
 ]]
 SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPointName)
-	print("[Fault-Lite] === SPAWN EVENT RECEIVED ===")
-	print("[Fault-Lite] Player:", player and player.Name or "nil")
-	print("[Fault-Lite] Asset:", assetName or "nil")
-	print("[Fault-Lite] SpawnPoint:", spawnPointName or "nil")
+	print("[Fault-Lite] Spawning", assetName, "at", spawnPointName or "default")
 
 	-- Find spawn point from TerrainConfig
 	local spawnPoint = nil
@@ -300,31 +310,34 @@ SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPoint
 	local pos4 = spawnPoint.x + spacing * 1.5  -- High drop (far right)
 	local structZ = spawnPoint.z + forwardOffset
 
-	-- Drop heights for comparison
-	local HIGH_DROP = 20  -- Drops from 20 studs above ground
-	local LOW_DROP = 3    -- Drops from just 3 studs above ground
-	local ON_GROUND = 0   -- Placed directly on ground, not anchored
+	-- Drop heights for comparison (tuned so water towers slowly crumble, not explode)
+	-- Tilt makes structures less stable, so lower drop heights needed
+	local LOW_DROP = 1     -- Drops from 1 stud - minor settling
+	local MED_DROP = 3     -- Drops from 3 studs - moderate crumbling
+	local HIGH_DROP = 5    -- Drops from 5 studs - significant damage
+	local MED_TILT = 2     -- Slight tilt for off-balance landing
+	local HIGH_TILT = 3    -- More tilt for dramatic landing
 
-	-- Spawn ANCHORED version (far left, on ground, anchored)
+	-- Spawn ANCHORED version (far left, reference - no damage)
 	local anchoredModel = spawnStructure(assetName, pos1, structZ, true)
 
-	-- Spawn ON GROUND version (center-left, on ground but NOT anchored)
-	spawnStructure(assetName, pos2, structZ, false, ON_GROUND)
+	-- Spawn LOW DROP version (center-left, no tilt - lands flush)
+	spawnStructure(assetName, pos2, structZ, false, LOW_DROP)
 
-	-- Spawn LOW DROP version (center-right, minimal fall)
-	spawnStructure(assetName, pos3, structZ, false, LOW_DROP)
+	-- Spawn MEDIUM DROP version (center-right, slight tilt)
+	spawnStructureTilted(assetName, pos3, structZ, MED_DROP, MED_TILT)
 
-	-- Spawn HIGH DROP version (far right, falls from high)
-	spawnStructure(assetName, pos4, structZ, false, HIGH_DROP)
+	-- Spawn HIGH DROP version (far right, more tilt)
+	spawnStructureTilted(assetName, pos4, structZ, HIGH_DROP, HIGH_TILT)
 
 	-- Store reference (for clearing later)
 	currentStructure = anchoredModel
 
 	print("[Fault-Lite] Spawned quad structures at spawn point:", spawnPoint.name)
-	print("  FAR LEFT: Anchored on ground")
-	print("  CENTER-LEFT: On ground, NOT anchored (drop=0)")
-	print("  CENTER-RIGHT: Drop from " .. LOW_DROP .. " studs")
-	print("  FAR RIGHT: Drop from " .. HIGH_DROP .. " studs")
+	print("  FAR LEFT: Anchored (reference, no damage)")
+	print("  CENTER-LEFT: Drop " .. LOW_DROP .. " stud (flush landing)")
+	print("  CENTER-RIGHT: Drop " .. MED_DROP .. " studs, tilt " .. MED_TILT .. "°")
+	print("  FAR RIGHT: Drop " .. HIGH_DROP .. " studs, tilt " .. HIGH_TILT .. "°")
 end)
 
 TriggerEarthquakeEvent.OnServerEvent:Connect(function(player, earthquakeType)
