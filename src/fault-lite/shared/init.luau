@@ -19,6 +19,7 @@ Shared.Heightmap = TerrainCore.Heightmap
 Shared.PlacementUtils = TerrainCore.PlacementUtils
 
 -- Fault-Lite specific config (minimal)
+-- Note: EARTHQUAKE config is now in TerrainConfig (shared with Faultline Fear)
 Shared.Config = {
 	-- Showcase area size (much smaller than full game)
 	SHOWCASE_SIZE = 200, -- 200x200 stud flat area
@@ -29,12 +30,7 @@ Shared.Config = {
 	-- Structure showcase offset from player
 	STRUCTURE_OFFSET = Vector3.new(0, 0, 50), -- 50 studs in front
 
-	-- Earthquake test durations
-	EARTHQUAKE = {
-		MINOR = { duration = 3, shake = 0.5 },
-		MODERATE = { duration = 8, shake = 1.5 },
-		MAJOR = { duration = 15, shake = 3.0 },
-	},
+	-- EARTHQUAKE config is in TerrainConfig.EARTHQUAKE (DRY - single source of truth)
 }
 
 return Shared

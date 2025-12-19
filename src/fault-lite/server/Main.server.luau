@@ -265,16 +265,57 @@ end
 -- EARTHQUAKE SIMULATION
 -- ==========================================
 
+-- Get earthquake config from shared TerrainConfig (DRY - single source of truth)
+local TerrainConfig = Shared.TerrainConfig
+
+--[[
+	Launch all unanchored structures into the air.
+	Called when earthquake triggers - structures get thrown up and fall back down.
+]]
+local function launchUnanchoredStructures(launchHeight: number)
+	if launchHeight <= 0 then
+		return
+	end
+
+	print("[Fault-Lite] Launching unanchored structures " .. launchHeight .. " studs up")
+
+	local launchedCount = 0
+	for _, model in structuresFolder:GetChildren() do
+		if model:IsA("Model") then
+			-- Check if ANY part is unanchored (if so, this is a droppable structure)
+			local isUnanchored = false
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") and not part.Anchored then
+					isUnanchored = true
+					break
+				end
+			end
+
+			if isUnanchored then
+				-- Move the model up by launchHeight
+				local currentCFrame = model:GetPivot()
+				model:PivotTo(currentCFrame + Vector3.new(0, launchHeight, 0))
+				launchedCount = launchedCount + 1
+			end
+		end
+	end
+
+	print("[Fault-Lite] Launched " .. launchedCount .. " unanchored structures")
+end
+
 local function triggerEarthquake(earthquakeType: string)
-	local config = Config.EARTHQUAKE[earthquakeType]
+	local config = TerrainConfig.EARTHQUAKE[earthquakeType]
 	if not config then
 		warn("[Fault-Lite] Unknown earthquake type: " .. earthquakeType)
 		return
 	end
 
-	print("[Fault-Lite] Triggering earthquake: " .. earthquakeType)
+	print("[Fault-Lite] Triggering earthquake: " .. earthquakeType .. " (launch=" .. config.launchHeight .. ")")
 
-	-- Notify all clients
+	-- Launch unanchored structures into the air
+	launchUnanchoredStructures(config.launchHeight)
+
+	-- Notify all clients (camera shake)
 	TriggerEarthquakeEvent:FireAllClients(earthquakeType, config.duration, config.shake)
 
 	-- If major earthquake, apply Big One terrain changes
@@ -293,10 +334,11 @@ end
 
 --[[
 	SpawnStructure remote event handler.
-	Spawns THREE versions of the structure for comparison:
-	1. ANCHORED - Perfectly placed on ground (left)
-	2. HIGH DROP - Dropped from high up, falls far (center)
-	3. LOW DROP - Dropped from near ground, minimal fall (right)
+	Spawns FOUR versions of the structure for comparison:
+	1. ANCHORED - Perfectly placed on ground, anchored (far left)
+	2. ON GROUND - Placed on ground but NOT anchored (center-left)
+	3. LOW DROP - Dropped from near ground (center-right)
+	4. HIGH DROP - Dropped from high up (far right)
 ]]
 SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPointName)
 	print("[Fault-Lite] Player", player.Name, "requested structure:", assetName, "at", spawnPointName or "default")
@@ -319,34 +361,40 @@ SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPoint
 	-- Clear previous structures
 	clearCurrentStructure()
 
-	-- Calculate positions for triple spawn (spread across X axis)
+	-- Calculate positions for quad spawn (spread across X axis)
 	local forwardOffset = 60
-	local spacing = 35
-	local leftX = spawnPoint.x - spacing      -- Anchored
-	local centerX = spawnPoint.x              -- High drop
-	local rightX = spawnPoint.x + spacing     -- Low drop
+	local spacing = 50  -- Increased from 30 to prevent rolling collisions
+	local pos1 = spawnPoint.x - spacing * 1.5  -- Anchored (far left)
+	local pos2 = spawnPoint.x - spacing * 0.5  -- On ground unanchored (center-left)
+	local pos3 = spawnPoint.x + spacing * 0.5  -- Low drop (center-right)
+	local pos4 = spawnPoint.x + spacing * 1.5  -- High drop (far right)
 	local structZ = spawnPoint.z + forwardOffset
 
 	-- Drop heights for comparison
 	local HIGH_DROP = 20  -- Drops from 20 studs above ground
 	local LOW_DROP = 3    -- Drops from just 3 studs above ground
+	local ON_GROUND = 0   -- Placed directly on ground, not anchored
 
-	-- Spawn ANCHORED version (left side, on ground)
-	local anchoredModel = spawnStructure(assetName, leftX, structZ, true)
+	-- Spawn ANCHORED version (far left, on ground, anchored)
+	local anchoredModel = spawnStructure(assetName, pos1, structZ, true)
 
-	-- Spawn HIGH DROP version (center, falls from high)
-	spawnStructure(assetName, centerX, structZ, false, HIGH_DROP)
+	-- Spawn ON GROUND version (center-left, on ground but NOT anchored)
+	spawnStructure(assetName, pos2, structZ, false, ON_GROUND)
 
-	-- Spawn LOW DROP version (right side, minimal fall)
-	spawnStructure(assetName, rightX, structZ, false, LOW_DROP)
+	-- Spawn LOW DROP version (center-right, minimal fall)
+	spawnStructure(assetName, pos3, structZ, false, LOW_DROP)
+
+	-- Spawn HIGH DROP version (far right, falls from high)
+	spawnStructure(assetName, pos4, structZ, false, HIGH_DROP)
 
 	-- Store reference (for clearing later)
 	currentStructure = anchoredModel
 
-	print("[Fault-Lite] Spawned triple structures at spawn point:", spawnPoint.name)
-	print("  LEFT: Anchored on ground")
-	print("  CENTER: Drop from " .. HIGH_DROP .. " studs")
-	print("  RIGHT: Drop from " .. LOW_DROP .. " studs")
+	print("[Fault-Lite] Spawned quad structures at spawn point:", spawnPoint.name)
+	print("  FAR LEFT: Anchored on ground")
+	print("  CENTER-LEFT: On ground, NOT anchored (drop=0)")
+	print("  CENTER-RIGHT: Drop from " .. LOW_DROP .. " studs")
+	print("  FAR RIGHT: Drop from " .. HIGH_DROP .. " studs")
 end)
 
 TriggerEarthquakeEvent.OnServerEvent:Connect(function(player, earthquakeType)

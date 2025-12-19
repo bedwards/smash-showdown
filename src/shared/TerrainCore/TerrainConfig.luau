@@ -30,6 +30,12 @@ export type SpawnPoint = {
 	description: string,
 }
 
+export type EarthquakeConfig = {
+	duration: number,      -- How long the screen shakes
+	shake: number,         -- Shake intensity
+	launchHeight: number,  -- How high unanchored structures get thrown
+}
+
 export type TerrainConfig = {
 	WORLD_SIZE: number,
 	TERRAIN_SEED: number,
@@ -39,6 +45,7 @@ export type TerrainConfig = {
 	OCEAN_LEVEL: number,
 	ZONES: Zones,
 	SPAWN_POINTS: {SpawnPoint},
+	EARTHQUAKE: {[string]: EarthquakeConfig},
 }
 
 local TerrainConfig: TerrainConfig = {
@@ -78,6 +85,30 @@ local TerrainConfig: TerrainConfig = {
 		{ name = "MountainBase", x = 0, z = 1550, description = "Base of mountains" },
 		{ name = "MountainSlope", x = 0, z = 1750, description = "Mountain slope" },
 	},
+
+	-- Earthquake configuration (shared between Fault-Lite and Faultline Fear)
+	-- launchHeight = how high unanchored structures get thrown up
+	-- Tuned down - structures are fragile!
+	EARTHQUAKE = {
+		-- Fault-Lite named types
+		MINOR = { duration = 3, shake = 0.5, launchHeight = 2 },      -- Gentle bump
+		MODERATE = { duration = 8, shake = 1.5, launchHeight = 3 },   -- Slightly more than minor
+		MAJOR = { duration = 15, shake = 3.0, launchHeight = 15 },    -- The Big One
+
+		-- Launch height multiplier for magnitude-based calculation (Faultline Fear)
+		-- launchHeight = magnitude * LAUNCH_MULTIPLIER
+		LAUNCH_MULTIPLIER = 15,
+	},
 }
+
+--[[
+	Calculate launch height from earthquake magnitude.
+	Used by both Fault-Lite and Faultline Fear for consistent behavior.
+	@param magnitude Earthquake magnitude (0.0 to 1.0)
+	@return Launch height in studs
+]]
+function TerrainConfig.GetLaunchHeight(magnitude: number): number
+	return magnitude * TerrainConfig.EARTHQUAKE.LAUNCH_MULTIPLIER
+end
 
 return TerrainConfig

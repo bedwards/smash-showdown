@@ -207,6 +207,9 @@ function EarthquakeService:ExecuteQuake(quakeData: QuakeData)
 		})
 	end
 
+	-- Launch unanchored structures into the air (all quakes)
+	self:LaunchUnanchoredStructures(quakeData.magnitude)
+
 	-- Apply knockdown if applicable
 	if quakeData.knockdown then
 		self:ApplyKnockdown(quakeData.magnitude)
@@ -436,8 +439,74 @@ local function onPlayerRemoving(player: Player)
 end
 
 -- ==========================================
--- STRUCTURAL DAMAGE
+-- STRUCTURAL DAMAGE & LAUNCHING
 -- ==========================================
+
+--[[
+	Launch all unanchored structures into the air.
+	Called when earthquake triggers - structures get thrown up and fall back down.
+	Launch height is calculated from shared TerrainConfig for consistency with Fault-Lite.
+]]
+function EarthquakeService:LaunchUnanchoredStructures(magnitude: number)
+	-- Use shared config for consistent behavior across both games (DRY)
+	local TerrainConfig = Shared.TerrainConfig
+	local launchHeight = TerrainConfig.GetLaunchHeight(magnitude)
+	if launchHeight <= 0 then
+		return
+	end
+
+	print("[EarthquakeService] Launching unanchored structures " .. string.format("%.1f", launchHeight) .. " studs up")
+
+	local launchedCount = 0
+
+	-- Check Structures folder
+	local structuresFolder = Workspace:FindFirstChild("Structures")
+	if structuresFolder then
+		for _, model in structuresFolder:GetChildren() do
+			if model:IsA("Model") then
+				local isUnanchored = false
+				for _, part in model:GetDescendants() do
+					if part:IsA("BasePart") and not part.Anchored then
+						isUnanchored = true
+						break
+					end
+				end
+
+				if isUnanchored then
+					local currentCFrame = model:GetPivot()
+					model:PivotTo(currentCFrame + Vector3.new(0, launchHeight, 0))
+					launchedCount = launchedCount + 1
+				end
+			end
+		end
+	end
+
+	-- Also check Destructibles folder
+	local destructibles = Workspace:FindFirstChild("Destructibles")
+	if destructibles then
+		for _, model in destructibles:GetChildren() do
+			if model:IsA("Model") then
+				local isUnanchored = false
+				for _, part in model:GetDescendants() do
+					if part:IsA("BasePart") and not part.Anchored then
+						isUnanchored = true
+						break
+					end
+				end
+
+				if isUnanchored then
+					local currentCFrame = model:GetPivot()
+					model:PivotTo(currentCFrame + Vector3.new(0, launchHeight, 0))
+					launchedCount = launchedCount + 1
+				end
+			end
+		end
+	end
+
+	if launchedCount > 0 then
+		print("[EarthquakeService] Launched " .. launchedCount .. " unanchored structures")
+	end
+end
 
 function EarthquakeService:ApplyStructuralDamage(magnitude: number)
 	-- Find destructible structures in workspace
