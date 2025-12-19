@@ -28,6 +28,7 @@ export type AssetEntry = {
 	blenderScript: string?,
 	description: string,
 	required: boolean,
+	cloudAssetId: number?, -- Roblox cloud asset ID for InsertService fallback
 }
 
 local ASSETS: { [string]: AssetEntry } = {
@@ -105,13 +106,15 @@ local ASSETS: { [string]: AssetEntry } = {
 		required = false,
 	},
 
-	-- Structures (from tools/blender/create_structures.py - TODO)
+	-- Structures (from tools/blender/create_structures.py)
+	-- Cloud asset IDs from Open Cloud API upload (see assets/faultline-fear/uploaded-assets.json)
 	FerrisWheel = {
 		name = "FerrisWheel",
 		category = "Structures",
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Beach landmark, rotating beacon",
 		required = false,
+		cloudAssetId = 124487756821368,
 	},
 	RadioTower = {
 		name = "RadioTower",
@@ -119,6 +122,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Mountain summit rescue beacon",
 		required = false,
+		cloudAssetId = 74640268702619,
 	},
 	AbandonedHouse = {
 		name = "AbandonedHouse",
@@ -126,6 +130,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Modular town building",
 		required = false,
+		cloudAssetId = 113272128221522,
 	},
 	Bridge = {
 		name = "Bridge",
@@ -133,6 +138,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Fault line crossing",
 		required = false,
+		cloudAssetId = 80713308347988,
 	},
 	WaterTower = {
 		name = "WaterTower",
@@ -140,6 +146,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Town landmark, elevated tank",
 		required = false,
+		cloudAssetId = 139399916244302,
 	},
 	Lighthouse = {
 		name = "Lighthouse",
@@ -147,6 +154,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Coastal beacon with light",
 		required = false,
+		cloudAssetId = 125802590150635,
 	},
 
 	-- NPCs (from tools/blender/create_npcs.py - TODO)
@@ -389,10 +397,14 @@ local ASSETS: { [string]: AssetEntry } = {
 -- ==========================================
 
 local ServerStorage = game:GetService("ServerStorage")
+local InsertService = game:GetService("InsertService")
 local RunService = game:GetService("RunService")
+
+local AssetColors = require(script.Parent.AssetColors)
 
 local missingAssetWarnings: { [string]: boolean } = {}
 local assetCache: { [string]: Instance } = {}
+local cloudAssetCache: { [number]: Instance } = {} -- Cache for cloud-loaded assets
 local templatesFolder: Folder? = nil
 local templatesFolderChecked = false
 
@@ -429,6 +441,80 @@ local function getTemplatesFolder(): Folder?
 end
 
 --[[
+	Load an asset from Roblox cloud using InsertService.
+	Caches the result for future clones.
+	@param assetId - Roblox cloud asset ID
+	@param fullName - Full name for the model (Category_AssetName)
+	@param assetName - Asset name for color lookup (e.g., "Lighthouse")
+]]
+local function loadFromCloud(assetId: number, fullName: string, assetName: string): Instance?
+	-- Check cache first
+	if cloudAssetCache[assetId] then
+		return cloudAssetCache[assetId]
+	end
+
+	-- Only server can use InsertService
+	if not RunService:IsServer() then
+		return nil
+	end
+
+	local success, result = pcall(function()
+		return InsertService:LoadAsset(assetId)
+	end)
+
+	if not success or not result then
+		warn(string.format("[AssetManifest] Failed to load cloud asset %d: %s", assetId, tostring(result)))
+		return nil
+	end
+
+	-- LoadAsset returns a Model containing the asset
+	local children = result:GetChildren()
+	if #children == 0 then
+		warn(string.format("[AssetManifest] Cloud asset %d returned empty container", assetId))
+		result:Destroy()
+		return nil
+	end
+
+	-- Get the first child (the actual model)
+	local model = children[1]
+	model.Name = fullName
+	model.Parent = nil -- Detach from container
+
+	-- CRITICAL: Apply colors! Roblox FBX import doesn't preserve Blender materials
+	if model:IsA("Model") then
+		AssetColors:ApplyColors(model, assetName)
+		print(string.format("[AssetManifest] Applied colors to %s", assetName))
+	end
+
+	-- Cache it in ServerStorage for future use
+	local folder = getTemplatesFolder()
+	if folder then
+		local cacheClone = model:Clone()
+		cacheClone.Parent = folder
+		print(string.format("[AssetManifest] Loaded cloud asset %s (ID: %d) and cached", fullName, assetId))
+	end
+
+	-- Store in memory cache
+	cloudAssetCache[assetId] = model
+	result:Destroy() -- Clean up container
+
+	return model
+end
+
+--[[
+	Check if a template is "empty" (no BasePart descendants).
+	This handles cases where .rbxm files exist but have no actual geometry.
+]]
+local function isTemplateEmpty(template: Instance): boolean
+	for _, child in template:GetDescendants() do
+		if child:IsA("BasePart") then
+			return false
+		end
+	end
+	return true
+end
+
+--[[
 	Find a template by its full name (Category_AssetName) in the templates folder.
 ]]
 local function findTemplate(fullName: string): Instance?
@@ -444,7 +530,7 @@ local function findTemplate(fullName: string): Instance?
 
 	-- Search direct children
 	local template = folder:FindFirstChild(fullName)
-	if template then
+	if template and not isTemplateEmpty(template) then
 		assetCache[fullName] = template
 		return template
 	end
@@ -453,7 +539,7 @@ local function findTemplate(fullName: string): Instance?
 	for _, child in folder:GetChildren() do
 		if child:IsA("Folder") then
 			local found = child:FindFirstChild(fullName)
-			if found then
+			if found and not isTemplateEmpty(found) then
 				assetCache[fullName] = found
 				return found
 			end
@@ -484,6 +570,7 @@ end
 --[[
 	Get an asset template by name.
 	Looks in ServerStorage.AssetTemplates for Category_AssetName format.
+	Falls back to cloud loading via InsertService if local template is missing/empty.
 	Returns the template (do NOT parent to Workspace - use CloneAsset instead).
 ]]
 function AssetManifest:GetAsset(assetName: string): Instance?
@@ -496,19 +583,39 @@ function AssetManifest:GetAsset(assetName: string): Instance?
 	-- Asset imports use Category_AssetName format
 	local fullName = entry.category .. "_" .. entry.name
 
+	-- Try local template first
 	local template = findTemplate(fullName)
+
+	-- If no local template (or empty), try cloud loading
+	if not template and entry.cloudAssetId then
+		template = loadFromCloud(entry.cloudAssetId, fullName, entry.name)
+		if template then
+			-- Cache the cloud-loaded asset for future lookups
+			assetCache[fullName] = template
+		end
+	end
 
 	if not template then
 		-- Only warn once per asset to avoid log spam
 		if not missingAssetWarnings[assetName] then
 			missingAssetWarnings[assetName] = true
-			warn(
-				string.format(
-					"[AssetManifest] Asset '%s' not found. Expected: ServerStorage.AssetTemplates.%s",
-					assetName,
-					fullName
+			if entry.cloudAssetId then
+				warn(
+					string.format(
+						"[AssetManifest] Asset '%s' not found locally or in cloud (ID: %d)",
+						assetName,
+						entry.cloudAssetId
+					)
 				)
-			)
+			else
+				warn(
+					string.format(
+						"[AssetManifest] Asset '%s' not found. Expected: ServerStorage.AssetTemplates.%s",
+						assetName,
+						fullName
+					)
+				)
+			end
 		end
 		return nil
 	end

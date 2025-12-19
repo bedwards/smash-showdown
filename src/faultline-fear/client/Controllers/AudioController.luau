@@ -2,11 +2,14 @@
 --[[
 	Faultline Fear: Audio Controller
 
-	Handles all client-side audio:
-	- Background music that NEVER stops
-	- Zone-based station switching with crossfade
-	- Emergency broadcasts during earthquakes
-	- Ambient sounds and effects
+	LAYERED AUDIO SYSTEM:
+	- Ambient Layer: Full volume nature sounds (waves, wind, forest)
+	- Music Layer: Low volume with reverb for distant, eerie feel
+
+	Creates atmosphere like: you're at the beach hearing waves crash,
+	but faint carnival music drifts from the abandoned pier...
+
+	California Beach Horror Survival Theme
 ]]
 
 local SoundService = game:GetService("SoundService")
@@ -25,117 +28,215 @@ local currentStation: Station = "Wilderness"
 local isEmergencyActive: boolean = false
 local masterVolume: number = Config.MUSIC.DEFAULT_VOLUME
 
--- Sound instances
+-- Sound groups (separate for ambient and music layers)
+local ambientGroup: SoundGroup = nil :: any
 local musicGroup: SoundGroup = nil :: any
-local currentSound: Sound? = nil
-local _nextSound: Sound? = nil -- Reserved for future crossfade optimization
 
--- Station sound IDs - Roblox Creator Marketplace ambient sounds
--- Sources: robloxsong.com, musiccoder.com, robloxmusicids.com
-local StationSounds: { [Station]: string } = {
-	Coastal = "rbxassetid://898059911", -- Sea Ambience
-	Mountain = "rbxassetid://169736440", -- [Nature] Forest Sounds (alpine feel)
-	Town = "rbxassetid://7262900392", -- Ambient Music (calm urban)
-	Wilderness = "rbxassetid://728506251", -- Nature sounds for Forest
-	Eerie = "rbxassetid://5595380425", -- Dark Scary Eerie Horror Ambient
-	Emergency = "rbxassetid://5743541225", -- Red Alert Alarm / Siren (looped)
+-- Current playing sounds
+local currentAmbient: Sound? = nil
+local currentMusic: Sound? = nil
+
+-- ==========================================
+-- AUDIO CONFIGURATION - California Beach Horror Survival
+-- ==========================================
+
+-- Ambient sounds (full volume, nearby nature)
+local AmbientSounds: { [Station]: string } = {
+	Coastal = "rbxassetid://959532448", -- Ocean Waves
+	Mountain = "rbxassetid://1842660840", -- Cave/Mountain Wind
+	Town = "rbxassetid://7524653769", -- Creepy Urban Ambience
+	Wilderness = "rbxassetid://169736440", -- Forest Sounds
+	Eerie = "rbxassetid://2893921424", -- Scary Ambience (liminal)
+	Emergency = "rbxassetid://5743541225", -- Siren (takes over both layers)
 }
 
--- Fallback sound IDs (alternative tracks if primary fails)
--- Note: Roblox audio privacy may restrict some tracks
-local FallbackSounds: { [Station]: number } = {
-	Coastal = 959532448, -- Ocean waves
-	Mountain = 138089070, -- Forest Ambience (Night)
-	Town = 169736440, -- Forest sounds as fallback
-	Wilderness = 169736440, -- [Nature] Forest Sounds
+-- Distant music (low volume with reverb - sounds far away)
+-- Theme: California beach town with something WRONG
+local DistantMusic: { [Station]: string } = {
+	Coastal = "rbxassetid://143382469", -- Creepy Music Box (distant carnival)
+	Mountain = "rbxassetid://9039981149", -- Horror (isolated dread)
+	Town = "rbxassetid://209322206", -- Scary Music Box (abandoned shops)
+	Wilderness = "rbxassetid://5201293422", -- Horror Ambient (something watching)
+	Eerie = "rbxassetid://1837805876", -- Music Box of Death (backrooms)
+	Emergency = "", -- No distant music during emergency
+}
+
+-- Fallback IDs if primary fails
+local AmbientFallbacks: { [Station]: number } = {
+	Coastal = 419321414, -- Ocean Wave Effects
+	Mountain = 728506251, -- Wind/Nature
+	Town = 1846999567, -- Creepy Night
+	Wilderness = 728506251, -- Nature sounds
 	Eerie = 7524653769, -- Creepy Ambience
-	Emergency = 428391167, -- Tornado Warning Siren
+	Emergency = 428391167, -- Tornado Siren
 }
+
+local MusicFallbacks: { [Station]: number } = {
+	Coastal = 1847830052, -- Spooky Clouds
+	Mountain = 1841151748, -- Out of the Music Box
+	Town = 5252159074, -- Creepy Music Box Loud
+	Wilderness = 4476735716, -- Reversed Music Box
+	Eerie = 1844758350, -- Choir Harmony (eerie)
+	Emergency = 0, -- No fallback
+}
+
+-- Volume settings for layers
+local AMBIENT_VOLUME = 0.6 -- Nearby, clear
+local MUSIC_VOLUME = 0.15 -- Distant, faint
+local MUSIC_REVERB_DECAY = 3.0 -- Seconds of reverb tail
+local MUSIC_REVERB_WET = 0.7 -- How much reverb (0-1)
 
 -- ==========================================
 -- SOUND SETUP
 -- ==========================================
 
-local function createSoundGroup(): SoundGroup
-	local group = Instance.new("SoundGroup")
-	group.Name = "FaultlineFearMusic"
-	group.Volume = masterVolume
-	group.Parent = SoundService
-	return group
+local function createSoundGroups()
+	-- Ambient group (no effects)
+	ambientGroup = Instance.new("SoundGroup")
+	ambientGroup.Name = "FaultlineFearAmbient"
+	ambientGroup.Volume = AMBIENT_VOLUME
+	ambientGroup.Parent = SoundService
+
+	-- Music group (will have reverb)
+	musicGroup = Instance.new("SoundGroup")
+	musicGroup.Name = "FaultlineFearMusic"
+	musicGroup.Volume = MUSIC_VOLUME
+	musicGroup.Parent = SoundService
+
+	-- Add reverb to music group for distant sound
+	local reverb = Instance.new("ReverbSoundEffect")
+	reverb.Name = "DistantReverb"
+	reverb.DecayTime = MUSIC_REVERB_DECAY
+	reverb.Density = 0.8
+	reverb.Diffusion = 0.9
+	reverb.DryLevel = 1 - MUSIC_REVERB_WET
+	reverb.WetLevel = MUSIC_REVERB_WET
+	reverb.Parent = musicGroup
 end
 
-local function createSound(station: Station): Sound?
-	-- Check if we have a valid sound ID (DRY - use shared utility)
-	local soundId = StationSounds[station]
-	local fallbackId = FallbackSounds[station]
-
+local function createSound(soundId: string, fallbackId: number, group: SoundGroup, name: string): Sound?
 	local hasValidPrimary = Shared.isValidSoundId(soundId)
-	local hasValidFallback = Shared.isValidSoundId(fallbackId)
+	local hasValidFallback = fallbackId > 0
 
-	-- Skip sound creation entirely if no valid audio
-	-- (prevents "Failed to load sound" errors)
 	if not hasValidPrimary and not hasValidFallback then
+		warn("[AudioController] No valid sound ID for:", name)
 		return nil
 	end
 
 	local sound = Instance.new("Sound")
-	sound.Name = station .. "Music"
+	sound.Name = name
 	sound.Looped = true
 	sound.Volume = 0 -- Start silent for crossfade
 
-	-- Use primary or fallback sound ID
 	if hasValidPrimary then
 		sound.SoundId = soundId
 	else
 		sound.SoundId = "rbxassetid://" .. tostring(fallbackId)
 	end
 
-	sound.SoundGroup = musicGroup
-	sound.Parent = musicGroup
+	sound.SoundGroup = group
+	sound.Parent = group
+
+	-- Log what we're trying to play
+	print(string.format("[AudioController] Created sound '%s' with ID: %s", name, sound.SoundId))
+
+	-- Listen for load errors (common with Roblox audio policy)
+	sound.Loaded:Connect(function()
+		print(string.format("[AudioController] Sound loaded: %s (length: %.1fs)", name, sound.TimeLength))
+	end)
+
+	-- Check if sound fails to load after a delay
+	task.delay(3, function()
+		if sound.Parent and sound.TimeLength == 0 then
+			warn(string.format("[AudioController] Sound may have failed to load: %s (ID: %s)", name, sound.SoundId))
+		end
+	end)
 
 	return sound
 end
 
 -- ==========================================
--- CROSSFADE
+-- CROSSFADE (handles both layers)
 -- ==========================================
 
-local function crossfadeTo(newStation: Station)
-	if newStation == currentStation and currentSound then
-		return
-	end
-
-	print("[AudioController] Crossfading to:", newStation)
-
+local function crossfadeLayer(
+	oldSound: Sound?,
+	newSoundId: string,
+	fallbackId: number,
+	group: SoundGroup,
+	name: string,
+	targetVolume: number
+): Sound?
 	local fadeTime = Config.MUSIC.CROSSFADE_DURATION
 
-	-- Create new sound (may be nil if no valid audio)
-	local newSound = createSound(newStation)
+	-- Create new sound
+	local newSound = createSound(newSoundId, fallbackId, group, name)
 
-	-- Fade out and destroy old sound
-	if currentSound then
-		local oldSound = currentSound
-		local fadeOutTween = TweenService:Create(oldSound, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
+	-- Fade out old sound
+	if oldSound then
+		local old = oldSound
+		local fadeOut = TweenService:Create(old, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
 			Volume = 0,
 		})
-		fadeOutTween:Play()
-		fadeOutTween.Completed:Connect(function()
-			oldSound:Destroy()
+		fadeOut:Play()
+		fadeOut.Completed:Connect(function()
+			old:Destroy()
 		end)
 	end
 
-	-- Only play if we have a valid sound
+	-- Fade in new sound
 	if newSound then
 		newSound:Play()
-
-		-- Fade in new sound
-		local fadeInTween = TweenService:Create(newSound, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
-			Volume = masterVolume,
+		local fadeIn = TweenService:Create(newSound, TweenInfo.new(fadeTime, Enum.EasingStyle.Sine), {
+			Volume = targetVolume,
 		})
-		fadeInTween:Play()
+		fadeIn:Play()
 	end
 
-	currentSound = newSound
+	return newSound
+end
+
+local function crossfadeTo(newStation: Station)
+	if newStation == currentStation and currentAmbient then
+		return
+	end
+
+	print("[AudioController] Crossfading to:", newStation, "(layered audio)")
+
+	-- Crossfade ambient layer
+	currentAmbient = crossfadeLayer(
+		currentAmbient,
+		AmbientSounds[newStation],
+		AmbientFallbacks[newStation],
+		ambientGroup,
+		newStation .. "_Ambient",
+		AMBIENT_VOLUME * masterVolume
+	)
+
+	-- Crossfade music layer (distant, with reverb)
+	local musicId = DistantMusic[newStation]
+	if musicId and musicId ~= "" then
+		currentMusic = crossfadeLayer(
+			currentMusic,
+			musicId,
+			MusicFallbacks[newStation],
+			musicGroup,
+			newStation .. "_Music",
+			MUSIC_VOLUME * masterVolume
+		)
+	else
+		-- No music for this station (e.g., Emergency)
+		if currentMusic then
+			local old = currentMusic
+			local fadeOut = TweenService:Create(old, TweenInfo.new(1), { Volume = 0 })
+			fadeOut:Play()
+			fadeOut.Completed:Connect(function()
+				old:Destroy()
+			end)
+			currentMusic = nil
+		end
+	end
+
 	currentStation = newStation
 end
 
@@ -143,7 +244,6 @@ end
 -- EMERGENCY BROADCAST
 -- ==========================================
 
--- Forward declare for mutual recursion
 local endEmergencyInternal: (Station?) -> ()
 
 local function startEmergency(duration: number)
@@ -152,19 +252,28 @@ local function startEmergency(duration: number)
 	end
 
 	isEmergencyActive = true
-	print("[AudioController] Emergency broadcast started")
+	print("[AudioController] EMERGENCY BROADCAST - Earthquake Warning!")
 
-	-- Store current station to resume later
 	local previousStation = currentStation
 
-	-- Quick fade to emergency
-	local emergencySound = createSound("Emergency")
-	emergencySound.Volume = Config.MUSIC.EMERGENCY_BROADCAST_VOLUME
-	emergencySound:Play()
+	-- Fade down both layers quickly
+	if currentAmbient then
+		TweenService:Create(currentAmbient, TweenInfo.new(0.5), { Volume = 0.1 }):Play()
+	end
+	if currentMusic then
+		TweenService:Create(currentMusic, TweenInfo.new(0.3), { Volume = 0 }):Play()
+	end
 
-	-- Fade down current music
-	if currentSound then
-		TweenService:Create(currentSound, TweenInfo.new(0.5), { Volume = 0.1 }):Play()
+	-- Play emergency siren at full volume
+	local emergencySound = createSound(
+		AmbientSounds.Emergency,
+		AmbientFallbacks.Emergency,
+		ambientGroup,
+		"Emergency_Siren"
+	)
+	if emergencySound then
+		emergencySound.Volume = Config.MUSIC.EMERGENCY_BROADCAST_VOLUME
+		emergencySound:Play()
 	end
 
 	-- Schedule resume
@@ -181,11 +290,11 @@ endEmergencyInternal = function(resumeStation: Station?)
 	end
 
 	isEmergencyActive = false
-	print("[AudioController] Emergency broadcast ended")
+	print("[AudioController] Emergency ended, resuming normal audio")
 
 	-- Find and fade out emergency sound
-	for _, sound in musicGroup:GetChildren() do
-		if sound:IsA("Sound") and sound.Name == "EmergencyMusic" then
+	for _, sound in ambientGroup:GetChildren() do
+		if sound:IsA("Sound") and sound.Name == "Emergency_Siren" then
 			local fadeOut = TweenService:Create(sound, TweenInfo.new(1), { Volume = 0 })
 			fadeOut:Play()
 			fadeOut.Completed:Connect(function()
@@ -194,11 +303,10 @@ endEmergencyInternal = function(resumeStation: Station?)
 		end
 	end
 
-	-- Resume previous music
+	-- Resume previous station
 	if resumeStation then
+		currentStation = "Emergency" -- Force crossfade
 		crossfadeTo(resumeStation)
-	elseif currentSound then
-		TweenService:Create(currentSound, TweenInfo.new(2), { Volume = masterVolume }):Play()
 	end
 end
 
@@ -208,10 +316,15 @@ end
 
 function AudioController:SetVolume(volume: number)
 	masterVolume = math.clamp(volume, 0, 1)
-	if musicGroup then
-		musicGroup.Volume = masterVolume
+
+	if ambientGroup then
+		ambientGroup.Volume = AMBIENT_VOLUME * masterVolume
 	end
-	print("[AudioController] Volume set to:", masterVolume)
+	if musicGroup then
+		musicGroup.Volume = MUSIC_VOLUME * masterVolume
+	end
+
+	print("[AudioController] Master volume:", masterVolume)
 end
 
 function AudioController:GetVolume(): number
@@ -219,15 +332,13 @@ function AudioController:GetVolume(): number
 end
 
 function AudioController:Mute()
-	if musicGroup then
-		musicGroup.Volume = 0
-	end
+	if ambientGroup then ambientGroup.Volume = 0 end
+	if musicGroup then musicGroup.Volume = 0 end
 end
 
 function AudioController:Unmute()
-	if musicGroup then
-		musicGroup.Volume = masterVolume
-	end
+	if ambientGroup then ambientGroup.Volume = AMBIENT_VOLUME * masterVolume end
+	if musicGroup then musicGroup.Volume = MUSIC_VOLUME * masterVolume end
 end
 
 -- ==========================================
@@ -245,23 +356,29 @@ function AudioController:GetCurrentStation(): Station
 end
 
 -- ==========================================
--- EARTHQUAKE SOUNDS
+-- EARTHQUAKE RUMBLE
 -- ==========================================
 
 local rumbleSound: Sound? = nil
 
 function AudioController:PlayEarthquakeRumble(magnitude: number, duration: number)
-	-- Create rumble sound
 	if rumbleSound then
 		rumbleSound:Destroy()
 	end
 
 	rumbleSound = Instance.new("Sound")
 	rumbleSound.Name = "EarthquakeRumble"
-	rumbleSound.SoundId = "rbxassetid://9043887091" -- Placeholder rumble
+	rumbleSound.SoundId = "rbxassetid://9043887091" -- Deep rumble
 	rumbleSound.Volume = magnitude * 0.8
 	rumbleSound.Looped = true
 	rumbleSound.Parent = SoundService
+
+	-- Add low-pass filter for rumble effect
+	local eq = Instance.new("EqualizerSoundEffect")
+	eq.HighGain = -20
+	eq.MidGain = -5
+	eq.LowGain = 10
+	eq.Parent = rumbleSound
 
 	rumbleSound:Play()
 
@@ -292,8 +409,11 @@ end
 -- ==========================================
 
 function AudioController:Initialize()
-	-- Create sound group
-	musicGroup = createSoundGroup()
+	print("[AudioController] Initializing layered audio system...")
+	print("[AudioController] Theme: California Beach Horror Survival")
+
+	-- Create sound groups with reverb
+	createSoundGroups()
 
 	-- Connect to server music events
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -313,12 +433,12 @@ function AudioController:Initialize()
 		end)
 	end
 
-	-- Start with wilderness music immediately
-	print("[AudioController] Starting initial music...")
+	-- Start with wilderness (player spawns in safe area)
+	print("[AudioController] Starting ambient: forest sounds")
+	print("[AudioController] Starting music: distant horror (with reverb)")
 	crossfadeTo("Wilderness")
 
-	print("[AudioController] Initialized")
-	print("[AudioController] Music should NEVER stop!")
+	print("[AudioController] Layered audio active - music NEVER stops!")
 end
 
 return AudioController

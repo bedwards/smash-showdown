@@ -2,28 +2,334 @@
   "name": "FaultlineFear",
   "tree": {
     "$className": "DataModel",
-
-    "ServerStorage": {
-      "$className": "ServerStorage",
-      "AssetTemplates": {
-        "$className": "Folder"
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
       }
     },
-
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [
+          0.1,
+          0.1,
+          0.12
+        ],
+        "Brightness": 2,
+        "ClockTime": 14,
+        "GeographicLatitude": 37.7749,
+        "OutdoorAmbient": [
+          0.2,
+          0.2,
+          0.22
+        ],
+        "Technology": "Voxel"
+      }
+    },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/faultline-fear/shared"
+      },
+      "DevPackages": {
+        "$path": "DevPackages"
       }
     },
-
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {
         "$path": "src/faultline-fear/server"
       }
     },
-
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "AssetTemplates": {
+        "$className": "Folder",
+        "Animals_Bird": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Bird.rbxm"
+        },
+        "Animals_Bird.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Bird.001.rbxm"
+        },
+        "Animals_Coyote": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Coyote.rbxm"
+        },
+        "Animals_Coyote.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Coyote.001.rbxm"
+        },
+        "Animals_Deer": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Deer.rbxm"
+        },
+        "Animals_Deer.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Deer.001.rbxm"
+        },
+        "Animals_Fish": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Fish.rbxm"
+        },
+        "Animals_Fish.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Fish.001.rbxm"
+        },
+        "Animals_MountainLion": {
+          "$path": "assets/faultline-fear/rbxm/Animals_MountainLion.rbxm"
+        },
+        "Animals_MountainLion.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_MountainLion.001.rbxm"
+        },
+        "Animals_Rabbit": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Rabbit.rbxm"
+        },
+        "Animals_Rabbit.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Rabbit.001.rbxm"
+        },
+        "Animals_Wolf": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Wolf.rbxm"
+        },
+        "Animals_Wolf.001": {
+          "$path": "assets/faultline-fear/rbxm/Animals_Wolf.001.rbxm"
+        },
+        "Caves_CaveChamber": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveChamber.rbxm"
+        },
+        "Caves_CaveChamber.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveChamber.001.rbxm"
+        },
+        "Caves_CaveEntrance_Large": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Large.rbxm"
+        },
+        "Caves_CaveEntrance_Large.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Large.001.rbxm"
+        },
+        "Caves_CaveEntrance_Medium": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Medium.rbxm"
+        },
+        "Caves_CaveEntrance_Medium.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Medium.001.rbxm"
+        },
+        "Caves_CaveEntrance_Small": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Small.rbxm"
+        },
+        "Caves_CaveEntrance_Small.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveEntrance_Small.001.rbxm"
+        },
+        "Caves_CaveInteriorSegment": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveInteriorSegment.rbxm"
+        },
+        "Caves_CaveInteriorSegment.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_CaveInteriorSegment.001.rbxm"
+        },
+        "Caves_RockPillar": {
+          "$path": "assets/faultline-fear/rbxm/Caves_RockPillar.rbxm"
+        },
+        "Caves_RockPillar.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_RockPillar.001.rbxm"
+        },
+        "Caves_Stalactite": {
+          "$path": "assets/faultline-fear/rbxm/Caves_Stalactite.rbxm"
+        },
+        "Caves_Stalactite.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_Stalactite.001.rbxm"
+        },
+        "Caves_Stalagmite": {
+          "$path": "assets/faultline-fear/rbxm/Caves_Stalagmite.rbxm"
+        },
+        "Caves_Stalagmite.001": {
+          "$path": "assets/faultline-fear/rbxm/Caves_Stalagmite.001.rbxm"
+        },
+        "Creatures_FissureDweller": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_FissureDweller.rbxm"
+        },
+        "Creatures_NightBird": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_NightBird.rbxm"
+        },
+        "Creatures_ShadowStalker": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_ShadowStalker.rbxm"
+        },
+        "Creatures_fissure_dweller": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_fissure_dweller.rbxm"
+        },
+        "Creatures_night_bird": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_night_bird.rbxm"
+        },
+        "Creatures_shadow_stalker": {
+          "$path": "assets/faultline-fear/rbxm/Creatures_shadow_stalker.rbxm"
+        },
+        "Liminal_AbandonedMall": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_AbandonedMall.rbxm"
+        },
+        "Liminal_AbandonedMall.001": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_AbandonedMall.001.rbxm"
+        },
+        "Liminal_AbandonedSchool": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_AbandonedSchool.rbxm"
+        },
+        "Liminal_AbandonedSchool.001": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_AbandonedSchool.001.rbxm"
+        },
+        "Liminal_HighwayUnderpass": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_HighwayUnderpass.rbxm"
+        },
+        "Liminal_HighwayUnderpass.001": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_HighwayUnderpass.001.rbxm"
+        },
+        "Liminal_Hospital": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_Hospital.rbxm"
+        },
+        "Liminal_Hospital.001": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_Hospital.001.rbxm"
+        },
+        "Liminal_HotelLobby": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_HotelLobby.rbxm"
+        },
+        "Liminal_HotelLobby.001": {
+          "$path": "assets/faultline-fear/rbxm/Liminal_HotelLobby.001.rbxm"
+        },
+        "NPCs_PetCompanion": {
+          "$path": "assets/faultline-fear/rbxm/NPCs_PetCompanion.rbxm"
+        },
+        "NPCs_Survivor": {
+          "$path": "assets/faultline-fear/rbxm/NPCs_Survivor.rbxm"
+        },
+        "Signs_DirectionalSign": {
+          "$path": "assets/faultline-fear/rbxm/Signs_DirectionalSign.rbxm"
+        },
+        "Signs_DirectionalSign.001": {
+          "$path": "assets/faultline-fear/rbxm/Signs_DirectionalSign.001.rbxm"
+        },
+        "Signs_ObjectiveMarker": {
+          "$path": "assets/faultline-fear/rbxm/Signs_ObjectiveMarker.rbxm"
+        },
+        "Signs_ObjectiveMarker.001": {
+          "$path": "assets/faultline-fear/rbxm/Signs_ObjectiveMarker.001.rbxm"
+        },
+        "Signs_RoadSign": {
+          "$path": "assets/faultline-fear/rbxm/Signs_RoadSign.rbxm"
+        },
+        "Signs_RoadSign.001": {
+          "$path": "assets/faultline-fear/rbxm/Signs_RoadSign.001.rbxm"
+        },
+        "Signs_StoryPlaque": {
+          "$path": "assets/faultline-fear/rbxm/Signs_StoryPlaque.rbxm"
+        },
+        "Signs_StoryPlaque.001": {
+          "$path": "assets/faultline-fear/rbxm/Signs_StoryPlaque.001.rbxm"
+        },
+        "Signs_WarningSign": {
+          "$path": "assets/faultline-fear/rbxm/Signs_WarningSign.rbxm"
+        },
+        "Signs_WarningSign.001": {
+          "$path": "assets/faultline-fear/rbxm/Signs_WarningSign.001.rbxm"
+        },
+        "Structures_AbandonedHouse": {
+          "$path": "assets/faultline-fear/rbxm/Structures_AbandonedHouse.rbxm"
+        },
+        "Structures_Bridge": {
+          "$path": "assets/faultline-fear/rbxm/Structures_Bridge.rbxm"
+        },
+        "Structures_FerrisWheel": {
+          "$path": "assets/faultline-fear/rbxm/Structures_FerrisWheel.rbxm"
+        },
+        "Structures_Lighthouse": {
+          "$path": "assets/faultline-fear/rbxm/Structures_Lighthouse.rbxm"
+        },
+        "Structures_RadioTower": {
+          "$path": "assets/faultline-fear/rbxm/Structures_RadioTower.rbxm"
+        },
+        "Structures_WaterTower": {
+          "$path": "assets/faultline-fear/rbxm/Structures_WaterTower.rbxm"
+        },
+        "Structures_abandoned_house": {
+          "$path": "assets/faultline-fear/rbxm/Structures_abandoned_house.rbxm"
+        },
+        "Structures_ferris_wheel": {
+          "$path": "assets/faultline-fear/rbxm/Structures_ferris_wheel.rbxm"
+        },
+        "Structures_radio_tower": {
+          "$path": "assets/faultline-fear/rbxm/Structures_radio_tower.rbxm"
+        },
+        "Structures_water_tower": {
+          "$path": "assets/faultline-fear/rbxm/Structures_water_tower.rbxm"
+        },
+        "Terrain_Boulder_Huge": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Huge.rbxm"
+        },
+        "Terrain_Boulder_Huge.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Huge.001.rbxm"
+        },
+        "Terrain_Boulder_Large": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Large.rbxm"
+        },
+        "Terrain_Boulder_Large.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Large.001.rbxm"
+        },
+        "Terrain_Boulder_Medium": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Medium.rbxm"
+        },
+        "Terrain_Boulder_Medium.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Medium.001.rbxm"
+        },
+        "Terrain_Boulder_Small": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Small.rbxm"
+        },
+        "Terrain_Boulder_Small.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Boulder_Small.001.rbxm"
+        },
+        "Terrain_Cliff_Coastal": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Cliff_Coastal.rbxm"
+        },
+        "Terrain_Cliff_Coastal.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Cliff_Coastal.001.rbxm"
+        },
+        "Terrain_Cliff_Mountain": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Cliff_Mountain.rbxm"
+        },
+        "Terrain_Cliff_Mountain.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_Cliff_Mountain.001.rbxm"
+        },
+        "Terrain_FallenRocks": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FallenRocks.rbxm"
+        },
+        "Terrain_FallenRocks.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FallenRocks.001.rbxm"
+        },
+        "Terrain_FaultEdge_Left": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FaultEdge_Left.rbxm"
+        },
+        "Terrain_FaultEdge_Left.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FaultEdge_Left.001.rbxm"
+        },
+        "Terrain_FaultEdge_Right": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FaultEdge_Right.rbxm"
+        },
+        "Terrain_FaultEdge_Right.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_FaultEdge_Right.001.rbxm"
+        },
+        "Terrain_RockCluster_1": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_RockCluster_1.rbxm"
+        },
+        "Terrain_RockCluster_1.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_RockCluster_1.001.rbxm"
+        },
+        "Terrain_RockCluster_2": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_RockCluster_2.rbxm"
+        },
+        "Terrain_RockCluster_2.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_RockCluster_2.001.rbxm"
+        },
+        "Terrain_SteamVent": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_SteamVent.rbxm"
+        },
+        "Terrain_SteamVent.001": {
+          "$path": "assets/faultline-fear/rbxm/Terrain_SteamVent.001.rbxm"
+        }
+      }
+    },
+    "SoundService": {
+      "$className": "SoundService",
+      "$properties": {
+        "AmbientReverb": "Forest"
+      }
+    },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
@@ -33,7 +339,6 @@
         }
       }
     },
-
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
@@ -42,40 +347,22 @@
       "SpawnLocation": {
         "$className": "SpawnLocation",
         "$properties": {
-          "Position": [0, 10, -1000],
-          "Size": [10, 1, 10],
           "Anchored": true,
-          "Transparency": 1,
           "CanCollide": false,
+          "Duration": 0,
           "Neutral": true,
-          "Duration": 0
+          "Position": [
+            0,
+            30,
+            100
+          ],
+          "Size": [
+            10,
+            1,
+            10
+          ],
+          "Transparency": 1
         }
-      }
-    },
-
-    "Lighting": {
-      "$className": "Lighting",
-      "$properties": {
-        "Ambient": [0.1, 0.1, 0.12],
-        "Brightness": 2,
-        "ClockTime": 14,
-        "GeographicLatitude": 37.7749,
-        "OutdoorAmbient": [0.2, 0.2, 0.22],
-        "Technology": "Voxel"
-      }
-    },
-
-    "SoundService": {
-      "$className": "SoundService",
-      "$properties": {
-        "AmbientReverb": "Forest"
-      }
-    },
-
-    "HttpService": {
-      "$className": "HttpService",
-      "$properties": {
-        "HttpEnabled": true
       }
     }
   }

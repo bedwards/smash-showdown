@@ -84,6 +84,19 @@ local FOOD_SPAWN_ZONES = {
 -- Food spawns near landmarks (reward for reaching them)
 -- Multiple spawn points around each landmark
 local LANDMARK_FOOD_SPAWNS = {
+	-- SPAWN AREA - player starts here, needs immediate food access!
+	{
+		name = "SpawnArea",
+		center = Vector3.new(0, 0, -1000), -- Matches SpawnLocation in project.json
+		spawns = {
+			{ offset = Vector3.new(10, 0, 5), foodType = "Apple", hungerRestore = 20 },
+			{ offset = Vector3.new(-8, 0, 10), foodType = "Berries", hungerRestore = 15 },
+			{ offset = Vector3.new(15, 0, -5), foodType = "Water Bottle", hungerRestore = 15 },
+			{ offset = Vector3.new(-12, 0, -8), foodType = "Granola Bar", hungerRestore = 20 },
+			{ offset = Vector3.new(5, 0, 15), foodType = "Apple", hungerRestore = 20 },
+			{ offset = Vector3.new(-5, 0, -15), foodType = "Berries", hungerRestore = 15 },
+		},
+	},
 	-- Ferris Wheel (Beach) - boardwalk snacks
 	{
 		name = "FerrisWheel",

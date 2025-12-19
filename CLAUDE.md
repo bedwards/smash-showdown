@@ -520,6 +520,43 @@ Faultline Fear is an earthquake-themed survival horror game set in exaggerated C
 4. Pet companion with personality
 5. Liminal space aesthetic (eerie, abandoned, unsettling)
 
+### Build and Deploy Workflow (FINAL)
+
+**Use `rojo serve` for development.** This keeps Studio synced and preserves imported assets.
+
+#### Development Workflow (with assets)
+
+```bash
+# Step 1: Generate combined FBX from Blender
+blender --background --python tools/blender/combine_all_fbx.py
+
+# Step 2: Start rojo serve
+rojo serve faultline-fear.project.json
+```
+
+**In Roblox Studio:**
+1. Connect Rojo plugin (click "Connect" in Rojo panel)
+2. File → Import 3D → select `assets/models/combined_all_assets.fbx`
+3. Click plugin button "Move to Storage" (organizes assets)
+4. **Publish directly from this Studio session** (File → Publish to Roblox)
+
+**CRITICAL:** The imported FBX assets only exist in Studio's memory. Publishing from the rojo serve session preserves them. Using `rojo build` creates a fresh file WITHOUT imported assets.
+
+#### Quick Deploy (code-only changes, no asset changes)
+
+If you only changed code (not assets), you can use rojo build:
+```bash
+rojo build faultline-fear.project.json -o faultline-fear.rbxl
+# Then open in Studio and publish
+```
+
+But if structures/assets are missing, you MUST use the full rojo serve workflow above.
+
+**Published Experience:**
+- Universe ID: `9369213918`
+- Place ID: `115818461044118`
+- URL: https://www.roblox.com/games/115818461044118/Faultline-Fear
+
 ### File Structure
 
 ```
@@ -632,29 +669,59 @@ building:PivotTo(CFrame.new(x, buildingHeight, z))
 - `server/Services/TerrainGenerator.luau` - Visual terrain from heightmap
 - `docs/faultline-fear/TERRAIN_ARCHITECTURE.md` - Full documentation
 
-### Blender to Roblox Asset Pipeline
+### Blender to Roblox Asset Pipeline (RBXM Workflow)
 
-**CRITICAL UNDERSTANDING: Rojo = Code, Import = Assets**
+**CRITICAL UNDERSTANDING**: `rojo build` creates fresh place files WITHOUT imported assets. To include 3D assets, use the automated extraction workflow.
 
-Rojo syncs SOURCE CODE from files to Studio. It does NOT handle imported 3D assets.
-- `rojo build` → creates place file from project.json (code only, no assets)
-- `File > Import 3D` → adds assets to place file (must be saved to persist)
+**Full documentation**: `docs/faultline-fear/ASSET_WORKFLOW.md`
 
-**One-Time Asset Setup Workflow:**
+**Complete Workflow (3 Human Clicks):**
 
 ```
-1. rojo build faultline-fear.project.json -o faultline-fear.rbxl
-2. Open faultline-fear.rbxl in Studio
-3. File → Import 3D → select combined_all_assets.fbx
-4. Click "Move to Storage" in "Faultline Import Tools" toolbar
-5. **SAVE THE PLACE FILE (Ctrl+S)**
-6. Done! Assets now persist in the place file.
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 1: Generate FBX (Automated - Claude runs)            │
+│  $ blender --background --python tools/blender/combine_all_fbx.py
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 2: Import in Studio (Human - 1 click)                │
+│  File → Import 3D → Select combined_all_assets.fbx         │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 3: Move to Storage (Human - 1 click)                 │
+│  Click "Move to Storage" plugin button                      │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 4: Save Place File (Human - 1 click)                 │
+│  File → Save to File As → faultline-fear-with-assets.rbxl  │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  STEP 5: Extract & Update (Automated - Claude runs)        │
+│  $ lune run tools/extract-models-from-place.luau           │
+│  $ lune run tools/update-asset-paths.luau                   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**After Initial Setup:**
-- Open the SAVED place file (not `rojo build`)
-- For code changes: use `rojo serve` to sync code into the open place file
-- Assets stay in ServerStorage.AssetTemplates where the plugin moved them
+**Automation Scripts:**
+```bash
+lune run tools/extract-models-from-place.luau  # Extract .rbxm from place file
+lune run tools/update-asset-paths.luau         # Update project.json refs
+lune run tools/verify-assets.luau              # Check all expected assets
+```
+
+**Human Steps Summary:** Only **3 clicks** in Studio:
+1. File → Import 3D (select FBX)
+2. Click "Move to Storage" plugin
+3. File → Save to File As → `faultline-fear-with-assets.rbxl`
+
+Everything else is automated by Claude using Lune.
 
 **Plugin: FaultlineFear_MoveToStorage_v2.lua**
 

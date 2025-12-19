@@ -94,11 +94,11 @@ local function spawnPlayerOnTerrain(player: Player)
 	local rootPart = character:WaitForChild("HumanoidRootPart", 5) :: BasePart?
 
 	if rootPart then
-		-- Position on terrain near spawn (0, 0)
-		local spawnX, spawnZ = 0, 0
+		-- Position on terrain at spawn point (Valley/Town area, near WaterTower)
+		local spawnX, spawnZ = 0, 100
 		local terrainHeight = Heightmap:GetHeight(spawnX, spawnZ)
 		rootPart.CFrame = CFrame.new(spawnX, terrainHeight + 5, spawnZ)
-		print(string.format("[FaultlineFear] Spawned %s at height %.1f", player.Name, terrainHeight + 5))
+		print(string.format("[FaultlineFear] Spawned %s at (%.0f, %.1f, %.0f)", player.Name, spawnX, terrainHeight + 5, spawnZ))
 	end
 end
 

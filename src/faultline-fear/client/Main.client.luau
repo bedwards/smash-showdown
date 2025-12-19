@@ -129,6 +129,61 @@ end
 
 if InputService:HasPhysicalKeyboard() then
 	local UserInputService = game:GetService("UserInputService")
+	local RunService = game:GetService("RunService")
+
+	-- Sprint state
+	local isSprinting = false
+	local currentStamina = Config.STAMINA.MAX
+
+	local function setSprintState(sprinting: boolean)
+		if sprinting == isSprinting then
+			return
+		end
+		isSprinting = sprinting
+
+		local character = player.Character
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				-- Sprint speed: 24, Normal: 16
+				humanoid.WalkSpeed = sprinting and 24 or 16
+			end
+		end
+	end
+
+	-- Stamina update loop
+	RunService.Heartbeat:Connect(function(dt)
+		local character = player.Character
+		if not character then
+			return
+		end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+
+		-- Only drain stamina when actually moving AND sprinting
+		local isMoving = humanoid.MoveDirection.Magnitude > 0.1
+
+		if isSprinting and isMoving then
+			-- Drain stamina while sprinting
+			currentStamina = math.max(0, currentStamina - Config.STAMINA.SPRINT_DRAIN * dt)
+
+			-- Stop sprinting if out of stamina
+			if currentStamina <= 0 then
+				setSprintState(false)
+			end
+		else
+			-- Recover stamina when not sprinting
+			currentStamina = math.min(Config.STAMINA.MAX, currentStamina + Config.STAMINA.RECOVERY_RATE * dt)
+		end
+
+		-- Update HUD (if HUDController is available)
+		if HUDController and HUDController.UpdateStamina then
+			HUDController:UpdateStamina(currentStamina / Config.STAMINA.MAX)
+		end
+	end)
 
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then
@@ -136,6 +191,13 @@ if InputService:HasPhysicalKeyboard() then
 		end
 
 		-- Note: HUD toggle (Tab) is handled by HUDController internally
+
+		-- Sprint (hold shift)
+		if input.KeyCode == Config.KEYBINDS.SPRINT then
+			if currentStamina > 0 then
+				setSprintState(true)
+			end
+		end
 
 		-- Eat food
 		if input.KeyCode == Config.KEYBINDS.EAT then
@@ -149,6 +211,13 @@ if InputService:HasPhysicalKeyboard() then
 		if input.KeyCode == Config.KEYBINDS.CALL_PET then
 			-- TODO: Call pet
 			print("[FaultlineFear Client] Call pet (not implemented)")
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input, _gameProcessed)
+		-- Release sprint
+		if input.KeyCode == Config.KEYBINDS.SPRINT then
+			setSprintState(false)
 		end
 	end)
 end

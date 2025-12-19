@@ -472,15 +472,29 @@ function Heightmap:GetMaterial(worldX: number, worldZ: number): Enum.Material
 	elseif zone == "Beach" then
 		return Enum.Material.Sand
 	elseif zone == "Coastal" then
-		return Enum.Material.Grass
+		-- Mix of regular grass and tall grass
+		local noise = octaveNoise(worldX, worldZ, 2, 0.5, 50, seed)
+		if noise > 0.2 then
+			return Enum.Material.LeafyGrass -- Tall grass
+		else
+			return Enum.Material.Grass
+		end
 	elseif zone == "Valley" then
-		return Enum.Material.Grass
+		-- Mostly tall grass in the valley (lush fields)
+		local noise = octaveNoise(worldX, worldZ, 2, 0.5, 40, seed)
+		if noise > -0.1 then
+			return Enum.Material.LeafyGrass -- Tall grass
+		else
+			return Enum.Material.Grass
+		end
 	elseif zone == "Fault Line" then
 		return Enum.Material.Rock
 	elseif zone == "Forest" then
 		local noise = octaveNoise(worldX, worldZ, 2, 0.5, 100, seed)
 		if noise > 0.3 then
 			return Enum.Material.Rock
+		elseif noise > -0.2 then
+			return Enum.Material.LeafyGrass -- Tall grass in forest
 		else
 			return Enum.Material.Grass
 		end

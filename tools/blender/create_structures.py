@@ -26,7 +26,7 @@ from blender_utils import (
     clear_scene,
     create_material,
     apply_material,
-    join_objects,
+    group_objects,
     export_fbx,
     smooth_shade,
 )
@@ -41,6 +41,12 @@ def create_ferris_wheel():
 
     Design: Large wheel with gondolas, support structure.
     Scale: ~40 studs tall when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Gondola_N" -> Red gondola color
+    - "Light_N" -> Yellow glow
+    - "Rust_N" -> Rusty support color
+    - Others -> Metal primary color
     """
     clear_scene()
     parts = []
@@ -77,6 +83,7 @@ def create_ferris_wheel():
         location=(0, 0, 2.2)
     )
     inner_rim = bpy.context.active_object
+    inner_rim.name = "InnerRim"
     apply_material(inner_rim, metal_mat)
     parts.append(inner_rim)
 
@@ -88,6 +95,7 @@ def create_ferris_wheel():
         location=(0, 0, 2.2)
     )
     hub = bpy.context.active_object
+    hub.name = "Hub"
     hub.rotation_euler = (math.radians(90), 0, 0)
     apply_material(hub, metal_mat)
     parts.append(hub)
@@ -105,6 +113,7 @@ def create_ferris_wheel():
             location=(0, 0, 2.2)
         )
         spoke = bpy.context.active_object
+        spoke.name = f"Spoke_{i}"
         spoke.rotation_euler = (0, math.radians(90), angle)
         # Move to correct position
         spoke.location = (
@@ -128,6 +137,7 @@ def create_ferris_wheel():
             location=(x, 0, z - 0.2)
         )
         gondola = bpy.context.active_object
+        gondola.name = f"Gondola_{i}"  # Named for AssetColors pattern matching!
         gondola.scale = (1, 0.6, 1.2)
         bpy.ops.object.transform_apply(scale=True)
         apply_material(gondola, gondola_mat)
@@ -141,11 +151,12 @@ def create_ferris_wheel():
             location=(x, 0, z - 0.05)
         )
         light = bpy.context.active_object
+        light.name = f"Light_{i}"  # Named for AssetColors pattern matching!
         apply_material(light, light_mat)
         parts.append(light)
 
     # Support structure - A-frame - LOW POLY
-    for side in [-1, 1]:
+    for idx, side in enumerate([-1, 1]):
         # Main support leg
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.08,
@@ -154,6 +165,7 @@ def create_ferris_wheel():
             location=(side * 0.8, 0, 1.1)
         )
         leg = bpy.context.active_object
+        leg.name = f"Rust_Leg_{idx}"  # Named for AssetColors pattern matching!
         leg.rotation_euler = (0, math.radians(side * 15), 0)
         apply_material(leg, rust_mat)
         parts.append(leg)
@@ -166,6 +178,7 @@ def create_ferris_wheel():
             location=(side * 0.4, 0, 0.8)
         )
         brace = bpy.context.active_object
+        brace.name = f"Rust_Brace_{idx}"  # Named for AssetColors pattern matching!
         brace.rotation_euler = (0, math.radians(-side * 45), 0)
         apply_material(brace, rust_mat)
         parts.append(brace)
@@ -176,6 +189,7 @@ def create_ferris_wheel():
         location=(0, 0, -0.1)
     )
     base = bpy.context.active_object
+    base.name = "Base"
     base.scale = (4, 2, 0.3)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(base, metal_mat)
@@ -185,9 +199,8 @@ def create_ferris_wheel():
     for part in parts:
         smooth_shade(part)
 
-    # Join
-    structure = join_objects(parts)
-    structure.name = "FerrisWheel"
+    # Group (NOT join!) - preserves individual part names for color matching
+    structure = group_objects(parts, "FerrisWheel")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "ferris_wheel.fbx")
@@ -203,6 +216,11 @@ def create_radio_tower():
 
     Design: Tall lattice tower with antenna and blinking light.
     Scale: ~60 studs tall when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Red_N" -> Red brace color
+    - "Beacon" -> Glowing red beacon
+    - Others -> Metal primary color
     """
     clear_scene()
     parts = []
@@ -218,7 +236,7 @@ def create_radio_tower():
     num_sections = 6
 
     # Tower legs (4 corners)
-    for corner in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+    for idx, corner in enumerate([(-1, -1), (-1, 1), (1, -1), (1, 1)]):
         # Tapered leg
         bpy.ops.mesh.primitive_cone_add(
             vertices=4,
@@ -228,10 +246,12 @@ def create_radio_tower():
             location=(corner[0] * base_width/2, corner[1] * base_width/2, tower_height/2)
         )
         leg = bpy.context.active_object
+        leg.name = f"Leg_{idx}"
         apply_material(leg, metal_mat)
         parts.append(leg)
 
     # Horizontal braces at each section
+    brace_idx = 0
     for section in range(num_sections + 1):
         height = section * (tower_height / num_sections)
         width = base_width - (base_width - top_width) * (section / num_sections)
@@ -253,9 +273,12 @@ def create_radio_tower():
             brace.rotation_euler = (0, 0, angle + math.radians(90))
             # Alternate red and white for visibility
             if section % 2 == 0:
+                brace.name = f"Brace_{brace_idx}"
                 apply_material(brace, metal_mat)
             else:
+                brace.name = f"Red_Brace_{brace_idx}"  # Named for AssetColors!
                 apply_material(brace, red_mat)
+            brace_idx += 1
             parts.append(brace)
 
         # Diagonal braces (X pattern)
@@ -275,6 +298,8 @@ def create_radio_tower():
                     location=((x1+x2)/2, (y1+y2)/2, (height + next_height)/2)
                 )
                 diag = bpy.context.active_object
+                diag.name = f"Diag_{brace_idx}"
+                brace_idx += 1
                 # Calculate rotation
                 dx, dy, dz = x2-x1, y2-y1, tower_height/num_sections
                 diag.rotation_euler = (
@@ -292,6 +317,7 @@ def create_radio_tower():
         location=(0, 0, tower_height + 0.25)
     )
     mast = bpy.context.active_object
+    mast.name = "Mast"
     apply_material(mast, metal_mat)
     parts.append(mast)
 
@@ -301,12 +327,12 @@ def create_radio_tower():
         location=(0, 0, tower_height + 0.55)
     )
     beacon = bpy.context.active_object
-    beacon.name = "Beacon"
+    beacon.name = "Beacon"  # Named for AssetColors pattern matching!
     apply_material(beacon, light_mat)
     parts.append(beacon)
 
     # Guy wires (visual only)
-    for angle in [0, 120, 240]:
+    for idx, angle in enumerate([0, 120, 240]):
         rad = math.radians(angle)
         bpy.ops.mesh.primitive_cylinder_add(
             radius=0.005,
@@ -314,13 +340,13 @@ def create_radio_tower():
             location=(math.cos(rad) * 0.4, math.sin(rad) * 0.4, tower_height * 0.5)
         )
         wire = bpy.context.active_object
+        wire.name = f"Wire_{idx}"
         wire.rotation_euler = (math.radians(60), 0, rad)
         apply_material(wire, metal_mat)
         parts.append(wire)
 
-    # Join
-    structure = join_objects(parts)
-    structure.name = "RadioTower"
+    # Group (NOT join!) - preserves individual part names
+    structure = group_objects(parts, "RadioTower")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "radio_tower.fbx")
@@ -336,6 +362,14 @@ def create_abandoned_house():
 
     Design: Simple two-story house with broken windows, weathered look.
     Scale: ~25 studs tall when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Roof_*" / "Shingle*" -> Dark roof color
+    - "Door" -> Wood color
+    - "Porch" -> Wood color
+    - "Wood_*" -> Wood color
+    - "Window_*" -> Glass color
+    - Others -> Wall primary color
     """
     clear_scene()
     parts = []
@@ -357,6 +391,7 @@ def create_abandoned_house():
     # Front wall
     bpy.ops.mesh.primitive_cube_add(size=1, location=(0, -house_depth/2 + wall_thickness/2, house_height/2))
     front = bpy.context.active_object
+    front.name = "Wall_Front"
     front.scale = (house_width, wall_thickness, house_height)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(front, wall_mat)
@@ -365,18 +400,20 @@ def create_abandoned_house():
     # Back wall
     bpy.ops.mesh.primitive_cube_add(size=1, location=(0, house_depth/2 - wall_thickness/2, house_height/2))
     back = bpy.context.active_object
+    back.name = "Wall_Back"
     back.scale = (house_width, wall_thickness, house_height)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(back, wall_mat)
     parts.append(back)
 
     # Side walls
-    for side in [-1, 1]:
+    for idx, side in enumerate([-1, 1]):
         bpy.ops.mesh.primitive_cube_add(
             size=1,
             location=(side * (house_width/2 - wall_thickness/2), 0, house_height/2)
         )
         wall = bpy.context.active_object
+        wall.name = f"Wall_Side_{idx}"
         wall.scale = (wall_thickness, house_depth, house_height)
         bpy.ops.object.transform_apply(scale=True)
         apply_material(wall, wall_mat)
@@ -391,6 +428,7 @@ def create_abandoned_house():
         location=(0, 0, house_height + roof_height/2)
     )
     roof = bpy.context.active_object
+    roof.name = "Roof"  # Named for AssetColors pattern matching!
     roof.scale = (1, house_depth/house_width * 0.8, 1)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(roof, roof_mat)
@@ -402,6 +440,7 @@ def create_abandoned_house():
         location=(0.2, -house_depth/2 + 0.01, 0.25)
     )
     door = bpy.context.active_object
+    door.name = "Door"  # Named for AssetColors pattern matching!
     door.scale = (0.25, 0.02, 0.5)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(door, wood_mat)
@@ -414,11 +453,14 @@ def create_abandoned_house():
         (-0.35, house_depth/2, 0.6),   # Back
     ]
 
+    window_idx = 0
     for i, pos in enumerate(window_positions):
         if i == 1:  # Skip one window (broken out)
             continue
         bpy.ops.mesh.primitive_cube_add(size=1, location=pos)
         window = bpy.context.active_object
+        window.name = f"Window_{window_idx}"  # Named for AssetColors pattern matching!
+        window_idx += 1
         window.scale = (0.2, 0.02, 0.25)
         bpy.ops.object.transform_apply(scale=True)
         apply_material(window, window_mat)
@@ -430,6 +472,7 @@ def create_abandoned_house():
         location=(0, -house_depth/2 - 0.15, 0.05)
     )
     porch = bpy.context.active_object
+    porch.name = "Porch"  # Named for AssetColors pattern matching!
     porch.scale = (0.6, 0.3, 0.1)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(porch, wood_mat)
@@ -441,17 +484,17 @@ def create_abandoned_house():
         location=(0.4, 0.2, house_height + 0.3)
     )
     chimney = bpy.context.active_object
+    chimney.name = "Chimney"
     chimney.scale = (0.15, 0.15, 0.4)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(chimney, wall_mat)
     parts.append(chimney)
 
-    # Smooth and join
+    # Smooth and group
     for part in parts:
         smooth_shade(part)
 
-    structure = join_objects(parts)
-    structure.name = "AbandonedHouse"
+    structure = group_objects(parts, "AbandonedHouse")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "abandoned_house.fbx")
@@ -467,6 +510,12 @@ def create_bridge():
 
     Design: Suspension bridge segment, partially damaged.
     Scale: ~80 studs long when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Steel_*" / "Tower_*" -> Steel color
+    - "Cable_*" -> Cable color
+    - "Rail_*" / "Rust_*" -> Rusty railing color
+    - Others -> Concrete primary color
     """
     clear_scene()
     parts = []
@@ -487,12 +536,14 @@ def create_bridge():
         location=(0, 0, 0)
     )
     deck = bpy.context.active_object
+    deck.name = "Deck"
     deck.scale = (bridge_length, bridge_width, 0.1)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(deck, concrete_mat)
     parts.append(deck)
 
     # Support towers (2)
+    tower_idx = 0
     for x_pos in [-bridge_length/3, bridge_length/3]:
         for side in [-1, 1]:
             # Vertical tower
@@ -501,6 +552,8 @@ def create_bridge():
                 location=(x_pos, side * bridge_width/2 * 0.8, tower_height/2)
             )
             tower = bpy.context.active_object
+            tower.name = f"Tower_{tower_idx}"  # Named for AssetColors pattern matching!
+            tower_idx += 1
             tower.scale = (0.1, 0.1, tower_height)
             bpy.ops.object.transform_apply(scale=True)
             apply_material(tower, steel_mat)
@@ -512,6 +565,7 @@ def create_bridge():
             location=(x_pos, 0, tower_height)
         )
         beam = bpy.context.active_object
+        beam.name = f"Steel_Beam_{tower_idx}"  # Named for AssetColors pattern matching!
         beam.scale = (0.1, bridge_width * 0.8, 0.08)
         bpy.ops.object.transform_apply(scale=True)
         apply_material(beam, steel_mat)
@@ -519,6 +573,7 @@ def create_bridge():
 
     # Main cables (catenary shape approximation) - REDUCED for low poly
     cable_points = 8  # Reduced from 20
+    cable_idx = 0
     for side in [-1, 1]:
         for i in range(cable_points - 1):
             t1 = i / (cable_points - 1)
@@ -544,12 +599,15 @@ def create_bridge():
                 location=((x1+x2)/2, y, (sag1+sag2)/2)
             )
             cable = bpy.context.active_object
+            cable.name = f"Cable_{cable_idx}"  # Named for AssetColors pattern matching!
+            cable_idx += 1
             cable.rotation_euler = (0, -angle, 0)
             apply_material(cable, cable_mat)
             parts.append(cable)
 
     # Vertical suspenders - REDUCED
     num_suspenders = 5  # Reduced from 10
+    suspender_idx = 0
     for i in range(num_suspenders):
         t = i / (num_suspenders - 1)
         x = -bridge_length/2 + t * bridge_length
@@ -565,10 +623,13 @@ def create_bridge():
                 location=(x, side * bridge_width/2 * 0.7, height/2 + 0.05)
             )
             suspender = bpy.context.active_object
+            suspender.name = f"Cable_Suspender_{suspender_idx}"  # Named for AssetColors!
+            suspender_idx += 1
             apply_material(suspender, cable_mat)
             parts.append(suspender)
 
     # Railings - LOW POLY
+    rail_idx = 0
     for side in [-1, 1]:
         # Horizontal rail
         bpy.ops.mesh.primitive_cylinder_add(
@@ -578,6 +639,8 @@ def create_bridge():
             location=(0, side * bridge_width/2 * 0.95, 0.15)
         )
         rail = bpy.context.active_object
+        rail.name = f"Rail_{rail_idx}"  # Named for AssetColors pattern matching!
+        rail_idx += 1
         rail.rotation_euler = (0, math.radians(90), 0)
         apply_material(rail, rust_mat)
         parts.append(rail)
@@ -592,15 +655,12 @@ def create_bridge():
                 location=(x, side * bridge_width/2 * 0.95, 0.1)
             )
             post = bpy.context.active_object
+            post.name = f"Rust_Post_{rail_idx}_{i}"  # Named for AssetColors pattern matching!
             apply_material(post, rust_mat)
             parts.append(post)
 
-    # Add some damage - broken railing section
-    # (Already looks weathered with rust material)
-
-    # Join
-    structure = join_objects(parts)
-    structure.name = "Bridge"
+    # Group (NOT join!) - preserves individual part names
+    structure = group_objects(parts, "Bridge")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "bridge.fbx")
@@ -616,6 +676,11 @@ def create_water_tower():
 
     Design: Classic elevated water tank on steel frame.
     Scale: ~35 studs tall when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Tank_*" -> Tank metal color
+    - "Rust_*" / "Leg_*" / "Brace_*" -> Rusty frame color
+    - Others -> Tank primary color
     """
     clear_scene()
     parts = []
@@ -635,6 +700,7 @@ def create_water_tower():
         location=(0, 0, leg_height + tank_height/2)
     )
     tank = bpy.context.active_object
+    tank.name = "Tank"  # Named for AssetColors pattern matching!
     apply_material(tank, tank_mat)
     smooth_shade(tank)
     parts.append(tank)
@@ -645,6 +711,7 @@ def create_water_tower():
         location=(0, 0, leg_height + tank_height)
     )
     dome = bpy.context.active_object
+    dome.name = "Tank_Dome"  # Named for AssetColors pattern matching!
     dome.scale = (1, 1, 0.3)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(dome, tank_mat)
@@ -652,7 +719,7 @@ def create_water_tower():
     parts.append(dome)
 
     # Support legs (4)
-    for angle in [45, 135, 225, 315]:
+    for idx, angle in enumerate([45, 135, 225, 315]):
         rad = math.radians(angle)
         x = math.cos(rad) * tank_radius * 0.7
         y = math.sin(rad) * tank_radius * 0.7
@@ -663,10 +730,12 @@ def create_water_tower():
             location=(x, y, leg_height/2)
         )
         leg = bpy.context.active_object
+        leg.name = f"Leg_{idx}"  # Named for AssetColors pattern matching!
         apply_material(leg, rust_mat)
         parts.append(leg)
 
     # Cross braces
+    brace_idx = 0
     for height in [0.3, 0.8, 1.2]:
         for i in range(4):
             angle1 = math.radians(45 + i * 90)
@@ -686,6 +755,8 @@ def create_water_tower():
                 location=((x1+x2)/2, (y1+y2)/2, height)
             )
             brace = bpy.context.active_object
+            brace.name = f"Brace_{brace_idx}"  # Named for AssetColors pattern matching!
+            brace_idx += 1
             brace.rotation_euler = (math.radians(90), 0, angle)
             apply_material(brace, rust_mat)
             parts.append(brace)
@@ -699,13 +770,13 @@ def create_water_tower():
             location=(tank_radius * 0.7, 0, z)
         )
         rung = bpy.context.active_object
+        rung.name = f"Rust_Rung_{i}"  # Named for AssetColors pattern matching!
         rung.rotation_euler = (0, math.radians(90), 0)
         apply_material(rung, rust_mat)
         parts.append(rung)
 
-    # Join
-    structure = join_objects(parts)
-    structure.name = "WaterTower"
+    # Group (NOT join!) - preserves individual part names
+    structure = group_objects(parts, "WaterTower")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "water_tower.fbx")
@@ -721,6 +792,12 @@ def create_lighthouse():
 
     Design: Classic white lighthouse with light housing.
     Scale: ~30 studs tall when imported.
+
+    Part naming for AssetColors pattern matching:
+    - "Red_*" / "Dome" / "Door" / "Band_*" / "Railing" -> Red accent color
+    - "Glass_*" / "Housing" -> Glass color
+    - "Light" -> Glowing light color
+    - Others -> White primary color
     """
     clear_scene()
     parts = []
@@ -744,12 +821,13 @@ def create_lighthouse():
         location=(0, 0, tower_height/2)
     )
     tower = bpy.context.active_object
+    tower.name = "Tower"
     apply_material(tower, white_mat)
     smooth_shade(tower)
     parts.append(tower)
 
     # Red stripe bands
-    for height in [0.4, 0.8, 1.2]:
+    for idx, height in enumerate([0.4, 0.8, 1.2]):
         t = height / tower_height
         radius = base_radius - (base_radius - top_radius) * t
 
@@ -759,6 +837,7 @@ def create_lighthouse():
             location=(0, 0, height)
         )
         band = bpy.context.active_object
+        band.name = f"Band_{idx}"  # Named for AssetColors pattern matching!
         apply_material(band, red_mat)
         parts.append(band)
 
@@ -769,6 +848,7 @@ def create_lighthouse():
         location=(0, 0, tower_height)
     )
     deck = bpy.context.active_object
+    deck.name = "Deck"
     apply_material(deck, white_mat)
     parts.append(deck)
 
@@ -779,6 +859,7 @@ def create_lighthouse():
         location=(0, 0, tower_height + 0.08)
     )
     railing = bpy.context.active_object
+    railing.name = "Railing"  # Named for AssetColors pattern matching!
     apply_material(railing, red_mat)
     parts.append(railing)
 
@@ -789,6 +870,7 @@ def create_lighthouse():
         location=(0, 0, tower_height + 0.15)
     )
     housing = bpy.context.active_object
+    housing.name = "Housing"  # Named for AssetColors pattern matching!
     apply_material(housing, glass_mat)
     smooth_shade(housing)
     parts.append(housing)
@@ -799,7 +881,7 @@ def create_lighthouse():
         location=(0, 0, tower_height + 0.15)
     )
     light = bpy.context.active_object
-    light.name = "Light"
+    light.name = "Light"  # Named for AssetColors pattern matching!
     apply_material(light, light_mat)
     parts.append(light)
 
@@ -809,6 +891,7 @@ def create_lighthouse():
         location=(0, 0, tower_height + 0.32)
     )
     dome = bpy.context.active_object
+    dome.name = "Dome"  # Named for AssetColors pattern matching!
     dome.scale = (1, 1, 0.5)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(dome, red_mat)
@@ -821,14 +904,14 @@ def create_lighthouse():
         location=(0, -base_radius + 0.02, 0.2)
     )
     door = bpy.context.active_object
+    door.name = "Door"  # Named for AssetColors pattern matching!
     door.scale = (0.15, 0.02, 0.35)
     bpy.ops.object.transform_apply(scale=True)
     apply_material(door, red_mat)
     parts.append(door)
 
-    # Join
-    structure = join_objects(parts)
-    structure.name = "Lighthouse"
+    # Group (NOT join!) - preserves individual part names
+    structure = group_objects(parts, "Lighthouse")
 
     # Export
     filepath = os.path.join(OUTPUT_DIR, "lighthouse.fbx")

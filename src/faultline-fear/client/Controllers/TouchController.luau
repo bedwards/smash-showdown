@@ -15,14 +15,17 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local InputService = Shared.InputService
+local Config = Shared.Config
 
 local TouchController = {}
 
 -- State
 local isEnabled: boolean = false
 local isSprinting: boolean = false
+local currentStamina: number = 100 -- Will be set from Config
 local touchGui: ScreenGui = nil :: any
 local elements: { [string]: GuiObject } = {}
 
@@ -276,7 +279,31 @@ local function onFlashlight()
 	-- TODO: Toggle flashlight
 end
 
+local function setSprintVisual(isOn: boolean)
+	-- Update button visual
+	local sprintButton = elements.sprintButton :: ImageButton?
+	if sprintButton then
+		local label = sprintButton:FindFirstChild("Label") :: TextLabel?
+		if isOn then
+			sprintButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+			if label then
+				label.TextColor3 = Color3.fromRGB(200, 255, 200)
+			end
+		else
+			sprintButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			if label then
+				label.TextColor3 = Color3.fromRGB(255, 255, 255)
+			end
+		end
+	end
+end
+
 local function onSprint(isOn: boolean)
+	-- Don't allow sprint if no stamina
+	if isOn and currentStamina <= 0 then
+		return
+	end
+
 	isSprinting = isOn
 	print("[TouchController] Sprint:", isOn)
 
@@ -288,6 +315,8 @@ local function onSprint(isOn: boolean)
 			humanoid.WalkSpeed = isOn and 24 or 16 -- Sprint vs normal
 		end
 	end
+
+	setSprintVisual(isOn)
 end
 
 local function onJump()
@@ -727,6 +756,39 @@ end
 -- INITIALIZATION
 -- ==========================================
 
+local function setupStaminaLoop()
+	currentStamina = Config.STAMINA.MAX
+
+	RunService.Heartbeat:Connect(function(dt)
+		local player = Players.LocalPlayer
+		local character = player.Character
+		if not character then
+			return
+		end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+
+		-- Only drain stamina when actually moving AND sprinting
+		local isMoving = humanoid.MoveDirection.Magnitude > 0.1
+
+		if isSprinting and isMoving then
+			-- Drain stamina while sprinting
+			currentStamina = math.max(0, currentStamina - Config.STAMINA.SPRINT_DRAIN * dt)
+
+			-- Stop sprinting if out of stamina
+			if currentStamina <= 0 then
+				onSprint(false)
+			end
+		else
+			-- Recover stamina when not sprinting
+			currentStamina = math.min(Config.STAMINA.MAX, currentStamina + Config.STAMINA.RECOVERY_RATE * dt)
+		end
+	end)
+end
+
 function TouchController:Initialize()
 	-- Only initialize on touch devices
 	if not InputService:ShouldShowTouchControls() then
@@ -737,6 +799,7 @@ function TouchController:Initialize()
 	self:CreateUI()
 	setupJoystickInput()
 	setupGestureInput()
+	setupStaminaLoop()
 
 	-- Apply initial layout
 	local screenSize = InputService:GetScreenSize()

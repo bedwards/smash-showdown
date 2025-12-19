@@ -78,7 +78,12 @@ def apply_material(obj: bpy.types.Object, material: bpy.types.Material):
 
 
 def join_objects(objects: list, name: str = None) -> bpy.types.Object:
-    """Join multiple objects into one, optionally renaming the result."""
+    """Join multiple objects into one, optionally renaming the result.
+
+    WARNING: This merges all meshes, losing individual part names!
+    For multi-part models that need separate named parts in Roblox,
+    use group_objects() instead.
+    """
     if not objects:
         return None
 
@@ -95,6 +100,38 @@ def join_objects(objects: list, name: str = None) -> bpy.types.Object:
         result.name = name
 
     return result
+
+
+def group_objects(objects: list, name: str) -> bpy.types.Object:
+    """Group objects under an Empty parent, preserving individual part names.
+
+    When exported to FBX and imported into Roblox:
+    - The Empty becomes a Model
+    - Each child object becomes a separate MeshPart with its original name
+    - This allows AssetColors pattern matching to work!
+
+    Args:
+        objects: List of mesh objects to group
+        name: Name for the parent Empty (becomes Model name in Roblox)
+
+    Returns:
+        The parent Empty object
+    """
+    if not objects:
+        return None
+
+    # Create an Empty as the parent container
+    bpy.ops.object.empty_add(type='PLAIN_AXES', location=(0, 0, 0))
+    parent = bpy.context.active_object
+    parent.name = name
+
+    # Parent all objects to the Empty
+    for obj in objects:
+        obj.parent = parent
+        # Keep the object's world transform
+        obj.matrix_parent_inverse = parent.matrix_world.inverted()
+
+    return parent
 
 
 def export_fbx(filepath: str, scale: float = 1.0):

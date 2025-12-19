@@ -43,10 +43,18 @@ local launchedPlayers: { [Player]: LaunchedPlayer } = {}
 
 -- Fall damage config
 local FALL_DAMAGE = {
-	MIN_HEIGHT = 10, -- Minimum fall height to take damage
-	DAMAGE_PER_STUD = 2, -- Damage per stud fallen above minimum
-	MAX_DAMAGE = 80, -- Cap damage at 80% of max health
+	MIN_HEIGHT = 8, -- Minimum fall height to take damage (reduced from 10)
+	DAMAGE_PER_STUD = 3, -- Damage per stud fallen above minimum (increased from 2)
+	MAX_DAMAGE = 90, -- Cap damage at 90% of max health (increased from 80)
 	IMMUNITY_TIME = 0.5, -- Grace period after launch before tracking starts
+}
+
+-- Direct earthquake damage (applied during shaking)
+local QUAKE_DIRECT_DAMAGE = {
+	-- Damage per tick during earthquake, scaled by magnitude
+	BASE_DAMAGE = 2, -- Base damage per tick
+	TICK_INTERVAL = 1.5, -- Seconds between damage ticks
+	MAGNITUDE_MULTIPLIER = 15, -- Extra damage per magnitude point (0.6 mag = +9 damage)
 }
 
 -- Remote events
@@ -134,6 +142,52 @@ function EarthquakeService:SendWarning(quakeData: QuakeData)
 end
 
 --[[
+	Apply direct damage to all players during an earthquake.
+	Damage ticks occur every TICK_INTERVAL seconds while the quake is active.
+]]
+function EarthquakeService:ApplyDirectDamage(magnitude: number, duration: number)
+	local tickInterval = QUAKE_DIRECT_DAMAGE.TICK_INTERVAL
+	local numTicks = math.floor(duration / tickInterval)
+
+	-- Calculate damage per tick based on magnitude
+	local damagePerTick = QUAKE_DIRECT_DAMAGE.BASE_DAMAGE + (magnitude * QUAKE_DIRECT_DAMAGE.MAGNITUDE_MULTIPLIER)
+
+	print(string.format("[EarthquakeService] Quake damage: %.1f per tick for %d ticks", damagePerTick, numTicks))
+
+	for tick = 1, numTicks do
+		task.delay(tick * tickInterval, function()
+			-- Only apply if quake is still active
+			if not isQuakeActive then
+				return
+			end
+
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				if not character then
+					continue
+				end
+
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+				if not humanoid or humanoid.Health <= 0 then
+					continue
+				end
+
+				-- Apply damage with a visual shake hint
+				humanoid:TakeDamage(damagePerTick)
+
+				-- Notify client of damage source
+				if EarthquakeEvent then
+					EarthquakeEvent:FireClient(player, {
+						directDamage = true,
+						damage = damagePerTick,
+					})
+				end
+			end
+		end)
+	end
+end
+
+--[[
 	Execute the main earthquake effects.
 ]]
 function EarthquakeService:ExecuteQuake(quakeData: QuakeData)
@@ -155,6 +209,11 @@ function EarthquakeService:ExecuteQuake(quakeData: QuakeData)
 	-- Apply knockdown if applicable
 	if quakeData.knockdown then
 		self:ApplyKnockdown(quakeData.magnitude)
+	end
+
+	-- Apply direct damage during quake (MODERATE and above)
+	if quakeData.magnitude >= 0.6 then
+		self:ApplyDirectDamage(quakeData.magnitude, quakeData.duration)
 	end
 
 	-- Trigger emergency broadcast for moderate+ quakes
@@ -301,19 +360,27 @@ local function monitorFallDamage()
 			data.maxY = currentY
 		end
 
-		-- Check if player has landed (on ground and falling speed is low)
+		-- Check if player has landed using multiple methods
 		local state = humanoid:GetState()
 		local isOnGround = state == Enum.HumanoidStateType.Running
 			or state == Enum.HumanoidStateType.RunningNoPhysics
 			or state == Enum.HumanoidStateType.Landed
+			or state == Enum.HumanoidStateType.Freefall == false
 
-		-- Alternative check: Y velocity is near zero after going negative
+		-- Alternative check: Y velocity is near zero or positive (stopped falling)
 		local velocity = rootPart.AssemblyLinearVelocity
-		local isStopped = math.abs(velocity.Y) < 5
+		local isStopped = math.abs(velocity.Y) < 10 -- More lenient threshold
 
-		-- Player has landed if they were above maxY and now stopped/on ground
+		-- Raycast check for ground contact
+		local rayParams = RaycastParams.new()
+		rayParams.FilterDescendantsInstances = { player.Character }
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		local rayResult = Workspace:Raycast(rootPart.Position, Vector3.new(0, -3, 0), rayParams)
+		local isNearGround = rayResult ~= nil
+
+		-- Player has landed if any condition indicates ground contact AND they fell
 		local fallHeight = data.maxY - currentY
-		local hasLanded = (isOnGround or isStopped) and fallHeight > 2
+		local hasLanded = (isOnGround or (isStopped and isNearGround)) and fallHeight > 2
 
 		-- Also stop tracking if they've been tracked for too long (10 seconds)
 		local trackingTimeout = now - data.launchTime > 10
