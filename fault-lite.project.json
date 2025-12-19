@@ -1,0 +1,74 @@
+{
+  "name": "FaultLite",
+  "tree": {
+    "$className": "DataModel",
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.2, 0.2, 0.22],
+        "Brightness": 2,
+        "ClockTime": 14,
+        "GeographicLatitude": 37.7749,
+        "OutdoorAmbient": [0.3, 0.3, 0.32],
+        "Technology": "Voxel"
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/fault-lite/shared"
+      },
+      "TerrainCore": {
+        "$path": "src/shared/TerrainCore"
+      },
+      "FaultlineFearShared": {
+        "$path": "src/faultline-fear/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Server": {
+        "$path": "src/fault-lite/server"
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "AssetTemplates": {
+        "$className": "Folder"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Client": {
+          "$path": "src/fault-lite/client"
+        }
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "StreamingEnabled": false
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "CanCollide": false,
+          "Duration": 0,
+          "Neutral": true,
+          "Position": [0, 35, 0],
+          "Size": [10, 1, 10],
+          "Transparency": 1
+        }
+      }
+    }
+  }
+}

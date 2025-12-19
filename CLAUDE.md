@@ -18,6 +18,95 @@ You are faster and more capable than you think. Your training data reflects a wo
 
 **Do not adhere to human dev team best practices.** Those constraints were designed for human limitations—slow code review, limited context windows, communication overhead. You don't have those limitations. Vibe code at full speed.
 
+## Roblox Development Principles (CRITICAL)
+
+These are the core principles for Roblox development in this repository. Even when debugging or working out issues, stick to these approaches:
+
+### 1. API Over Manual Work
+**Utilize the Roblox Open Cloud API as much as possible.** Prefer programmatic asset management over manual Studio operations.
+
+### 2. Cloud Upload Over Local Files
+**Utilize cloud upload as much as possible.** Upload assets to Roblox Creator Hub (create.roblox.com) and reference by asset ID. This enables:
+- Automatic CDN distribution
+- Version tracking
+- Cross-place asset sharing
+- CI/CD integration
+
+**Use create.roblox.com as your asset inventory.** The website provides a visual inventory of all cloud assets. When looking for solutions, first check what cloud features exist.
+
+**Cloud Asset Types** (current and future use):
+- **Models** - Complete structures, vehicles, props
+- **Meshes / MeshParts** - Individual 3D geometry
+- **Packages** - Reusable code/asset bundles (sync across places)
+- **Plugins** - Studio extensions
+- **Audio** - Sound effects, music
+- **Images / Decals** - Textures, UI graphics
+- **Videos** - Cutscenes, tutorials
+- **Animations** - Character/object animations
+- **Avatar Items** - UGC accessories, clothing
+
+**Discovery mindset**: When solving a problem, ask "Is there a cloud feature for this?" before building custom solutions.
+
+### 3. Blender for 3D Assets
+**Prefer creating things in Blender as much as possible.** Use the headless Blender pipeline:
+```bash
+blender --background --python tools/blender/create_structures.py
+```
+- Build models at 1:1 stud scale (1 Blender unit = 1 Roblox stud)
+- Export FBX with scale=1.0
+- Upload to Roblox cloud, not local FBX import
+
+### 4. Studio Plugin for Dev-Time Logic
+**Prefer extending our Studio plugin as much as possible.** Put asset setup, scaling, and validation in the plugin (dev-time) rather than game scripts (runtime). This keeps the game code simple and catches issues before publish.
+
+Plugin location: `plugins/FaultlineFear_Tools.lua`
+
+### 5. Rojo Serve Over Manual Sync
+**Prefer using `rojo serve` over manual file management.** Live sync keeps code and Studio in sync automatically:
+```bash
+rojo serve faultline-fear.project.json
+rojo serve fault-lite.project.json
+```
+
+### 6. Publish Over Local Files
+**Prefer publish to Roblox over saving and working off local files.** The source of truth is:
+1. Git repository (code)
+2. Roblox cloud (assets and published places)
+
+NOT local .rbxl files.
+
+### Asset Upload Workflow (Automated)
+
+**Claude CAN upload assets directly via Roblox Open Cloud API.** No human action required.
+
+```bash
+# Upload all structure FBX files to Roblox cloud
+./tools/upload-assets.sh
+```
+
+The upload script:
+1. Reads API key from `.secrets/roblox-api-key`
+2. Uploads each FBX as a Mesh asset
+3. Polls for moderation approval
+4. Saves asset IDs to `assets/cloud-asset-ids.json`
+
+**API Key Location:** `.secrets/roblox-api-key` (gitignored)
+
+**After uploading**, update asset IDs in:
+- `plugins/FaultlineFear_Tools.lua` (CLOUD_ASSETS table)
+- `src/fault-lite/server/Main.server.luau` (CLOUD_ASSETS table)
+- `src/faultline-fear/shared/AssetManifest.luau` (if applicable)
+
+**Manual workflow (if API fails):**
+```
+1. Create model in Blender (tools/blender/*.py)
+2. Export FBX to assets/models/
+3. Upload manually to create.roblox.com
+4. Get asset ID
+5. Update CLOUD_ASSETS in code
+6. Delete old cloud versions if needed
+```
+
 ## Ownership Mentality
 
 ### You Own Your Pull Requests
@@ -556,6 +645,58 @@ But if structures/assets are missing, you MUST use the full rojo serve workflow 
 - Universe ID: `9369213918`
 - Place ID: `115818461044118`
 - URL: https://www.roblox.com/games/115818461044118/Faultline-Fear
+
+---
+
+## FAULT-LITE: Structure Showcase
+
+**Purpose**: Minimal testing environment for 3D asset development.
+
+Fault-Lite is a stripped-down companion game to Faultline Fear. It shares the terrain system but removes all gameplay systems, providing a fast-loading environment to:
+- Test new Blender models
+- Verify cloud asset imports
+- Test earthquake effects on structures
+- Validate terrain height placement
+
+### Why Fault-Lite Exists
+
+The full Faultline Fear game takes time to load and has many systems running. When iterating on 3D assets:
+1. **Fast iteration**: Fault-Lite loads in seconds
+2. **Isolated testing**: No interference from gameplay systems
+3. **Shared terrain**: Uses exact same TerrainCore heightmap
+4. **In-game UI**: Spawn any structure, trigger earthquakes
+
+### Shared Code Architecture
+
+Both games share terrain code via `src/shared/TerrainCore/`:
+```
+src/shared/TerrainCore/
+├── TerrainConfig.luau    # Shared constants (zones, heights, etc.)
+├── Heightmap.luau        # Shared height calculation
+└── init.luau             # Module exports
+
+src/faultline-fear/       # Full game (imports TerrainCore)
+src/fault-lite/           # Showcase (imports TerrainCore)
+```
+
+This DRY architecture ensures terrain is identical in both games.
+
+### Running Fault-Lite
+
+```bash
+# Option 1: Rojo serve (recommended for iteration)
+rojo serve fault-lite.project.json
+
+# Option 2: Build and open
+rojo build fault-lite.project.json -o fault-lite.rbxl
+```
+
+### In-Game Controls
+
+Fault-Lite has a UI panel with:
+- **Structure buttons**: Click to spawn any structure in front of player
+- **Clear button**: Remove current structure
+- **Earthquake buttons**: Minor, Moderate, Major (The Big One)
 
 ### File Structure
 
@@ -1179,3 +1320,17 @@ This way, future Claude instances can read JUST the header to decide if they nee
 ## Final Reminder
 
 You are capable of more than you assume. Ship things. Impact players. Move fast. Own your work.
+
+### Roblox Studio Plugin Location (macOS)
+
+**The ONLY plugin location Studio uses:**
+```
+~/Documents/Roblox/Plugins/
+```
+
+This is what Studio shows when you click "Plugins Folder". The `~/Library/Application Support/Roblox/Plugins/` path is NOT used.
+
+**Install plugins:**
+```bash
+cp plugins/FaultlineFear_Tools.lua ~/Documents/Roblox/Plugins/
+```

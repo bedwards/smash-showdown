@@ -32,6 +32,9 @@
       "Shared": {
         "$path": "src/faultline-fear/shared"
       },
+      "TerrainCore": {
+        "$path": "src/shared/TerrainCore"
+      },
       "DevPackages": {
         "$path": "DevPackages"
       }

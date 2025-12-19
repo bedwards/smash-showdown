@@ -107,14 +107,14 @@ local ASSETS: { [string]: AssetEntry } = {
 	},
 
 	-- Structures (from tools/blender/create_structures.py)
-	-- Cloud asset IDs from Open Cloud API upload (see assets/faultline-fear/uploaded-assets.json)
+	-- Cloud asset IDs uploaded via Open Cloud API (2024-12-19)
 	FerrisWheel = {
 		name = "FerrisWheel",
 		category = "Structures",
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Beach landmark, rotating beacon",
 		required = false,
-		cloudAssetId = 124487756821368,
+		cloudAssetId = 128227709441371,
 	},
 	RadioTower = {
 		name = "RadioTower",
@@ -122,7 +122,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Mountain summit rescue beacon",
 		required = false,
-		cloudAssetId = 74640268702619,
+		cloudAssetId = 119758365110065,
 	},
 	AbandonedHouse = {
 		name = "AbandonedHouse",
@@ -130,7 +130,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Modular town building",
 		required = false,
-		cloudAssetId = 113272128221522,
+		cloudAssetId = 90248483610888,
 	},
 	Bridge = {
 		name = "Bridge",
@@ -138,7 +138,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Fault line crossing",
 		required = false,
-		cloudAssetId = 80713308347988,
+		cloudAssetId = 105968577364311,
 	},
 	WaterTower = {
 		name = "WaterTower",
@@ -146,7 +146,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Town landmark, elevated tank",
 		required = false,
-		cloudAssetId = 139399916244302,
+		cloudAssetId = 74085624282098,
 	},
 	Lighthouse = {
 		name = "Lighthouse",
@@ -154,7 +154,7 @@ local ASSETS: { [string]: AssetEntry } = {
 		blenderScript = "tools/blender/create_structures.py",
 		description = "Coastal beacon with light",
 		required = false,
-		cloudAssetId = 125802590150635,
+		cloudAssetId = 97584625740584,
 	},
 
 	-- NPCs (from tools/blender/create_npcs.py - TODO)

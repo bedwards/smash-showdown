@@ -1,6 +1,44 @@
 --!strict
--- Faultline Fear: Single Source of Truth for all game constants
--- ALL configuration values go here. Never hardcode values in other files.
+--[[
+	Faultline Fear: Single Source of Truth for all GAME constants
+
+	Terrain configuration is imported from shared TerrainCore.
+	Game-specific constants (survival, NPCs, progression) live here.
+
+	DRY PRINCIPLE: Terrain values come from TerrainCore.TerrainConfig
+]]
+
+-- Handle Lune test environment (no game service)
+local TerrainConfig: any
+local success = pcall(function()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local TerrainCore = require(ReplicatedStorage:WaitForChild("TerrainCore"))
+	TerrainConfig = TerrainCore.Config
+end)
+
+-- Fallback for Lune tests - duplicate terrain values (ONLY used in tests)
+if not success then
+	TerrainConfig = {
+		WORLD_SIZE = 4000,
+		TERRAIN_SEED = 12345,
+		MOUNTAIN_MAX_HEIGHT = 500,
+		FAULT_LINE_DEPTH = 50,
+		FAULT_LINE_WIDTH = 30,
+		OCEAN_LEVEL = 0,
+		ZONES = {
+			OCEAN = { zMin = -2000, zMax = -1200 },
+			BEACH = { zMin = -1200, zMax = -800 },
+			COASTAL = { zMin = -800, zMax = -200 },
+			VALLEY = { zMin = -200, zMax = 400 },
+			FAULT_LINE = { zMin = 400, zMax = 800 },
+			FOREST = { zMin = 800, zMax = 1500 },
+			MOUNTAIN = { zMin = 1500, zMax = 2000 },
+		},
+		SPAWN_POINTS = {
+			{ name = "Spawn", x = 0, z = 0, description = "Default spawn" },
+		},
+	}
+end
 
 export type Config = typeof(Config)
 
@@ -18,9 +56,9 @@ local Config = {
 	LOAD_LEVEL = 5, -- Set to lower number to debug loading stages
 
 	-- ==========================================
-	-- WORLD DIMENSIONS
+	-- WORLD DIMENSIONS (from TerrainCore)
 	-- ==========================================
-	WORLD_SIZE = 4000, -- Total world size in studs
+	WORLD_SIZE = TerrainConfig.WORLD_SIZE,
 	WORLD_CENTER = Vector3.new(0, 0, 0),
 
 	-- Cardinal directions (which edge has what)
@@ -28,25 +66,20 @@ local Config = {
 	OCEAN_EDGE = "South", -- Ocean extends to south edge
 	FAULT_LINE_DIRECTION = "EastWest", -- Fault runs parallel to shore
 
-	-- Zone boundaries (Y is ignored, these are X/Z ranges)
-	ZONES = {
-		MOUNTAIN = { zMin = 1500, zMax = 2000 }, -- North
-		FOREST = { zMin = 800, zMax = 1500 },
-		FAULT_LINE = { zMin = 400, zMax = 800 }, -- Center
-		VALLEY = { zMin = -200, zMax = 400 },
-		COASTAL = { zMin = -800, zMax = -200 },
-		BEACH = { zMin = -1200, zMax = -800 },
-		OCEAN = { zMin = -2000, zMax = -1200 }, -- South
-	},
+	-- Zone boundaries (from TerrainCore)
+	ZONES = TerrainConfig.ZONES,
 
 	-- ==========================================
-	-- TERRAIN
+	-- TERRAIN (from TerrainCore)
 	-- ==========================================
-	TERRAIN_SEED = 12345,
-	MOUNTAIN_MAX_HEIGHT = 500,
-	FAULT_LINE_DEPTH = 50, -- How deep the rift is
-	FAULT_LINE_WIDTH = 30, -- Average width of the fault
-	OCEAN_LEVEL = 0, -- Sea level Y coordinate
+	TERRAIN_SEED = TerrainConfig.TERRAIN_SEED,
+	MOUNTAIN_MAX_HEIGHT = TerrainConfig.MOUNTAIN_MAX_HEIGHT,
+	FAULT_LINE_DEPTH = TerrainConfig.FAULT_LINE_DEPTH,
+	FAULT_LINE_WIDTH = TerrainConfig.FAULT_LINE_WIDTH,
+	OCEAN_LEVEL = TerrainConfig.OCEAN_LEVEL,
+
+	-- Spawn points for testing (from TerrainCore)
+	SPAWN_POINTS = TerrainConfig.SPAWN_POINTS,
 
 	-- ==========================================
 	-- EARTHQUAKE SYSTEM

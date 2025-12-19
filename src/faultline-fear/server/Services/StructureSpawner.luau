@@ -71,11 +71,12 @@ local STRUCTURE_DEFS: { StructureDef } = {
 	},
 
 	-- VALLEY ZONE - Water Tower
+	-- NOTE: Spawn is at (0, ~30, 100). Structures must be well clear of spawn.
 	{
 		name = "WaterTower_Main",
 		assetName = "WaterTower",
 		zone = "VALLEY",
-		position = Vector3.new(0, 0, 100), -- Town center
+		position = Vector3.new(250, 0, 300), -- Visible ahead-right from spawn
 		rotation = 0,
 		flattenRadius = 20,
 		scale = 1,
@@ -83,11 +84,12 @@ local STRUCTURE_DEFS: { StructureDef } = {
 	},
 
 	-- VALLEY ZONE - Abandoned Houses
+	-- Spread out in front of player, well away from spawn at (0, 100)
 	{
 		name = "House_1",
 		assetName = "AbandonedHouse",
 		zone = "VALLEY",
-		position = Vector3.new(-100, 0, 50),
+		position = Vector3.new(-220, 0, 280), -- Left-front from spawn
 		rotation = 15,
 		flattenRadius = 15,
 		scale = 1,
@@ -97,7 +99,7 @@ local STRUCTURE_DEFS: { StructureDef } = {
 		name = "House_2",
 		assetName = "AbandonedHouse",
 		zone = "VALLEY",
-		position = Vector3.new(80, 0, 150),
+		position = Vector3.new(150, 0, 380), -- Ahead-right, past water tower
 		rotation = -30,
 		flattenRadius = 15,
 		scale = 1,
@@ -273,6 +275,29 @@ local function spawnStructure(def: StructureDef): Model?
 	if model then
 		-- Apply colors to imported model (Roblox doesn't import FBX colors)
 		AssetColors:ApplyColors(model, def.assetName)
+		-- Anchor all parts (cloud models aren't anchored by default)
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+			end
+		end
+		-- Ensure PrimaryPart is set (cloud models don't have one)
+		if not model.PrimaryPart then
+			local largest: BasePart? = nil
+			local maxVol = 0
+			for _, p in model:GetDescendants() do
+				if p:IsA("BasePart") then
+					local vol = p.Size.X * p.Size.Y * p.Size.Z
+					if vol > maxVol then
+						maxVol = vol
+						largest = p
+					end
+				end
+			end
+			if largest then
+				model.PrimaryPart = largest
+			end
+		end
 		print(string.format("[StructureSpawner] Using imported model for %s (colors applied)", def.name))
 	else
 		-- Create placeholder
@@ -313,15 +338,31 @@ local function spawnStructure(def: StructureDef): Model?
 		end
 	end
 
-	-- Position and rotate
-	local cframe = CFrame.new(x, y, z) * CFrame.Angles(0, math.rad(def.rotation), 0)
-
-	if model.PrimaryPart then
-		-- Offset by half height so bottom is at ground level
-		local halfHeight = model.PrimaryPart.Size.Y / 2
-		cframe = cframe + Vector3.new(0, halfHeight, 0)
-		model:PivotTo(cframe)
+	-- Calculate actual model bounding box (not just PrimaryPart)
+	local minY, maxY = math.huge, -math.huge
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			local partBottom = part.Position.Y - part.Size.Y / 2
+			local partTop = part.Position.Y + part.Size.Y / 2
+			minY = math.min(minY, partBottom)
+			maxY = math.max(maxY, partTop)
+		end
 	end
+
+	-- Calculate final Y position to place model bottom at terrain height
+	-- Model's bottom is at minY (relative to origin), we want it at terrain height y
+	-- So pivot Y = y - minY (if minY=0, pivot at y; if minY=-5, pivot at y+5)
+	local finalY = y
+	if minY < math.huge then
+		finalY = y - minY
+	elseif model.PrimaryPart then
+		-- Fallback: assume PrimaryPart is at bottom, offset by half height
+		finalY = y + model.PrimaryPart.Size.Y / 2
+	end
+
+	-- Position and rotate
+	local cframe = CFrame.new(x, finalY, z) * CFrame.Angles(0, math.rad(def.rotation), 0)
+	model:PivotTo(cframe)
 
 	-- Set name and tags
 	model.Name = def.name

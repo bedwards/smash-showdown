@@ -37,17 +37,25 @@ echo ""
 
 # Step 1: Kill any existing Studio instances
 kill_studio() {
-    # Get PIDs and kill them directly (more reliable than pkill on macOS)
-    local PIDS=$(pgrep -f "RobloxStudio" 2>/dev/null)
-    if [ -n "$PIDS" ]; then
-        echo "$PIDS" | xargs kill -9 2>/dev/null || true
+    # Kill ALL Roblox processes (Studio, Player, and helpers)
+    pkill -9 -f "RobloxStudio" 2>/dev/null || true
+    pkill -9 -f "Roblox" 2>/dev/null || true
+    killall -9 "RobloxStudio" 2>/dev/null || true
+    killall -9 "Roblox" 2>/dev/null || true
+    sleep 2
+
+    # Verify all killed
+    if pgrep -f "Roblox" >/dev/null 2>&1; then
+        echo "[Warning] Some Roblox processes still running, force killing..."
+        pkill -9 -f "Roblox" 2>/dev/null || true
         sleep 1
     fi
 }
 
-EXISTING=$(pgrep -f "RobloxStudio" 2>/dev/null | wc -l | tr -d ' ')
+# Check for ANY Roblox processes
+EXISTING=$(pgrep -f "Roblox" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$EXISTING" -gt "0" ]; then
-    echo "[Cleanup] Killing $EXISTING existing Studio instance(s)..."
+    echo "[Cleanup] Killing $EXISTING existing Roblox process(es)..."
     kill_studio
 fi
 

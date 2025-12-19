@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
@@ -705,8 +706,8 @@ function EarthquakeService:Initialize()
 
 	-- Initialize last quake times to current time (delay first quakes)
 	local now = tick()
-	lastQuakeTimes["MINOR_TREMOR"] = now - Config.EARTHQUAKE.MINOR_TREMOR.interval * 0.8
-	lastQuakeTimes["MODERATE"] = now - Config.EARTHQUAKE.MODERATE.interval * 0.9
+	lastQuakeTimes["MINOR_TREMOR"] = now
+	lastQuakeTimes["MODERATE"] = now
 	lastQuakeTimes["MAJOR"] = now
 
 	-- Start scheduler (includes quake timing and fall damage monitoring)
