@@ -243,6 +243,164 @@ Never show a working-looking UI that silently does nothing. Users (and future de
 - Use ModuleScripts for shared code
 - Handle player joining/leaving properly (PlayerAdded, PlayerRemoving)
 
+## Fault-Lite: The Rapid Iteration Test Harness
+
+### Why Fault-Lite Exists
+
+Developing directly in Faultline Fear (the full game) has painful friction:
+1. **Long load times** - Full world takes significant time to generate
+2. **Distance to features** - Structures, zones, and events are spread across 4000 studs
+3. **Scheduled events** - Earthquakes happen on a timer. Are you going to wait 5 minutes during dev?
+
+**Fault-Lite solves this.** It's a minimal test harness that:
+- Loads instantly (small terrain patch)
+- Spawns structures right in front of you
+- Triggers earthquakes on demand via buttons
+- Shows all structure variants side-by-side for comparison
+
+### The Development Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FAULT-LITE (Test Harness)                                  │
+│  - Rapid iteration                                          │
+│  - Instant feedback                                         │
+│  - All variants visible                                     │
+│  - Manual event triggers                                    │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ Uses shared entities
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  TERRAIN CORE (Shared Modules)                              │
+│  src/shared/TerrainCore/                                    │
+│  - TerrainConfig.luau    (constants, per-structure config)  │
+│  - Heightmap.luau        (terrain generation)               │
+│  - PlacementUtils.luau   (ground placement helpers)         │
+│  - StructureEntity.luau  (encapsulated structure spawning)  │
+└─────────────────────────────────────────────────────────────┘
+                          │
+                          │ Same entities, full world
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  FAULTLINE FEAR (Full Game)                                 │
+│  - Complete world                                           │
+│  - Scheduled events                                         │
+│  - Full gameplay loop                                       │
+│  - Production-ready                                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**The key insight**: Changes to shared entities automatically apply to both games. Tune in Fault-Lite, ship in Faultline Fear.
+
+### Encapsulated Entity Pattern
+
+When game objects have complex configuration (offsets, sensitivity, rotation corrections), **encapsulate them as entities** in TerrainCore.
+
+**Example: StructureEntity**
+
+The problem we solved: Structures like FerrisWheel and WaterTower have different:
+- Y offsets (FerrisWheel was half-buried)
+- Earthquake sensitivity (FerrisWheel is more fragile)
+- Drop multipliers (FerrisWheel falls slower)
+- Rotation corrections (FerrisWheel was tilted 90°)
+
+Before encapsulation, this config was duplicated across:
+- Fault-Lite Main.server.luau
+- Faultline Fear StructureSpawner.luau
+- Faultline Fear EarthquakeService.luau
+
+**The encapsulated solution**:
+
+```lua
+-- src/shared/TerrainCore/StructureEntity.luau
+local StructureEntity = {}
+
+function StructureEntity.new(assetName: string): StructureEntity
+    -- Loads config from TerrainConfig.STRUCTURES[assetName]
+    -- Has cloud asset ID, sensitivity, yOffset, rotation correction
+end
+
+function StructureEntity:spawn(x: number, z: number, options: SpawnOptions): Model?
+    -- Handles EVERYTHING:
+    -- 1. Load from cloud or use provided model
+    -- 2. Apply colors
+    -- 3. Apply rotation correction
+    -- 4. Apply yOffset
+    -- 5. Set sensitivity attribute
+    -- 6. Add CollectionService tags
+    -- 7. Parent to folder
+end
+```
+
+**Usage in both games**:
+
+```lua
+-- Fault-Lite (test harness)
+local entity = StructureEntity.new("FerrisWheel")
+entity:spawn(x, z, { anchored = false, dropHeight = 15, parent = folder })
+
+-- Faultline Fear (full game) - same code, can pass pre-loaded model
+local model = AssetManifest:CloneAsset("FerrisWheel")
+local entity = StructureEntity.new("FerrisWheel")
+entity:spawn(x, z, { model = model, zone = "BEACH", beacon = true, parent = folder })
+```
+
+### Applying This Pattern to Other Systems
+
+**Candidates for encapsulation** (entities that need shared config):
+
+| Entity | Config Needs | Location |
+|--------|--------------|----------|
+| **WeatherEntity** | Duration, intensity, visual params | TerrainCore |
+| **EarthquakeEntity** | Duration, shake, launch height, damage | TerrainCore |
+| **NPCEntity** | Dialogue, behavior, spawn conditions | TerrainCore |
+| **CollectibleEntity** | Value, respawn time, visual effects | TerrainCore |
+
+**Pattern template**:
+
+```lua
+-- src/shared/TerrainCore/[EntityName].luau
+local EntityName = {}
+
+-- 1. Config lives in TerrainConfig.luau
+-- TerrainConfig.ENTITY_TYPE = {
+--     DEFAULT = { ... },
+--     Variant1 = { ... },
+--     Variant2 = { ... },
+-- }
+
+-- 2. Constructor loads config
+function EntityName.new(variantName: string): EntityName
+    local self = setmetatable({}, EntityName)
+    self.config = TerrainConfig.GetEntityConfig(variantName)
+    return self
+end
+
+-- 3. Main action method applies all config
+function EntityName:spawn(x, z, options): Instance?
+    -- All the complex logic lives HERE, not in game code
+end
+
+-- 4. Export from TerrainCore/init.luau
+TerrainCore.EntityName = require(script.EntityName)
+```
+
+### When to Use Fault-Lite vs Faultline Fear
+
+| Situation | Use Fault-Lite | Use Faultline Fear |
+|-----------|----------------|-------------------|
+| Tuning structure physics | ✅ | |
+| Testing earthquake effects | ✅ | |
+| Adjusting drop heights | ✅ | |
+| Comparing anchored vs unanchored | ✅ | |
+| Testing zone-specific placement | | ✅ |
+| Verifying full world layout | | ✅ |
+| Testing scheduled events | | ✅ |
+| Final playtesting | | ✅ |
+
+**Rule of thumb**: If you need to see something happen RIGHT NOW, use Fault-Lite. If you need to verify it works in context, use Faultline Fear.
+
 ## GitHub Integration
 
 ### Creating Issues

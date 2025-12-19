@@ -99,6 +99,28 @@ local TerrainConfig: TerrainConfig = {
 		-- launchHeight = magnitude * LAUNCH_MULTIPLIER
 		LAUNCH_MULTIPLIER = 15,
 	},
+
+	-- Per-structure configuration for placement and physics
+	-- yOffset: Extra Y offset when placing on ground (fixes buried structures)
+	-- sensitivity: Multiplier for earthquake launch height (lower = more fragile)
+	-- dropMultiplier: Multiplier for initial drop heights (lower = gentler drops)
+	-- rotationX/Y/Z: Rotation correction in degrees (fixes tilted models)
+	STRUCTURES = {
+		-- Default values for structures not listed
+		DEFAULT = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+
+		-- Water tower works perfectly - don't change
+		WaterTower = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+
+		-- Ferris wheel: buried when anchored, very fragile, needs rotation fix
+		FerrisWheel = { yOffset = 8, sensitivity = 0.3, dropMultiplier = 0.3, rotationX = 0, rotationY = 0, rotationZ = 90 },
+
+		-- Other structures (tune as needed)
+		RadioTower = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+		Lighthouse = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+		AbandonedHouse = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+		Bridge = { yOffset = 0, sensitivity = 1.0, dropMultiplier = 1.0, rotationX = 0, rotationY = 0, rotationZ = 0 },
+	},
 }
 
 --[[
@@ -109,6 +131,19 @@ local TerrainConfig: TerrainConfig = {
 ]]
 function TerrainConfig.GetLaunchHeight(magnitude: number): number
 	return magnitude * TerrainConfig.EARTHQUAKE.LAUNCH_MULTIPLIER
+end
+
+--[[
+	Get structure-specific configuration.
+	@param assetName The name of the structure asset
+	@return Structure config with yOffset, sensitivity, dropMultiplier
+]]
+function TerrainConfig.GetStructureConfig(assetName: string): { yOffset: number, sensitivity: number, dropMultiplier: number }
+	local config = TerrainConfig.STRUCTURES[assetName]
+	if config then
+		return config
+	end
+	return TerrainConfig.STRUCTURES.DEFAULT
 end
 
 return TerrainConfig

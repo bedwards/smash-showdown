@@ -2,31 +2,30 @@
 --[[
 	Faultline Fear: Structure Spawner
 
-	Places landmark structures in the world.
-	Uses AssetManifest for imported models, falls back to placeholders.
-	Uses Heightmap for terrain-aware placement.
+	Places landmark structures in the world using encapsulated StructureEntity.
+	Uses AssetManifest for imported models, StructureEntity handles cloud/placeholders.
+	All spawning logic (config, rotation, sensitivity, colors) in shared StructureEntity.
 
 	Structures:
 	- Ferris Wheel (Beach) - Rotating beacon
 	- Radio Tower (Mountain) - Rescue beacon
-	- Water Tower (Valley) - Town landmark
+	- Water Tower (Valley/Forest) - Town landmarks
 	- Lighthouse (Coastal) - Coastal beacon
 	- Abandoned Houses (Valley/Coastal) - Town buildings
 	- Bridge (Fault Line) - Crossing point
 
 	Exports: Initialize(), GetStructure()
-	Depends: Config, Heightmap, AssetManifest
+	Depends: Config, AssetManifest, TerrainCore.StructureEntity
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local CollectionService = game:GetService("CollectionService")
 
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Config = Shared.Config
-local Heightmap = Shared.Heightmap
 local AssetManifest = Shared.AssetManifest
 local AssetColors = Shared.AssetColors
+local StructureEntity = Shared.TerrainCore.StructureEntity
 
 local StructureSpawner = {}
 
@@ -43,6 +42,8 @@ type StructureDef = {
 	flattenRadius: number, -- Radius to flatten terrain (0 = no flattening)
 	scale: number, -- Scale multiplier
 	beacon: boolean, -- Is this a navigation beacon?
+	anchored: boolean?, -- If false, structure is physics-enabled (default true)
+	dropHeight: number?, -- If unanchored, initial drop height above ground
 }
 
 local STRUCTURE_DEFS: { StructureDef } = {
@@ -159,6 +160,56 @@ local STRUCTURE_DEFS: { StructureDef } = {
 		scale = 1,
 		beacon = true,
 	},
+
+	-- FOREST ZONE - Water Towers (one per town, 4 total)
+	-- Foothills at higher elevations - testing earthquake physics
+	{
+		name = "WaterTower_Town1_Anchored",
+		assetName = "WaterTower",
+		zone = "FOREST",
+		position = Vector3.new(-500, 0, 900), -- West foothills
+		rotation = 0,
+		flattenRadius = 20,
+		scale = 1,
+		beacon = false,
+		anchored = true, -- Solid reference - won't move
+	},
+	{
+		name = "WaterTower_Town2_OnGround",
+		assetName = "WaterTower",
+		zone = "FOREST",
+		position = Vector3.new(500, 0, 1000), -- East foothills
+		rotation = 45,
+		flattenRadius = 20,
+		scale = 1,
+		beacon = false,
+		anchored = false, -- Unanchored, placed on ground
+		dropHeight = 0,
+	},
+	{
+		name = "WaterTower_Town3_LowDrop",
+		assetName = "WaterTower",
+		zone = "FOREST",
+		position = Vector3.new(-400, 0, 1200), -- Northwest foothills
+		rotation = 90,
+		flattenRadius = 20,
+		scale = 1,
+		beacon = false,
+		anchored = false,
+		dropHeight = 3, -- Low drop, gentle landing
+	},
+	{
+		name = "WaterTower_Town4_HighDrop",
+		assetName = "WaterTower",
+		zone = "FOREST",
+		position = Vector3.new(400, 0, 1300), -- Northeast foothills
+		rotation = -45,
+		flattenRadius = 20,
+		scale = 1,
+		beacon = false,
+		anchored = false,
+		dropHeight = 20, -- High drop, dramatic fall
+	},
 }
 
 -- ==========================================
@@ -211,100 +262,10 @@ local function auditAndFixInvisibleColliders(model: Model): number
 end
 
 -- ==========================================
--- PLACEHOLDER CREATION
--- ==========================================
-
-local function createPlaceholderStructure(def: StructureDef): Model
-	local model = Instance.new("Model")
-	model.Name = def.name .. "_Placeholder"
-
-	-- Create a simple colored box
-	local part = Instance.new("Part")
-	part.Name = "Main"
-	part.Anchored = true
-	part.CanCollide = true
-
-	-- Size based on structure type
-	local sizes: { [string]: Vector3 } = {
-		FerrisWheel = Vector3.new(40, 45, 10),
-		RadioTower = Vector3.new(15, 60, 15),
-		WaterTower = Vector3.new(15, 35, 15),
-		Lighthouse = Vector3.new(10, 30, 10),
-		AbandonedHouse = Vector3.new(25, 20, 20),
-		Bridge = Vector3.new(80, 5, 15),
-	}
-
-	local colors: { [string]: Color3 } = {
-		FerrisWheel = Color3.fromRGB(200, 50, 50),
-		RadioTower = Color3.fromRGB(200, 200, 200),
-		WaterTower = Color3.fromRGB(100, 150, 200),
-		Lighthouse = Color3.fromRGB(255, 255, 240),
-		AbandonedHouse = Color3.fromRGB(150, 130, 110),
-		Bridge = Color3.fromRGB(120, 120, 130),
-	}
-
-	part.Size = sizes[def.assetName] or Vector3.new(20, 20, 20)
-	part.Color = colors[def.assetName] or Color3.fromRGB(150, 150, 150)
-	part.Material = Enum.Material.SmoothPlastic
-	part.Parent = model
-
-	model.PrimaryPart = part
-
-	-- Add beacon light for beacon structures
-	if def.beacon then
-		local light = Instance.new("PointLight")
-		light.Brightness = 3
-		light.Range = 100
-		light.Color = Color3.fromRGB(255, 200, 100)
-		light.Parent = part
-
-		-- Beacon effect (would need attachments, skip for placeholder)
-	end
-
-	return model
-end
-
--- ==========================================
--- STRUCTURE SPAWNING
+-- STRUCTURE SPAWNING (Uses encapsulated StructureEntity)
 -- ==========================================
 
 local function spawnStructure(def: StructureDef): Model?
-	-- Try to get imported model
-	local model = AssetManifest:CloneAsset(def.assetName)
-
-	if model then
-		-- Apply colors to imported model (Roblox doesn't import FBX colors)
-		AssetColors:ApplyColors(model, def.assetName)
-		-- Anchor all parts (cloud models aren't anchored by default)
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				part.Anchored = true
-			end
-		end
-		-- Ensure PrimaryPart is set (cloud models don't have one)
-		if not model.PrimaryPart then
-			local largest: BasePart? = nil
-			local maxVol = 0
-			for _, p in model:GetDescendants() do
-				if p:IsA("BasePart") then
-					local vol = p.Size.X * p.Size.Y * p.Size.Z
-					if vol > maxVol then
-						maxVol = vol
-						largest = p
-					end
-				end
-			end
-			if largest then
-				model.PrimaryPart = largest
-			end
-		end
-		print(string.format("[StructureSpawner] Using imported model for %s (colors applied)", def.name))
-	else
-		-- Create placeholder
-		model = createPlaceholderStructure(def)
-		print(string.format("[StructureSpawner] Using placeholder for %s (asset not imported)", def.name))
-	end
-
 	-- Calculate position
 	local x: number, z: number
 	if def.position then
@@ -320,65 +281,34 @@ local function spawnStructure(def: StructureDef): Model?
 		end
 	end
 
-	-- Flatten terrain if needed
-	local y: number
-	if def.flattenRadius > 0 then
-		y = Heightmap:FlattenArea(x, z, def.flattenRadius)
+	-- Try to get imported model from AssetManifest
+	local preloadedModel = AssetManifest:CloneAsset(def.assetName)
+	if preloadedModel then
+		-- Apply colors (Roblox doesn't import FBX colors)
+		AssetColors:ApplyColors(preloadedModel, def.assetName)
+		print(string.format("[StructureSpawner] Using imported model for %s", def.name))
 	else
-		y = Heightmap:GetHeight(x, z)
+		print(string.format("[StructureSpawner] Will load from cloud/placeholder for %s", def.name))
 	end
 
-	-- Apply scale
-	if def.scale ~= 1 and model.PrimaryPart then
-		-- Scale all parts
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				part.Size = part.Size * def.scale
-			end
-		end
+	-- Create entity and spawn using encapsulated logic
+	local entity = StructureEntity.new(def.assetName)
+	local model = entity:spawn(x, z, {
+		anchored = def.anchored,
+		dropHeight = def.dropHeight or 0,
+		rotation = def.rotation,
+		flattenRadius = def.flattenRadius,
+		scale = def.scale,
+		parent = structuresFolder,
+		name = def.name,
+		model = preloadedModel,
+		zone = def.zone,
+		beacon = def.beacon,
+	})
+
+	if not model then
+		return nil
 	end
-
-	-- Calculate actual model bounding box (not just PrimaryPart)
-	local minY, maxY = math.huge, -math.huge
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			local partBottom = part.Position.Y - part.Size.Y / 2
-			local partTop = part.Position.Y + part.Size.Y / 2
-			minY = math.min(minY, partBottom)
-			maxY = math.max(maxY, partTop)
-		end
-	end
-
-	-- Calculate final Y position to place model bottom at terrain height
-	-- Model's bottom is at minY (relative to origin), we want it at terrain height y
-	-- So pivot Y = y - minY (if minY=0, pivot at y; if minY=-5, pivot at y+5)
-	local finalY = y
-	if minY < math.huge then
-		finalY = y - minY
-	elseif model.PrimaryPart then
-		-- Fallback: assume PrimaryPart is at bottom, offset by half height
-		finalY = y + model.PrimaryPart.Size.Y / 2
-	end
-
-	-- Position and rotate
-	local cframe = CFrame.new(x, finalY, z) * CFrame.Angles(0, math.rad(def.rotation), 0)
-	model:PivotTo(cframe)
-
-	-- Set name and tags
-	model.Name = def.name
-	CollectionService:AddTag(model, "Structure")
-	CollectionService:AddTag(model, def.assetName)
-	if def.beacon then
-		CollectionService:AddTag(model, "Beacon")
-	end
-
-	-- Set attributes
-	model:SetAttribute("StructureType", def.assetName)
-	model:SetAttribute("Zone", def.zone)
-	model:SetAttribute("IsBeacon", def.beacon)
-
-	-- Parent to folder
-	model.Parent = structuresFolder
 
 	-- Audit for invisible colliders (Fix for Issue #86)
 	local fixedCount = auditAndFixInvisibleColliders(model)

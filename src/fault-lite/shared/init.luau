@@ -13,7 +13,8 @@ local Shared = {}
 -- Import TerrainCore from shared location
 local TerrainCore = require(ReplicatedStorage:WaitForChild("TerrainCore"))
 
--- Re-export TerrainCore modules
+-- Re-export TerrainCore itself and its modules
+Shared.TerrainCore = TerrainCore
 Shared.TerrainConfig = TerrainCore.Config
 Shared.Heightmap = TerrainCore.Heightmap
 Shared.PlacementUtils = TerrainCore.PlacementUtils

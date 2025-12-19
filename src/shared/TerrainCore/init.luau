@@ -18,5 +18,6 @@ local TerrainCore = {}
 TerrainCore.Config = require(script.TerrainConfig)
 TerrainCore.Heightmap = require(script.Heightmap)
 TerrainCore.PlacementUtils = require(script.PlacementUtils)
+TerrainCore.StructureEntity = require(script.StructureEntity)
 
 return TerrainCore

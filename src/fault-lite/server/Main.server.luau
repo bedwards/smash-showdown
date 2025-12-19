@@ -10,14 +10,13 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local InsertService = game:GetService("InsertService")
 local Workspace = game:GetService("Workspace")
 
 -- Wait for shared modules
 local Shared = require(ReplicatedStorage:WaitForChild("Shared"))
 local Heightmap = Shared.Heightmap
 local Config = Shared.Config
-local PlacementUtils = Shared.PlacementUtils
+local StructureEntity = Shared.TerrainCore.StructureEntity
 
 -- ==========================================
 -- REMOTE EVENTS
@@ -46,23 +45,6 @@ HeightmapReady.Parent = Remotes
 local ChangeSpawnPointEvent = Instance.new("RemoteEvent")
 ChangeSpawnPointEvent.Name = "ChangeSpawnPoint"
 ChangeSpawnPointEvent.Parent = Remotes
-
--- ==========================================
--- CLOUD ASSET IDS
--- ==========================================
-
-local CLOUD_ASSETS = {
-	FerrisWheel = 128227709441371,
-	RadioTower = 119758365110065,
-	WaterTower = 74085624282098,
-	Lighthouse = 97584625740584,
-	AbandonedHouse = 90248483610888,
-	Bridge = 105968577364311,
-}
-
--- Import AssetColors from Faultline Fear shared (DRY - single source of truth)
-local FaultlineFearShared = ReplicatedStorage:WaitForChild("FaultlineFearShared")
-local AssetColors = require(FaultlineFearShared:WaitForChild("AssetColors"))
 
 -- ==========================================
 -- STATE
@@ -149,7 +131,7 @@ local function generateMinimalTerrain()
 end
 
 -- ==========================================
--- STRUCTURE SPAWNING
+-- STRUCTURE SPAWNING (Uses encapsulated StructureEntity)
 -- ==========================================
 
 local function clearCurrentStructure()
@@ -160,8 +142,8 @@ local function clearCurrentStructure()
 end
 
 --[[
-	Spawns a structure at the given position.
-	Uses shared PlacementUtils for consistent placement with Faultline Fear.
+	Spawns a structure at the given position using the encapsulated StructureEntity.
+	All configuration (yOffset, sensitivity, rotation, colors) handled by StructureEntity.
 
 	@param assetName The name of the asset to spawn
 	@param x World X coordinate
@@ -171,92 +153,30 @@ end
 	@return The spawned model, or nil on failure
 ]]
 local function spawnStructure(assetName: string, x: number, z: number, anchored: boolean, dropHeight: number?): Model?
-	local assetId = CLOUD_ASSETS[assetName]
-	if not assetId then
+	print("[Fault-Lite] spawnStructure called:", assetName, "at", x, z, "anchored=", anchored)
+
+	-- Validate asset name
+	if not StructureEntity.isValidAsset(assetName) then
 		warn("[Fault-Lite] Unknown asset: " .. assetName)
 		return nil
 	end
+	print("[Fault-Lite] Asset validated, creating entity...")
 
-	local actualDropHeight = dropHeight or 15
-	print("[Fault-Lite] Spawning structure: " .. assetName .. " (anchored=" .. tostring(anchored) .. ", dropHeight=" .. actualDropHeight .. ")")
+	-- Create entity and spawn
+	local entity = StructureEntity.new(assetName)
+	print("[Fault-Lite] Entity created, calling spawn...")
 
-	-- Try to load from cloud
-	local success, result = pcall(function()
-		return InsertService:LoadAsset(assetId)
-	end)
+	local model = entity:spawn(x, z, {
+		anchored = anchored,
+		dropHeight = dropHeight or 15,
+		parent = structuresFolder,
+	})
 
-	if not success then
-		warn("[Fault-Lite] Failed to load asset: " .. tostring(result))
-		-- Create placeholder
-		local placeholder = Instance.new("Model")
-		placeholder.Name = assetName .. "_Placeholder"
-
-		local part = Instance.new("Part")
-		part.Name = "Main"
-		part.Size = Vector3.new(20, 20, 20)
-		part.Color = AssetColors:GetPrimaryColor(assetName)
-		part.Anchored = anchored
-		part.Parent = placeholder
-
-		placeholder.PrimaryPart = part
-
-		-- Use PlacementUtils for consistent placement
-		if anchored then
-			PlacementUtils.placeOnGround(placeholder, x, z, Heightmap)
-		else
-			PlacementUtils.placeForDrop(placeholder, x, z, Heightmap, actualDropHeight)
-		end
-
-		placeholder.Parent = structuresFolder
-		return placeholder
-	end
-
-	-- Extract the actual model from the asset container
-	local assetContainer = result
-	local model: Model? = nil
-
-	for _, child in assetContainer:GetChildren() do
-		if child:IsA("Model") or child:IsA("MeshPart") then
-			model = child :: Model
-			break
-		end
-	end
-
-	if not model then
-		warn("[Fault-Lite] No model found in asset")
-		assetContainer:Destroy()
-		return nil
-	end
-
-	-- Wrap MeshPart in Model if needed
-	if not model:IsA("Model") then
-		local wrapper = Instance.new("Model")
-		wrapper.Name = assetName
-		model.Parent = wrapper
-		wrapper.PrimaryPart = model :: BasePart
-		model = wrapper
-	end
-
-	-- Setup the model
-	local suffix = anchored and "_Anchored" or ("_Drop" .. actualDropHeight)
-	model.Name = assetName .. suffix
-
-	-- Apply colors from shared AssetColors (DRY - single source of truth)
-	AssetColors:ApplyColors(model, assetName)
-
-	-- Use shared PlacementUtils for placement (SINGLE SOURCE OF TRUTH)
-	if anchored then
-		local placementResult = PlacementUtils.placeOnGround(model, x, z, Heightmap)
-		print("[Fault-Lite] Placed on ground at Y=" .. string.format("%.1f", placementResult.terrainHeight))
+	if model then
+		print("[Fault-Lite] Spawn succeeded:", model.Name)
 	else
-		local placementResult = PlacementUtils.placeForDrop(model, x, z, Heightmap, actualDropHeight)
-		print("[Fault-Lite] Placed for drop at Y=" .. string.format("%.1f", placementResult.terrainHeight + actualDropHeight))
+		warn("[Fault-Lite] Spawn returned nil!")
 	end
-
-	model.Parent = structuresFolder
-
-	-- Clean up container
-	assetContainer:Destroy()
 
 	return model
 end
@@ -271,13 +191,14 @@ local TerrainConfig = Shared.TerrainConfig
 --[[
 	Launch all unanchored structures into the air.
 	Called when earthquake triggers - structures get thrown up and fall back down.
+	Uses per-structure sensitivity from shared config (DRY).
 ]]
-local function launchUnanchoredStructures(launchHeight: number)
-	if launchHeight <= 0 then
+local function launchUnanchoredStructures(baseLaunchHeight: number)
+	if baseLaunchHeight <= 0 then
 		return
 	end
 
-	print("[Fault-Lite] Launching unanchored structures " .. launchHeight .. " studs up")
+	print("[Fault-Lite] Earthquake launch (base height: " .. baseLaunchHeight .. " studs)")
 
 	local launchedCount = 0
 	for _, model in structuresFolder:GetChildren() do
@@ -292,10 +213,17 @@ local function launchUnanchoredStructures(launchHeight: number)
 			end
 
 			if isUnanchored then
-				-- Move the model up by launchHeight
-				local currentCFrame = model:GetPivot()
-				model:PivotTo(currentCFrame + Vector3.new(0, launchHeight, 0))
-				launchedCount = launchedCount + 1
+				-- Get per-structure sensitivity (stored as attribute, from shared config)
+				local sensitivity = model:GetAttribute("Sensitivity") or 1.0
+				local actualLaunchHeight = baseLaunchHeight * sensitivity
+
+				if actualLaunchHeight > 0 then
+					-- Move the model up by adjusted launch height
+					local currentCFrame = model:GetPivot()
+					model:PivotTo(currentCFrame + Vector3.new(0, actualLaunchHeight, 0))
+					launchedCount = launchedCount + 1
+					print("  " .. model.Name .. ": launched " .. string.format("%.1f", actualLaunchHeight) .. " studs (sensitivity=" .. sensitivity .. ")")
+				end
 			end
 		end
 	end
@@ -341,10 +269,12 @@ end
 	4. HIGH DROP - Dropped from high up (far right)
 ]]
 SpawnStructureEvent.OnServerEvent:Connect(function(player, assetName, spawnPointName)
-	print("[Fault-Lite] Player", player.Name, "requested structure:", assetName, "at", spawnPointName or "default")
+	print("[Fault-Lite] === SPAWN EVENT RECEIVED ===")
+	print("[Fault-Lite] Player:", player and player.Name or "nil")
+	print("[Fault-Lite] Asset:", assetName or "nil")
+	print("[Fault-Lite] SpawnPoint:", spawnPointName or "nil")
 
 	-- Find spawn point from TerrainConfig
-	local TerrainConfig = Shared.TerrainConfig
 	local spawnPoint = nil
 	for _, point in ipairs(TerrainConfig.SPAWN_POINTS) do
 		if point.name == spawnPointName then
@@ -415,7 +345,6 @@ ChangeSpawnPointEvent.OnServerEvent:Connect(function(player, spawnPointName)
 	print("[Fault-Lite] Player", player.Name, "changing spawn to:", spawnPointName)
 
 	-- Find spawn point from TerrainConfig
-	local TerrainConfig = Shared.TerrainConfig
 	local spawnPoint = nil
 	for _, point in ipairs(TerrainConfig.SPAWN_POINTS) do
 		if point.name == spawnPointName then
@@ -470,7 +399,4 @@ generateMinimalTerrain()
 HeightmapReady:FireAllClients()
 
 print("[Fault-Lite] Server ready!")
-print("Available structures:", table.concat({
-	"FerrisWheel", "RadioTower", "AbandonedHouse",
-	"Bridge", "WaterTower", "Lighthouse"
-}, ", "))
+print("Available structures:", table.concat(StructureEntity.getAvailableAssets(), ", "))
